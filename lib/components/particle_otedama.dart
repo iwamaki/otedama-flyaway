@@ -350,15 +350,48 @@ class ParticleOtedama extends BodyComponent {
     return count > 0 ? sum / count.toDouble() : initialPosition;
   }
 
-  /// 発射（外殻のみに力を加える）
-  /// 内部ビーズは外殻との衝突で自然に追従する
-  void launch(Vector2 impulse) {
+  /// タップ位置に力を加える際の効果範囲（半径の倍率）
+  /// 小さいほどタップ位置に集中、大きいほど全体に分散
+  static double touchEffectRadius = 1.0;
+
+  /// 発射（タップ位置に近い外殻粒子に強い力を加える）
+  /// touchPointを指定すると、その位置に近い外殻粒子に強いインパルスが加わり
+  /// 回転（トルク）が発生する
+  /// ※内部ビーズには力を加えない
+  void launch(Vector2 impulse, {Vector2? touchPoint}) {
     final scaledImpulse = impulse * PhysicsConfig.launchMultiplier;
 
-    for (final body in shellBodies) {
-      body.applyLinearImpulse(scaledImpulse * body.mass);
+    if (touchPoint == null || shellBodies.isEmpty) {
+      // タップ位置がない場合は従来通り全体に均一に力を加える
+      for (final body in shellBodies) {
+        body.applyLinearImpulse(scaledImpulse * body.mass);
+      }
+    } else {
+      // タップ位置に近い外殻粒子に強いインパルスを加える（ガウシアン重み付け）
+      final sigma = overallRadius * touchEffectRadius;
+      final sigma2 = sigma * sigma;
+
+      double totalWeight = 0;
+      final weights = <double>[];
+
+      for (final body in shellBodies) {
+        final distance = (body.position - touchPoint).length;
+        // ガウシアン関数: exp(-d^2 / (2σ^2))
+        final weight = math.exp(-(distance * distance) / (2 * sigma2));
+        weights.add(weight);
+        totalWeight += weight;
+      }
+
+      // 重みを正規化して、合計インパルスが一定になるようにする
+      final normalizer = shellBodies.length / totalWeight;
+
+      for (int i = 0; i < shellBodies.length; i++) {
+        final body = shellBodies[i];
+        final normalizedWeight = weights[i] * normalizer;
+        body.applyLinearImpulse(scaledImpulse * body.mass * normalizedWeight);
+      }
     }
-    // beadBodiesにはインパルスを加えない
+    // beadBodiesには一切インパルスを加えない
     // → 外殻に閉じ込められているので、衝突で自然に動く
   }
 

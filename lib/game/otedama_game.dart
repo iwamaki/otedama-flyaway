@@ -42,9 +42,9 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       ..priority = -100; // 最背面
     camera.backdrop.add(_background!);
 
-    // ドラッグ線（ワールド座標で描画）
+    // ドラッグ線（最前面に表示するためviewportに追加）
     _dragLine = DragLine();
-    await world.add(_dragLine!);
+    camera.viewport.add(_dragLine!);
 
     // ステージを構築
     await _buildStage();
@@ -108,9 +108,10 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
         _dragStart = touchPos;
         _dragCurrent = touchPos;
 
-        _dragLine?.update_(
-          start: otedamaPos.clone(),
-          end: _dragCurrent,
+        // スクリーン座標に変換して渡す
+        _dragLine?.updateScreen(
+          start: worldToScreen(_dragStart!),
+          end: worldToScreen(_dragCurrent!),
         );
       }
     }
@@ -119,28 +120,27 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
-    if (!_isDraggingOtedama) return;
+    if (!_isDraggingOtedama || _dragStart == null) return;
 
     _dragCurrent = screenToWorld(event.localEndPosition);
 
-    // ドラッグ線を更新
-    if (otedama != null) {
-      _dragLine?.update_(
-        start: otedama!.centerPosition.clone(),
-        end: _dragCurrent,
-      );
-    }
+    // スクリーン座標に変換して渡す
+    _dragLine?.updateScreen(
+      start: worldToScreen(_dragStart!),
+      end: worldToScreen(_dragCurrent!),
+    );
   }
 
   @override
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
 
-    if (_isDraggingOtedama && _dragCurrent != null && otedama != null) {
+    if (_isDraggingOtedama && _dragStart != null && _dragCurrent != null && otedama != null) {
       // スワイプの方向と逆に発射（パチンコ式）
       final otedamaPos = otedama!.centerPosition;
       final diff = otedamaPos - _dragCurrent!;
-      otedama!.launch(diff);
+      // タップ位置に力を加える（回転が発生する）
+      otedama!.launch(diff, touchPoint: _dragStart!);
     }
 
     // 状態をリセット
