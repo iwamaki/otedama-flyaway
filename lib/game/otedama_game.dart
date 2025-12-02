@@ -1,12 +1,12 @@
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
+import 'package:flutter/material.dart';
 
 import '../components/background.dart';
 import '../components/drag_line.dart';
 import '../components/ground.dart';
 import '../components/particle_otedama.dart';
-import '../components/wall.dart';
 import '../config/physics_config.dart';
 
 /// メインゲームクラス
@@ -50,9 +50,18 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     await _buildStage();
 
     // お手玉を配置（粒子ベース）
-    otedama = ParticleOtedama(position: Vector2(0, -5));
+    otedama = ParticleOtedama(
+      position: Vector2(StageConfig.spawnX, StageConfig.spawnY),
+    );
     await world.add(otedama!);
   }
+
+  /// 現在の高さ（Y座標の負数、上が正）
+  double get currentHeight => -(otedama?.centerPosition.y ?? 0);
+
+  /// 最高到達高さ
+  double _maxHeight = 0;
+  double get maxHeight => _maxHeight;
 
   @override
   void update(double dt) {
@@ -61,30 +70,68 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     // 重力スケールを適用
     world.gravity = Vector2(0, PhysicsConfig.gravityY * ParticleOtedama.gravityScale);
 
+    if (otedama != null) {
+      // カメラ追従
+      _updateCameraFollow(otedama!.centerPosition);
+
+      // 最高高さを更新
+      if (currentHeight > _maxHeight) {
+        _maxHeight = currentHeight;
+      }
+
+      // 落下判定
+      if (otedama!.centerPosition.y > StageConfig.fallThreshold) {
+        resetOtedama();
+      }
+    }
+
     // パララックス効果を更新
     if (otedama != null && _background != null) {
       _background!.updateParallax(otedama!.centerPosition);
     }
   }
 
+  /// カメラをお手玉に追従させる
+  void _updateCameraFollow(Vector2 targetPosition) {
+    final currentPos = camera.viewfinder.position;
+    final diff = targetPosition - currentPos;
+
+    // デッドゾーン内なら追従しない
+    if (diff.length < CameraConfig.deadZone) return;
+
+    // Lerp補間でスムーズに追従
+    final newPos = currentPos + diff * CameraConfig.followLerpSpeed;
+    camera.viewfinder.position = newPos;
+  }
+
   /// ステージの構築
   Future<void> _buildStage() async {
-    // 地面
+    // 地面（スタート地点）
     await world.add(Ground(
       position: Vector2(0, StageConfig.groundY),
       size: Vector2(StageConfig.groundWidth, 1),
     ));
 
-    // 左の壁
-    await world.add(Wall(
-      position: Vector2(-StageConfig.wallX, 0),
-      size: Vector2(1, StageConfig.wallHeight),
+    // デモ用の足場を配置（後でエディタで編集可能に）
+    await world.add(Ground(
+      position: Vector2(5, 0),
+      size: Vector2(4, 0.5),
+      color: const Color(0xFF6B8E23),
     ));
-
-    // 右の壁
-    await world.add(Wall(
-      position: Vector2(StageConfig.wallX, 0),
-      size: Vector2(1, StageConfig.wallHeight),
+    await world.add(Ground(
+      position: Vector2(-4, -8),
+      size: Vector2(5, 0.5),
+      color: const Color(0xFF6B8E23),
+    ));
+    await world.add(Ground(
+      position: Vector2(3, -16),
+      size: Vector2(4, 0.5),
+      color: const Color(0xFF6B8E23),
+    ));
+    await world.add(Ground(
+      position: Vector2(-5, -24),
+      size: Vector2(5, 0.5),
+      color: const Color(0xFF6B8E23),
     ));
   }
 

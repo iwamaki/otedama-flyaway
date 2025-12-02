@@ -33,7 +33,7 @@ class _OtedamaAppState extends State<OtedamaApp> {
           children: [
             // ゲーム本体
             GameWidget(game: _game),
-            // パラメータ調整UI
+            // パラメータ調整UI（開発用）
             PhysicsTuner(
               onRebuild: () {
                 _game.otedama?.rebuild();

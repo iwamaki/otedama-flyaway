@@ -27,12 +27,26 @@ class PhysicsConfig {
 /// カメラ設定
 class CameraConfig {
   static const double zoom = 15.0;
+
+  /// カメラ追従の滑らかさ（0.0〜1.0、小さいほど滑らか）
+  static const double followLerpSpeed = 0.05;
+
+  /// カメラが追従を開始するデッドゾーン（この範囲内は追従しない）
+  static const double deadZone = 0.5;
 }
 
 /// ステージの境界
 class StageConfig {
-  static const double groundY = 20.0;
-  static const double wallX = 12.0;
-  static const double wallHeight = 25.0;
-  static const double groundWidth = 20.0;
+  /// 初期地面の位置（Y座標、下が正）
+  static const double groundY = 10.0;
+
+  /// 地面の幅
+  static const double groundWidth = 30.0;
+
+  /// お手玉の初期位置
+  static const double spawnX = 0.0;
+  static const double spawnY = 5.0;
+
+  /// 落下判定のY座標（これより下に行ったらリスポーン）
+  static const double fallThreshold = 50.0;
 }
