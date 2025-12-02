@@ -16,6 +16,10 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   Background? _background;
   Vector2? _dragStart;
   Vector2? _dragCurrent;
+  bool _isDraggingOtedama = false; // お手玉をつかんでいるか
+
+  /// お手玉をつかめる距離（お手玉半径の倍率）
+  static const double grabRadiusMultiplier = 1.8;
 
   /// 背景画像のパス（nullならデフォルト背景）
   final String? backgroundImage;
@@ -90,21 +94,33 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
     // 画面座標をワールド座標に変換
-    _dragStart = screenToWorld(event.localPosition);
-    _dragCurrent = _dragStart;
+    final touchPos = screenToWorld(event.localPosition);
 
-    // お手玉の位置からドラッグ線を開始
+    // お手玉をつかめる距離かチェック
     if (otedama != null) {
-      _dragLine?.update_(
-        start: otedama!.centerPosition.clone(),
-        end: _dragCurrent,
-      );
+      final otedamaPos = otedama!.centerPosition;
+      final distance = (touchPos - otedamaPos).length;
+      final grabRadius = ParticleOtedama.overallRadius * grabRadiusMultiplier;
+
+      if (distance <= grabRadius) {
+        // お手玉をつかんだ
+        _isDraggingOtedama = true;
+        _dragStart = touchPos;
+        _dragCurrent = touchPos;
+
+        _dragLine?.update_(
+          start: otedamaPos.clone(),
+          end: _dragCurrent,
+        );
+      }
     }
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
+    if (!_isDraggingOtedama) return;
+
     _dragCurrent = screenToWorld(event.localEndPosition);
 
     // ドラッグ線を更新
@@ -120,13 +136,15 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
 
-    if (_dragStart != null && _dragCurrent != null && otedama != null) {
+    if (_isDraggingOtedama && _dragCurrent != null && otedama != null) {
       // スワイプの方向と逆に発射（パチンコ式）
       final otedamaPos = otedama!.centerPosition;
       final diff = otedamaPos - _dragCurrent!;
       otedama!.launch(diff);
     }
 
+    // 状態をリセット
+    _isDraggingOtedama = false;
     _dragStart = null;
     _dragCurrent = null;
     _dragLine?.clear();

@@ -22,21 +22,21 @@ class ParticleOtedama extends BodyComponent {
   Body? _dummyBody;
 
   // 設定可能なパラメータ（調整済み）
-  static int shellCount = 18;
-  static int beadCount = 28;
-  static double shellRadius = 0.47;
-  static double beadRadius = 0.20;
-  static double overallRadius = 2.51;
-  static double shellDensity = 3.0;
-  static double beadDensity = 0.98;
+  static int shellCount = 24;
+  static int beadCount = 15;
+  static double shellRadius = 0.40;
+  static double beadRadius = 0.28;
+  static double overallRadius = 2.01;
+  static double shellDensity = 5.0;
+  static double beadDensity = 5.0;
   static double shellFriction = 1.0;
-  static double beadFriction = 0.0;
+  static double beadFriction = 1.0;
   static double shellRestitution = 0.0;
   static double beadRestitution = 0.0;
-  static double jointFrequency = 20.0;
-  static double jointDamping = 1.0;
-  static double shellRelativeDamping = 5.0; // 節同士の相対運動の減衰（重力に影響しない）
-  static double gravityScale = 1.0; // 重力スケール（1.0 = 通常）
+  static double jointFrequency = 14.5;
+  static double jointDamping = 0.54;
+  static double shellRelativeDamping = 20.0; // 節同士の相対運動の減衰（重力に影響しない）
+  static double gravityScale = 1.59; // 重力スケール（1.0 = 通常）
 
   ParticleOtedama({
     required Vector2 position,
@@ -350,16 +350,16 @@ class ParticleOtedama extends BodyComponent {
     return count > 0 ? sum / count.toDouble() : initialPosition;
   }
 
-  /// 発射（全ボディに力を加える）
+  /// 発射（外殻のみに力を加える）
+  /// 内部ビーズは外殻との衝突で自然に追従する
   void launch(Vector2 impulse) {
     final scaledImpulse = impulse * PhysicsConfig.launchMultiplier;
 
     for (final body in shellBodies) {
       body.applyLinearImpulse(scaledImpulse * body.mass);
     }
-    for (final body in beadBodies) {
-      body.applyLinearImpulse(scaledImpulse * body.mass);
-    }
+    // beadBodiesにはインパルスを加えない
+    // → 外殻に閉じ込められているので、衝突で自然に動く
   }
 
   /// リセット
