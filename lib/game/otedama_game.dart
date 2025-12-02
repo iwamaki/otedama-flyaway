@@ -7,6 +7,9 @@ import '../components/background.dart';
 import '../components/drag_line.dart';
 import '../components/ground.dart';
 import '../components/particle_otedama.dart';
+import '../components/stage/goal.dart';
+import '../components/stage/image_object.dart';
+import '../components/stage/platform.dart';
 import '../config/physics_config.dart';
 
 /// メインゲームクラス
@@ -17,6 +20,13 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   Vector2? _dragStart;
   Vector2? _dragCurrent;
   bool _isDraggingOtedama = false; // お手玉をつかんでいるか
+
+  /// ゴール
+  Goal? goal;
+
+  /// ゴール到達フラグ
+  bool _goalReached = false;
+  bool get goalReached => _goalReached;
 
   /// お手玉をつかめる距離（お手玉半径の倍率）
   static const double grabRadiusMultiplier = 1.8;
@@ -106,33 +116,60 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
 
   /// ステージの構築
   Future<void> _buildStage() async {
-    // 地面（スタート地点）
+    // 地面（スタート地点）- Groundを維持（大きな地面用）
     await world.add(Ground(
       position: Vector2(0, StageConfig.groundY),
       size: Vector2(StageConfig.groundWidth, 1),
     ));
 
-    // デモ用の足場を配置（後でエディタで編集可能に）
-    await world.add(Ground(
+    // デモ用の足場を配置（Platformを使用、角度対応）
+    await world.add(Platform(
       position: Vector2(5, 0),
-      size: Vector2(4, 0.5),
-      color: const Color(0xFF6B8E23),
+      width: 8,
+      height: 0.5,
     ));
-    await world.add(Ground(
+    await world.add(Platform(
       position: Vector2(-4, -8),
-      size: Vector2(5, 0.5),
-      color: const Color(0xFF6B8E23),
+      width: 10,
+      height: 0.5,
+      angle: -0.15, // 少し傾斜
     ));
-    await world.add(Ground(
+    await world.add(Platform(
       position: Vector2(3, -16),
-      size: Vector2(4, 0.5),
-      color: const Color(0xFF6B8E23),
+      width: 8,
+      height: 0.5,
+      angle: 0.1,
     ));
-    await world.add(Ground(
+    await world.add(Platform(
       position: Vector2(-5, -24),
-      size: Vector2(5, 0.5),
-      color: const Color(0xFF6B8E23),
+      width: 10,
+      height: 0.5,
     ));
+
+    // 画像ベースのオブジェクト（テスト）
+    await world.add(ImageObject(
+      imagePath: 'branch.png',
+      position: Vector2(0, -12),
+      scale: 0.08, // 調整可能
+    ));
+
+    // ゴール（籠）を配置
+    goal = Goal(
+      position: Vector2(0, -32),
+      width: 5,
+      height: 4,
+      onGoalReached: _onGoalReached,
+    );
+    await world.add(goal!);
+  }
+
+  /// ゴール到達時の処理
+  void _onGoalReached() {
+    if (!_goalReached) {
+      _goalReached = true;
+      debugPrint('🎉 Goal reached!');
+      // TODO: Phase 6でゴール演出を追加
+    }
   }
 
   // --- ドラッグ操作（パチンコ式発射） ---
@@ -200,5 +237,6 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   /// お手玉をリセット
   void resetOtedama() {
     otedama?.reset();
+    _goalReached = false;
   }
 }
