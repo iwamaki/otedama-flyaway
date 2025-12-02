@@ -244,6 +244,29 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
 
           const Divider(color: Colors.white24),
 
+          // ビーズ封じ込めパラメータ
+          _buildSectionHeader('Containment (封じ込め)'),
+          _buildToggle(
+            'Enabled',
+            ParticleOtedama.beadContainmentEnabled,
+            (v) {
+              ParticleOtedama.beadContainmentEnabled = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'Margin',
+            ParticleOtedama.beadContainmentMargin,
+            0.0,
+            0.5,
+            (v) {
+              ParticleOtedama.beadContainmentMargin = v;
+              setState(() {});
+            },
+          ),
+
+          const Divider(color: Colors.white24),
+
           // 全体パラメータ
           _buildSectionHeader('Overall (全体)'),
           _buildSlider(
@@ -313,6 +336,30 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
     );
   }
 
+  Widget _buildToggle(
+    String label,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 70,
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
+        ),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeTrackColor: Colors.amber,
+          thumbColor: WidgetStateProperty.all(Colors.white),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSlider(
     String label,
     double value,
@@ -366,23 +413,25 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
 
   void _resetToDefaults() {
     setState(() {
-      ParticleOtedama.shellCount = 18;
-      ParticleOtedama.beadCount = 28;
-      ParticleOtedama.shellRadius = 0.47;
-      ParticleOtedama.beadRadius = 0.20;
-      ParticleOtedama.overallRadius = 2.51;
-      ParticleOtedama.shellDensity = 3.0;
-      ParticleOtedama.beadDensity = 0.98;
-      ParticleOtedama.shellFriction = 1.0;
-      ParticleOtedama.beadFriction = 0.0;
+      ParticleOtedama.shellCount = 13;
+      ParticleOtedama.beadCount = 20;
+      ParticleOtedama.shellRadius = 0.28;
+      ParticleOtedama.beadRadius = 0.3;
+      ParticleOtedama.overallRadius = 2.50;
+      ParticleOtedama.shellDensity = 5.0;
+      ParticleOtedama.beadDensity = 5.0;
+      ParticleOtedama.shellFriction = 0.51;
+      ParticleOtedama.beadFriction = 1.0;
       ParticleOtedama.shellRestitution = 0.0;
       ParticleOtedama.beadRestitution = 0.0;
       ParticleOtedama.jointFrequency = 0.0;
       ParticleOtedama.jointDamping = 0.0;
-      ParticleOtedama.distanceConstraintIterations = 3;
+      ParticleOtedama.distanceConstraintIterations = 10;
       ParticleOtedama.distanceConstraintStiffness = 1.0;
-      ParticleOtedama.shellRelativeDamping = 20.0;
-      ParticleOtedama.gravityScale = 1.0;
+      ParticleOtedama.shellRelativeDamping = 0.0;
+      ParticleOtedama.gravityScale = 2.0;
+      ParticleOtedama.beadContainmentEnabled = true;
+      ParticleOtedama.beadContainmentMargin = 0.25;
     });
     widget.onRebuild();
   }

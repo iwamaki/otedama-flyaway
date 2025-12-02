@@ -21,26 +21,30 @@ class ParticleOtedama extends BodyComponent {
   // ダミーボディ（BodyComponentの要件を満たすため）
   Body? _dummyBody;
 
-  // 設定可能なパラメータ（調整済み）
-  static int shellCount = 24;
-  static int beadCount = 15;
-  static double shellRadius = 0.40;
-  static double beadRadius = 0.28;
-  static double overallRadius = 2.01;
+  // 設定可能なパラメータ（調整済みデフォルト値）
+  static int shellCount = 13;
+  static int beadCount = 20;
+  static double shellRadius = 0.28;
+  static double beadRadius = 0.3;
+  static double overallRadius = 2.50;
   static double shellDensity = 5.0;
   static double beadDensity = 5.0;
-  static double shellFriction = 1.0;
+  static double shellFriction = 0.51;
   static double beadFriction = 1.0;
   static double shellRestitution = 0.0;
   static double beadRestitution = 0.0;
   static double jointFrequency = 0.0; // 0=硬い接続（伸びない）、>0=バネ
   static double jointDamping = 0.0;
-  static double shellRelativeDamping = 20.0; // 節同士の相対運動の減衰（重力に影響しない）
-  static double gravityScale = 1.59; // 重力スケール（1.0 = 通常）
+  static double shellRelativeDamping = 0.0; // 節同士の相対運動の減衰（重力に影響しない）
+  static double gravityScale = 2.0; // 重力スケール（1.0 = 通常）
 
   // 距離制約の補正（PBDアプローチ）
-  static int distanceConstraintIterations = 3; // 補正の反復回数
+  static int distanceConstraintIterations = 10; // 補正の反復回数
   static double distanceConstraintStiffness = 1.0; // 補正の強さ（0.0-1.0）
+
+  // ビーズ封じ込め制約
+  static bool beadContainmentEnabled = true; // 封じ込め有効
+  static double beadContainmentMargin = 0.25; // 外殻境界からのマージン
 
   // 初期ジョイント長を記録
   final List<double> _initialJointLengths = [];
@@ -59,6 +63,9 @@ class ParticleOtedama extends BodyComponent {
 
     // 距離制約を強制（PBD：位置ベースで補正）
     _enforceDistanceConstraints();
+
+    // ビーズ封じ込め制約（外殻の内側に留める）
+    _enforceBeadContainment();
 
     // ダミーボディを粒子の重心に追従させる
     if (shellBodies.isNotEmpty || beadBodies.isNotEmpty) {
@@ -133,6 +140,114 @@ class ParticleOtedama extends BodyComponent {
         }
       }
     }
+  }
+
+  /// ビーズを外殻の内側に閉じ込める
+  /// 外殻が形成する多角形の外にビーズがいたら内側に押し戻す
+  void _enforceBeadContainment() {
+    if (!beadContainmentEnabled) return;
+    if (shellBodies.length < 3 || beadBodies.isEmpty) return;
+
+    // 外殻の頂点リスト（位置のみ）
+    final shellPositions = shellBodies.map((b) => b.position).toList();
+
+    for (final bead in beadBodies) {
+      final beadPos = bead.position;
+
+      // ビーズが多角形の内側にあるかチェック
+      if (_isPointInsidePolygon(beadPos, shellPositions)) {
+        continue; // 内側にいるので何もしない
+      }
+
+      // 外側にいる場合、最も近い外殻エッジに押し戻す
+      _pushBeadInside(bead, shellPositions);
+    }
+  }
+
+  /// 点が多角形の内側にあるか判定（レイキャスティング法）
+  bool _isPointInsidePolygon(Vector2 point, List<Vector2> polygon) {
+    int intersections = 0;
+    final n = polygon.length;
+
+    for (int i = 0; i < n; i++) {
+      final p1 = polygon[i];
+      final p2 = polygon[(i + 1) % n];
+
+      // 点から右方向への半直線と辺が交差するかチェック
+      if ((p1.y > point.y) != (p2.y > point.y)) {
+        final xIntersect = (p2.x - p1.x) * (point.y - p1.y) / (p2.y - p1.y) + p1.x;
+        if (point.x < xIntersect) {
+          intersections++;
+        }
+      }
+    }
+
+    return intersections % 2 == 1; // 奇数回交差なら内側
+  }
+
+  /// ビーズを最も近い外殻エッジの内側に押し戻す
+  void _pushBeadInside(Body bead, List<Vector2> shellPositions) {
+    final beadPos = bead.position;
+    final n = shellPositions.length;
+
+    // 最も近いエッジを見つける
+    double minDist = double.infinity;
+    Vector2? closestPoint;
+    Vector2? edgeNormal;
+
+    for (int i = 0; i < n; i++) {
+      final p1 = shellPositions[i];
+      final p2 = shellPositions[(i + 1) % n];
+
+      // エッジ上の最近点を計算
+      final edge = p2 - p1;
+      final edgeLengthSq = edge.length2;
+      if (edgeLengthSq < 0.0001) continue;
+
+      var t = (beadPos - p1).dot(edge) / edgeLengthSq;
+      t = t.clamp(0.0, 1.0);
+
+      final closest = p1 + edge * t;
+      final dist = (beadPos - closest).length;
+
+      if (dist < minDist) {
+        minDist = dist;
+        closestPoint = closest;
+
+        // エッジの内向き法線を計算
+        final perpendicular = Vector2(-edge.y, edge.x).normalized();
+        // 多角形の重心方向が内側
+        final center = _calculateCentroid(shellPositions);
+        final toCenter = center - closest;
+        if (perpendicular.dot(toCenter) < 0) {
+          edgeNormal = -perpendicular;
+        } else {
+          edgeNormal = perpendicular;
+        }
+      }
+    }
+
+    if (closestPoint != null && edgeNormal != null) {
+      // マージン分だけ内側に押し戻す
+      final targetPos = closestPoint + edgeNormal * (beadRadius + beadContainmentMargin);
+      bead.setTransform(targetPos, bead.angle);
+
+      // 速度も補正（外向きの速度成分を除去）
+      final vel = bead.linearVelocity;
+      final outwardVel = vel.dot(-edgeNormal);
+      if (outwardVel > 0) {
+        bead.linearVelocity = vel + edgeNormal * outwardVel;
+      }
+    }
+  }
+
+  /// 多角形の重心を計算
+  Vector2 _calculateCentroid(List<Vector2> polygon) {
+    var sum = Vector2.zero();
+    for (final p in polygon) {
+      sum += p;
+    }
+    return sum / polygon.length.toDouble();
   }
 
   @override
