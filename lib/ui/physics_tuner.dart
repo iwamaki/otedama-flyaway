@@ -49,14 +49,18 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
   Widget _buildPanel() {
     return Container(
       width: 280,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height - 120,
+      ),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.black87,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           const Text(
             'Physics Parameters',
             style: TextStyle(
@@ -117,16 +121,6 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
             1.0,
             (v) {
               ParticleOtedama.shellRestitution = v;
-              _rebuild();
-            },
-          ),
-          _buildSlider(
-            'RelDamp',
-            ParticleOtedama.shellRelativeDamping,
-            0.0,
-            20.0,
-            (v) {
-              ParticleOtedama.shellRelativeDamping = v;
               _rebuild();
             },
           ),
@@ -194,7 +188,7 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
           _buildSlider(
             'Frequency',
             ParticleOtedama.jointFrequency,
-            1.0,
+            0.0,
             20.0,
             (v) {
               ParticleOtedama.jointFrequency = v;
@@ -209,6 +203,42 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
             (v) {
               ParticleOtedama.jointDamping = v;
               _rebuild();
+            },
+          ),
+
+          const Divider(color: Colors.white24),
+
+          // 距離制約パラメータ
+          _buildSectionHeader('Constraint (制約)'),
+          _buildSlider(
+            'Iterations',
+            ParticleOtedama.distanceConstraintIterations.toDouble(),
+            0,
+            10,
+            (v) {
+              ParticleOtedama.distanceConstraintIterations = v.round();
+              setState(() {});
+            },
+            isInt: true,
+          ),
+          _buildSlider(
+            'Stiffness',
+            ParticleOtedama.distanceConstraintStiffness,
+            0.0,
+            1.0,
+            (v) {
+              ParticleOtedama.distanceConstraintStiffness = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'RelDamp',
+            ParticleOtedama.shellRelativeDamping,
+            0.0,
+            50.0,
+            (v) {
+              ParticleOtedama.shellRelativeDamping = v;
+              setState(() {});
             },
           ),
 
@@ -264,6 +294,7 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
             ],
           ),
         ],
+        ),
       ),
     );
   }
@@ -346,9 +377,11 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
       ParticleOtedama.beadFriction = 0.0;
       ParticleOtedama.shellRestitution = 0.0;
       ParticleOtedama.beadRestitution = 0.0;
-      ParticleOtedama.jointFrequency = 20.0;
-      ParticleOtedama.jointDamping = 1.0;
-      ParticleOtedama.shellRelativeDamping = 5.0;
+      ParticleOtedama.jointFrequency = 0.0;
+      ParticleOtedama.jointDamping = 0.0;
+      ParticleOtedama.distanceConstraintIterations = 3;
+      ParticleOtedama.distanceConstraintStiffness = 1.0;
+      ParticleOtedama.shellRelativeDamping = 20.0;
       ParticleOtedama.gravityScale = 1.0;
     });
     widget.onRebuild();

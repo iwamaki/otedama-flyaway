@@ -33,10 +33,17 @@ class ParticleOtedama extends BodyComponent {
   static double beadFriction = 1.0;
   static double shellRestitution = 0.0;
   static double beadRestitution = 0.0;
-  static double jointFrequency = 14.5;
-  static double jointDamping = 0.54;
+  static double jointFrequency = 0.0; // 0=硬い接続（伸びない）、>0=バネ
+  static double jointDamping = 0.0;
   static double shellRelativeDamping = 20.0; // 節同士の相対運動の減衰（重力に影響しない）
   static double gravityScale = 1.59; // 重力スケール（1.0 = 通常）
+
+  // 距離制約の補正（PBDアプローチ）
+  static int distanceConstraintIterations = 3; // 補正の反復回数
+  static double distanceConstraintStiffness = 1.0; // 補正の強さ（0.0-1.0）
+
+  // 初期ジョイント長を記録
+  final List<double> _initialJointLengths = [];
 
   ParticleOtedama({
     required Vector2 position,
@@ -49,6 +56,9 @@ class ParticleOtedama extends BodyComponent {
 
     // 節同士の相対運動に減衰を適用（重力には影響しない）
     _applyRelativeDamping(dt);
+
+    // 距離制約を強制（PBD：位置ベースで補正）
+    _enforceDistanceConstraints();
 
     // ダミーボディを粒子の重心に追従させる
     if (shellBodies.isNotEmpty || beadBodies.isNotEmpty) {
@@ -73,6 +83,55 @@ class ParticleOtedama extends BodyComponent {
       // 両方のボディに反対方向の力を適用
       bodyA.applyLinearImpulse(-dampingForce * bodyA.mass);
       bodyB.applyLinearImpulse(dampingForce * bodyB.mass);
+    }
+  }
+
+  /// 距離制約を強制（Position Based Dynamics）
+  /// Box2Dのジョイントだけでは伸びてしまうので、位置を直接補正
+  void _enforceDistanceConstraints() {
+    if (shellBodies.length < 2 || _initialJointLengths.isEmpty) return;
+    if (distanceConstraintStiffness <= 0) return;
+
+    // 複数回反復して精度を上げる
+    for (int iter = 0; iter < distanceConstraintIterations; iter++) {
+      for (int i = 0; i < shellBodies.length; i++) {
+        final bodyA = shellBodies[i];
+        final bodyB = shellBodies[(i + 1) % shellBodies.length];
+        final targetLength = _initialJointLengths[i];
+
+        final delta = bodyB.position - bodyA.position;
+        final currentLength = delta.length;
+
+        if (currentLength < 0.001) continue;
+
+        // 目標長さとの差
+        final diff = currentLength - targetLength;
+        if (diff.abs() < 0.001) continue;
+
+        // 補正量を計算
+        final correction = delta.normalized() * (diff * 0.5 * distanceConstraintStiffness);
+
+        // 両方の粒子を均等に移動（質量を考慮）
+        final totalMass = bodyA.mass + bodyB.mass;
+        final ratioA = bodyB.mass / totalMass;
+        final ratioB = bodyA.mass / totalMass;
+
+        // 位置を直接補正
+        bodyA.setTransform(bodyA.position + correction * ratioA, bodyA.angle);
+        bodyB.setTransform(bodyB.position - correction * ratioB, bodyB.angle);
+
+        // 速度も補正（伸びる方向の速度成分を減衰）
+        final normal = delta.normalized();
+        final relVel = bodyB.linearVelocity - bodyA.linearVelocity;
+        final velAlongNormal = relVel.dot(normal);
+
+        if (diff > 0 && velAlongNormal > 0) {
+          // 伸びている＆さらに伸びようとしている場合、速度を補正
+          final velCorrection = normal * (velAlongNormal * 0.5 * distanceConstraintStiffness);
+          bodyA.linearVelocity = bodyA.linearVelocity + velCorrection * ratioA;
+          bodyB.linearVelocity = bodyB.linearVelocity - velCorrection * ratioB;
+        }
+      }
     }
   }
 
@@ -114,9 +173,14 @@ class ParticleOtedama extends BodyComponent {
     }
 
     // 外殻同士をDistance Jointで接続（隣接のみ、対角線なし）
+    _initialJointLengths.clear();
     for (int i = 0; i < shellCount; i++) {
       final bodyA = shellBodies[i];
       final bodyB = shellBodies[(i + 1) % shellCount];
+
+      // 初期長を記録（PBD補正用）
+      final initialLength = (bodyA.position - bodyB.position).length;
+      _initialJointLengths.add(initialLength);
 
       final jointDef = DistanceJointDef()
         ..initialize(bodyA, bodyB, bodyA.position, bodyB.position)
