@@ -116,25 +116,43 @@ class ParticleOtedama extends BodyComponent {
         if (diff.abs() < 0.001) continue;
 
         // 補正量を計算
-        final correction = delta.normalized() * (diff * 0.5 * distanceConstraintStiffness);
+        final normalized = delta / currentLength; // normalized()より安全
+        final correction = normalized * (diff * 0.5 * distanceConstraintStiffness);
+
+        // 無効な値チェック
+        if (correction.x.isNaN || correction.y.isNaN ||
+            correction.x.isInfinite || correction.y.isInfinite) {
+          continue;
+        }
 
         // 両方の粒子を均等に移動（質量を考慮）
         final totalMass = bodyA.mass + bodyB.mass;
+        if (totalMass <= 0) continue;
+
         final ratioA = bodyB.mass / totalMass;
         final ratioB = bodyA.mass / totalMass;
 
-        // 位置を直接補正
-        bodyA.setTransform(bodyA.position + correction * ratioA, bodyA.angle);
-        bodyB.setTransform(bodyB.position - correction * ratioB, bodyB.angle);
+        // 新しい位置を計算
+        final newPosA = bodyA.position + correction * ratioA;
+        final newPosB = bodyB.position - correction * ratioB;
+
+        // 位置が有効な場合のみ適用
+        if (!newPosA.x.isNaN && !newPosA.y.isNaN &&
+            !newPosA.x.isInfinite && !newPosA.y.isInfinite) {
+          bodyA.setTransform(newPosA, bodyA.angle);
+        }
+        if (!newPosB.x.isNaN && !newPosB.y.isNaN &&
+            !newPosB.x.isInfinite && !newPosB.y.isInfinite) {
+          bodyB.setTransform(newPosB, bodyB.angle);
+        }
 
         // 速度も補正（伸びる方向の速度成分を減衰）
-        final normal = delta.normalized();
         final relVel = bodyB.linearVelocity - bodyA.linearVelocity;
-        final velAlongNormal = relVel.dot(normal);
+        final velAlongNormal = relVel.dot(normalized);
 
         if (diff > 0 && velAlongNormal > 0) {
           // 伸びている＆さらに伸びようとしている場合、速度を補正
-          final velCorrection = normal * (velAlongNormal * 0.5 * distanceConstraintStiffness);
+          final velCorrection = normalized * (velAlongNormal * 0.5 * distanceConstraintStiffness);
           bodyA.linearVelocity = bodyA.linearVelocity + velCorrection * ratioA;
           bodyB.linearVelocity = bodyB.linearVelocity - velCorrection * ratioB;
         }
@@ -578,6 +596,26 @@ class ParticleOtedama extends BodyComponent {
   void reset() {
     _destroyAllBodies();
     _createParticleBodies();
+  }
+
+  /// 物理を一時停止（編集モード用）
+  void freeze() {
+    for (final body in shellBodies) {
+      body.setType(BodyType.static);
+    }
+    for (final body in beadBodies) {
+      body.setType(BodyType.static);
+    }
+  }
+
+  /// 物理を再開（編集モード用）
+  void unfreeze() {
+    for (final body in shellBodies) {
+      body.setType(BodyType.dynamic);
+    }
+    for (final body in beadBodies) {
+      body.setType(BodyType.dynamic);
+    }
   }
 
   /// パラメータ変更後の再構築

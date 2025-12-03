@@ -66,6 +66,17 @@ class Goal extends BodyComponent with StageObject, ContactCallbacks {
   double get angle => body.angle;
 
   @override
+  (Vector2 min, Vector2 max) get bounds {
+    final halfW = width / 2;
+    final halfH = height / 2;
+    final pos = body.position;
+    return (
+      Vector2(pos.x - halfW, pos.y - halfH),
+      Vector2(pos.x + halfW, pos.y + halfH),
+    );
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     return {
       'type': type,
@@ -245,6 +256,32 @@ class Goal extends BodyComponent with StageObject, ContactCallbacks {
         highlightPaint,
       );
     }
+
+    // 選択中ならハイライト
+    if (isSelected) {
+      _drawSelectionHighlight(canvas, halfWidth, halfHeight);
+    }
+  }
+
+  void _drawSelectionHighlight(Canvas canvas, double halfW, double halfH) {
+    final borderPaint = Paint()
+      ..color = Colors.cyan
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.15;
+    canvas.drawRect(
+      Rect.fromLTRB(-halfW, -halfH, halfW, halfH),
+      borderPaint,
+    );
+
+    // コーナーハンドル
+    final handleSize = 0.25;
+    final handlePaint = Paint()
+      ..color = Colors.cyan
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(-halfW, -halfH), handleSize, handlePaint);
+    canvas.drawCircle(Offset(halfW, -halfH), handleSize, handlePaint);
+    canvas.drawCircle(Offset(-halfW, halfH), handleSize, handlePaint);
+    canvas.drawCircle(Offset(halfW, halfH), handleSize, handlePaint);
   }
 
   void _drawBasketPattern(Canvas canvas, double halfWidth, double halfHeight) {

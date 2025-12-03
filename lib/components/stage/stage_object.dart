@@ -12,11 +12,29 @@ abstract mixin class StageObject {
   /// 回転角度（ラジアン）
   double get angle;
 
+  /// スケール
+  double get scale => 1.0;
+
+  /// 水平反転
+  bool get flipX => false;
+
+  /// 垂直反転
+  bool get flipY => false;
+
+  /// バウンディングボックス（選択判定用）
+  /// 左上と右下をワールド座標で返す
+  (Vector2 min, Vector2 max) get bounds;
+
   /// JSON形式にシリアライズ
   Map<String, dynamic> toJson();
 
   /// プロパティを適用（エディタでの編集用）
   void applyProperties(Map<String, dynamic> props);
+
+  /// 選択中かどうか（エディタ用）
+  bool _isSelected = false;
+  bool get isSelected => _isSelected;
+  set isSelected(bool value) => _isSelected = value;
 }
 
 /// StageObjectのファクトリ

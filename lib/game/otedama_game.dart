@@ -10,6 +10,7 @@ import '../components/particle_otedama.dart';
 import '../components/stage/goal.dart';
 import '../components/stage/image_object.dart';
 import '../components/stage/platform.dart';
+import '../components/stage/stage_object.dart';
 import '../config/physics_config.dart';
 
 /// メインゲームクラス
@@ -33,6 +34,27 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
 
   /// 背景画像のパス（nullならデフォルト背景）
   final String? backgroundImage;
+
+  // --- 編集モード ---
+
+  /// 編集モードフラグ
+  bool _isEditMode = false;
+  bool get isEditMode => _isEditMode;
+
+  /// 選択中のオブジェクト
+  StageObject? _selectedObject;
+  StageObject? get selectedObject => _selectedObject;
+
+  /// ステージオブジェクトのリスト
+  final List<StageObject> _stageObjects = [];
+  List<StageObject> get stageObjects => List.unmodifiable(_stageObjects);
+
+  /// 編集モード中のドラッグ移動
+  bool _isDraggingObject = false;
+  Vector2? _dragOffset;
+
+  /// UI更新コールバック
+  VoidCallback? onEditModeChanged;
 
   OtedamaGame({this.backgroundImage})
       : super(gravity: Vector2(0, PhysicsConfig.gravityY));
@@ -123,31 +145,31 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     ));
 
     // デモ用の足場を配置（Platformを使用、角度対応）
-    await world.add(Platform(
+    await _addStageObject(Platform(
       position: Vector2(5, 0),
       width: 8,
       height: 0.5,
     ));
-    await world.add(Platform(
+    await _addStageObject(Platform(
       position: Vector2(-4, -8),
       width: 10,
       height: 0.5,
       angle: -0.15, // 少し傾斜
     ));
-    await world.add(Platform(
+    await _addStageObject(Platform(
       position: Vector2(3, -16),
       width: 8,
       height: 0.5,
       angle: 0.1,
     ));
-    await world.add(Platform(
+    await _addStageObject(Platform(
       position: Vector2(-5, -24),
       width: 10,
       height: 0.5,
     ));
 
     // 画像ベースのオブジェクト（テスト）
-    await world.add(ImageObject(
+    await _addStageObject(ImageObject(
       imagePath: 'branch.png',
       position: Vector2(0, -12),
       scale: 0.08, // 調整可能
@@ -160,7 +182,15 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       height: 4,
       onGoalReached: _onGoalReached,
     );
-    await world.add(goal!);
+    await _addStageObject(goal!);
+  }
+
+  /// ステージオブジェクトを追加（管理リストにも登録）
+  Future<void> _addStageObject<T extends BodyComponent>(T obj) async {
+    await world.add(obj);
+    if (obj is StageObject) {
+      _stageObjects.add(obj as StageObject);
+    }
   }
 
   /// ゴール到達時の処理
@@ -172,15 +202,20 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     }
   }
 
-  // --- ドラッグ操作（パチンコ式発射） ---
+  // --- ドラッグ操作（パチンコ式発射 / 編集モード） ---
 
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
-    // 画面座標をワールド座標に変換
     final touchPos = screenToWorld(event.localPosition);
 
-    // お手玉をつかめる距離かチェック
+    // 編集モードの場合
+    if (_isEditMode) {
+      _handleEditModeDragStart(touchPos);
+      return;
+    }
+
+    // 通常モード: お手玉をつかめる距離かチェック
     if (otedama != null) {
       final otedamaPos = otedama!.centerPosition;
       final distance = (touchPos - otedamaPos).length;
@@ -204,9 +239,17 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
+    final touchPos = screenToWorld(event.localEndPosition);
+
+    // 編集モードの場合
+    if (_isEditMode) {
+      _handleEditModeDragUpdate(touchPos);
+      return;
+    }
+
     if (!_isDraggingOtedama || _dragStart == null) return;
 
-    _dragCurrent = screenToWorld(event.localEndPosition);
+    _dragCurrent = touchPos;
 
     // スクリーン座標に変換して渡す
     _dragLine?.updateScreen(
@@ -218,6 +261,12 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   @override
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
+
+    // 編集モードの場合
+    if (_isEditMode) {
+      _handleEditModeDragEnd();
+      return;
+    }
 
     if (_isDraggingOtedama && _dragStart != null && _dragCurrent != null && otedama != null) {
       // スワイプの方向と逆に発射（パチンコ式）
@@ -232,6 +281,113 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     _dragStart = null;
     _dragCurrent = null;
     _dragLine?.clear();
+  }
+
+  // --- 編集モード操作 ---
+
+  void _handleEditModeDragStart(Vector2 touchPos) {
+    // タッチ位置にあるオブジェクトを探す
+    final obj = _findObjectAt(touchPos);
+
+    if (obj != null) {
+      // オブジェクトを選択
+      selectObject(obj);
+      _isDraggingObject = true;
+      _dragOffset = touchPos - obj.position;
+    } else {
+      // 何もない場所をタップ → 選択解除
+      deselectObject();
+    }
+  }
+
+  void _handleEditModeDragUpdate(Vector2 touchPos) {
+    if (!_isDraggingObject || _selectedObject == null || _dragOffset == null) return;
+
+    // 選択中のオブジェクトをドラッグ移動
+    final newPos = touchPos - _dragOffset!;
+    _selectedObject!.applyProperties({
+      'x': newPos.x,
+      'y': newPos.y,
+    });
+  }
+
+  void _handleEditModeDragEnd() {
+    _isDraggingObject = false;
+    _dragOffset = null;
+  }
+
+  /// 指定位置にあるオブジェクトを探す
+  StageObject? _findObjectAt(Vector2 pos) {
+    for (final obj in _stageObjects.reversed) {
+      final (min, max) = obj.bounds;
+      if (pos.x >= min.x && pos.x <= max.x && pos.y >= min.y && pos.y <= max.y) {
+        return obj;
+      }
+    }
+    return null;
+  }
+
+  // --- 編集モードAPI ---
+
+  /// 編集モードを切り替え
+  void toggleEditMode() {
+    _isEditMode = !_isEditMode;
+    if (_isEditMode) {
+      // 物理を一時停止（重力を0に）
+      world.gravity = Vector2.zero();
+      // お手玉を静止
+      otedama?.freeze();
+    } else {
+      // 物理を再開
+      world.gravity = Vector2(0, PhysicsConfig.gravityY * ParticleOtedama.gravityScale);
+      // 選択解除
+      deselectObject();
+      // お手玉の静止解除
+      otedama?.unfreeze();
+    }
+    onEditModeChanged?.call();
+  }
+
+  /// オブジェクトを選択
+  void selectObject(StageObject obj) {
+    // 既存の選択を解除
+    _selectedObject?.isSelected = false;
+    // 新しいオブジェクトを選択
+    _selectedObject = obj;
+    obj.isSelected = true;
+    onEditModeChanged?.call();
+  }
+
+  /// 選択解除
+  void deselectObject() {
+    _selectedObject?.isSelected = false;
+    _selectedObject = null;
+    onEditModeChanged?.call();
+  }
+
+  /// 選択中のオブジェクトを削除
+  void deleteSelectedObject() {
+    if (_selectedObject == null) return;
+
+    final obj = _selectedObject!;
+    deselectObject();
+
+    _stageObjects.remove(obj);
+    // StageObjectはBodyComponentを継承しているクラスで実装されている
+    (obj as dynamic).removeFromParent();
+    onEditModeChanged?.call();
+  }
+
+  /// 画像オブジェクトを追加
+  Future<void> addImageObject(String imagePath, {Vector2? position}) async {
+    final pos = position ?? camera.viewfinder.position.clone();
+    final obj = ImageObject(
+      imagePath: imagePath,
+      position: pos,
+      scale: 0.05,
+    );
+    await _addStageObject(obj);
+    selectObject(obj);
   }
 
   /// お手玉をリセット

@@ -21,12 +21,21 @@ class ImageObject extends BodyComponent with StageObject {
   /// 初期角度
   final double initialAngle;
 
-  /// スケール（ピクセル→ワールド単位）
-  final double scale;
+  /// 初期スケール（ピクセル→ワールド単位）
+  final double initialScale;
 
   /// 物理パラメータ
   final double friction;
   final double restitution;
+
+  /// 現在のスケール
+  double _currentScale;
+
+  /// 水平反転
+  bool _flipX;
+
+  /// 垂直反転
+  bool _flipY;
 
   /// 読み込んだ画像
   ui.Image? _image;
@@ -41,11 +50,17 @@ class ImageObject extends BodyComponent with StageObject {
     required this.imagePath,
     required Vector2 position,
     double angle = 0.0,
-    this.scale = 0.05, // デフォルト: 20px = 1ワールド単位
+    double scale = 0.05, // デフォルト: 20px = 1ワールド単位
     this.friction = 0.5,
     this.restitution = 0.2,
+    bool flipX = false,
+    bool flipY = false,
   })  : initialPosition = position.clone(),
-        initialAngle = angle;
+        initialAngle = angle,
+        initialScale = scale,
+        _currentScale = scale,
+        _flipX = flipX,
+        _flipY = flipY;
 
   /// JSONから生成
   factory ImageObject.fromJson(Map<String, dynamic> json) {
@@ -59,6 +74,8 @@ class ImageObject extends BodyComponent with StageObject {
       scale: (json['scale'] as num?)?.toDouble() ?? 0.05,
       friction: (json['friction'] as num?)?.toDouble() ?? 0.5,
       restitution: (json['restitution'] as num?)?.toDouble() ?? 0.2,
+      flipX: json['flipX'] as bool? ?? false,
+      flipY: json['flipY'] as bool? ?? false,
     );
   }
 
@@ -74,6 +91,27 @@ class ImageObject extends BodyComponent with StageObject {
   double get angle => body.angle;
 
   @override
+  double get scale => _currentScale;
+
+  @override
+  bool get flipX => _flipX;
+
+  @override
+  bool get flipY => _flipY;
+
+  @override
+  (Vector2 min, Vector2 max) get bounds {
+    // _worldSizeがゼロの場合はデフォルトサイズを使用
+    final halfW = _worldSize.x > 0 ? _worldSize.x / 2 : 1.0;
+    final halfH = _worldSize.y > 0 ? _worldSize.y / 2 : 1.0;
+    final pos = body.position;
+    return (
+      Vector2(pos.x - halfW, pos.y - halfH),
+      Vector2(pos.x + halfW, pos.y + halfH),
+    );
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     return {
       'type': type,
@@ -84,6 +122,8 @@ class ImageObject extends BodyComponent with StageObject {
       'scale': scale,
       'friction': friction,
       'restitution': restitution,
+      'flipX': flipX,
+      'flipY': flipY,
     };
   }
 
@@ -98,6 +138,79 @@ class ImageObject extends BodyComponent with StageObject {
       final newAngle = (props['angle'] as num?)?.toDouble() ?? 0.0;
       body.setTransform(body.position, newAngle);
     }
+    if (props.containsKey('scale')) {
+      final newScale = (props['scale'] as num?)?.toDouble() ?? _currentScale;
+      _setScale(newScale);
+    }
+    if (props.containsKey('flipX')) {
+      _flipX = props['flipX'] as bool? ?? _flipX;
+    }
+    if (props.containsKey('flipY')) {
+      _flipY = props['flipY'] as bool? ?? _flipY;
+    }
+  }
+
+  /// スケールを変更（物理形状も再構築）
+  void _setScale(double newScale) {
+    if (newScale == _currentScale) return;
+    if (newScale <= 0) return; // 無効なスケールを防ぐ
+
+    final ratio = newScale / _currentScale;
+    _currentScale = newScale;
+
+    // ワールドサイズを更新
+    _worldSize = Vector2(_worldSize.x * ratio, _worldSize.y * ratio);
+
+    // 輪郭をスケーリング
+    for (final contour in _contours) {
+      for (int i = 0; i < contour.length; i++) {
+        contour[i] = Vector2(contour[i].x * ratio, contour[i].y * ratio);
+      }
+    }
+
+    // 物理形状を再構築
+    _rebuildFixtures();
+  }
+
+  /// 水平反転を切り替え
+  void toggleFlipX() {
+    _flipX = !_flipX;
+    // 輪郭を反転
+    for (final contour in _contours) {
+      // 新しいリストを作成して置き換え
+      final flipped = contour.map((p) => Vector2(-p.x, p.y)).toList();
+      // 頂点順序を逆にして法線を正しく保つ
+      contour.clear();
+      contour.addAll(flipped.reversed);
+    }
+    _rebuildFixtures();
+  }
+
+  /// 垂直反転を切り替え
+  void toggleFlipY() {
+    _flipY = !_flipY;
+    // 輪郭を反転
+    for (final contour in _contours) {
+      // 新しいリストを作成して置き換え
+      final flipped = contour.map((p) => Vector2(p.x, -p.y)).toList();
+      // 頂点順序を逆にして法線を正しく保つ
+      contour.clear();
+      contour.addAll(flipped.reversed);
+    }
+    _rebuildFixtures();
+  }
+
+  /// 物理フィクスチャを再構築
+  void _rebuildFixtures() {
+    // bodyが初期化されていない場合はスキップ
+    if (!isMounted) return;
+
+    // 既存フィクスチャを削除
+    while (body.fixtures.isNotEmpty) {
+      body.destroyFixture(body.fixtures.first);
+    }
+    // 新しいフィクスチャを作成
+    _createFixtures();
   }
 
   // --- BodyComponent 実装 ---
@@ -111,12 +224,34 @@ class ImageObject extends BodyComponent with StageObject {
 
     // ワールドサイズを計算
     _worldSize = Vector2(
-      _image!.width * scale,
-      _image!.height * scale,
+      _image!.width * _currentScale,
+      _image!.height * _currentScale,
     );
 
     // JSONから物理形状を読み込み
     await _loadPhysicsFromJson();
+
+    // 初期反転を適用（輪郭に反映）
+    if (_flipX) {
+      for (final contour in _contours) {
+        for (int i = 0; i < contour.length; i++) {
+          contour[i] = Vector2(-contour[i].x, contour[i].y);
+        }
+        final reversed = contour.reversed.toList();
+        contour.clear();
+        contour.addAll(reversed);
+      }
+    }
+    if (_flipY) {
+      for (final contour in _contours) {
+        for (int i = 0; i < contour.length; i++) {
+          contour[i] = Vector2(contour[i].x, -contour[i].y);
+        }
+        final reversed = contour.reversed.toList();
+        contour.clear();
+        contour.addAll(reversed);
+      }
+    }
 
     // 物理ボディにフィクスチャを追加
     _createFixtures();
@@ -145,8 +280,8 @@ class ImageObject extends BodyComponent with StageObject {
           final px = (p['x'] as num).toDouble();
           final py = (p['y'] as num).toDouble();
           return Vector2(
-            (px - centerX) * scale,
-            (py - centerY) * scale,
+            (px - centerX) * _currentScale,
+            (py - centerY) * _currentScale,
           );
         }).toList();
       }).toList();
@@ -196,6 +331,19 @@ class ImageObject extends BodyComponent with StageObject {
     int createdCount = 0;
     for (final contour in contoursToUse) {
       if (contour.length < 3) continue;
+
+      // 各点が有効かチェック
+      bool isValid = true;
+      for (final p in contour) {
+        if (p.x.isNaN || p.y.isNaN || p.x.isInfinite || p.y.isInfinite) {
+          isValid = false;
+          break;
+        }
+      }
+      if (!isValid) {
+        debugPrint('ImageObject: Skipping contour with invalid points');
+        continue;
+      }
 
       try {
         // ChainShapeで輪郭を表現（凹型OK）
@@ -295,6 +443,10 @@ class ImageObject extends BodyComponent with StageObject {
   void render(Canvas canvas) {
     if (_image == null) return;
 
+    // 反転のためのスケール
+    canvas.save();
+    canvas.scale(_flipX ? -1 : 1, _flipY ? -1 : 1);
+
     // 画像を描画（中心原点）
     final srcRect = Rect.fromLTWH(
       0,
@@ -309,9 +461,40 @@ class ImageObject extends BodyComponent with StageObject {
     );
 
     canvas.drawImageRect(_image!, srcRect, dstRect, Paint());
+    canvas.restore();
+
+    // 選択中ならハイライト表示
+    if (isSelected) {
+      _drawSelectionHighlight(canvas);
+    }
 
     // デバッグ: 輪郭を描画
     // _debugDrawContours(canvas);
+  }
+
+  void _drawSelectionHighlight(Canvas canvas) {
+    final halfW = _worldSize.x / 2;
+    final halfH = _worldSize.y / 2;
+    final rect = Rect.fromLTRB(-halfW, -halfH, halfW, halfH);
+
+    // 選択枠
+    final borderPaint = Paint()
+      ..color = Colors.cyan
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.15;
+    canvas.drawRect(rect, borderPaint);
+
+    // コーナーハンドル
+    final handleSize = 0.3;
+    final handlePaint = Paint()
+      ..color = Colors.cyan
+      ..style = PaintingStyle.fill;
+
+    // 四隅
+    canvas.drawCircle(Offset(-halfW, -halfH), handleSize, handlePaint);
+    canvas.drawCircle(Offset(halfW, -halfH), handleSize, handlePaint);
+    canvas.drawCircle(Offset(-halfW, halfH), handleSize, handlePaint);
+    canvas.drawCircle(Offset(halfW, halfH), handleSize, handlePaint);
   }
 
   void _debugDrawContours(Canvas canvas) {

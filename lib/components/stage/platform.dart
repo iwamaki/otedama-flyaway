@@ -57,6 +57,15 @@ class Platform extends BodyComponent with StageObject {
   double get angle => body.angle;
 
   @override
+  (Vector2 min, Vector2 max) get bounds {
+    final pos = body.position;
+    return (
+      Vector2(pos.x - size.x, pos.y - size.y),
+      Vector2(pos.x + size.x, pos.y + size.y),
+    );
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     return {
       'type': type,
@@ -138,6 +147,32 @@ class Platform extends BodyComponent with StageObject {
 
     // 木目風のテクスチャ（オプション）
     _drawWoodGrain(canvas, rect);
+
+    // 選択中ならハイライト
+    if (isSelected) {
+      _drawSelectionHighlight(canvas);
+    }
+  }
+
+  void _drawSelectionHighlight(Canvas canvas) {
+    final borderPaint = Paint()
+      ..color = Colors.cyan
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.15;
+    canvas.drawRect(
+      Rect.fromCenter(center: Offset.zero, width: size.x * 2, height: size.y * 2),
+      borderPaint,
+    );
+
+    // コーナーハンドル
+    final handleSize = 0.25;
+    final handlePaint = Paint()
+      ..color = Colors.cyan
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(-size.x, -size.y), handleSize, handlePaint);
+    canvas.drawCircle(Offset(size.x, -size.y), handleSize, handlePaint);
+    canvas.drawCircle(Offset(-size.x, size.y), handleSize, handlePaint);
+    canvas.drawCircle(Offset(size.x, size.y), handleSize, handlePaint);
   }
 
   void _drawWoodGrain(Canvas canvas, Rect rect) {
