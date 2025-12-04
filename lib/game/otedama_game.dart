@@ -390,6 +390,18 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     selectObject(obj);
   }
 
+  /// 足場を追加
+  Future<void> addPlatform({Vector2? position}) async {
+    final pos = position ?? camera.viewfinder.position.clone();
+    final obj = Platform(
+      position: pos,
+      width: 6.0,
+      height: 0.5,
+    );
+    await _addStageObject(obj);
+    selectObject(obj);
+  }
+
   /// お手玉をリセット
   void resetOtedama() {
     otedama?.reset();

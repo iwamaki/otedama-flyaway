@@ -38,10 +38,7 @@ class _OtedamaAppState extends State<OtedamaApp> {
             // ゲーム本体
             GameWidget(game: _game),
             // ステージエディタUI
-            StageEditor(
-              game: _game,
-              onImportImage: _showImagePicker,
-            ),
+            StageEditor(game: _game),
             // パラメータ調整UI（開発用）- 編集モード中は非表示
             if (!_game.isEditMode)
               PhysicsTuner(
@@ -56,41 +53,5 @@ class _OtedamaAppState extends State<OtedamaApp> {
         ),
       ),
     );
-  }
-
-  /// 画像選択ダイアログを表示
-  void _showImagePicker() async {
-    // assets/images内の画像リストを表示
-    final images = ['branch.png']; // TODO: 動的に取得
-
-    final selected = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('画像を選択'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: images.length,
-            itemBuilder: (context, index) => ListTile(
-              leading: const Icon(Icons.image),
-              title: Text(images[index]),
-              onTap: () => Navigator.pop(context, images[index]),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('キャンセル'),
-          ),
-        ],
-      ),
-    );
-
-    if (selected != null) {
-      await _game.addImageObject(selected);
-      setState(() {});
-    }
   }
 }

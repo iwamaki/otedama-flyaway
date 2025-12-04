@@ -4,17 +4,16 @@ import 'package:flutter/material.dart';
 
 import '../components/stage/image_object.dart';
 import '../game/otedama_game.dart';
+import 'object_picker.dart';
 
 /// ステージエディタUI
 /// 編集モードの切り替えと、選択オブジェクトの操作パネルを提供
 class StageEditor extends StatefulWidget {
   final OtedamaGame game;
-  final VoidCallback? onImportImage;
 
   const StageEditor({
     super.key,
     required this.game,
-    this.onImportImage,
   });
 
   @override
@@ -74,12 +73,12 @@ class _StageEditorState extends State<StageEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 画像インポートボタン
+        // オブジェクト追加ボタン
         FloatingActionButton.small(
-          heroTag: 'import',
-          onPressed: widget.onImportImage,
-          backgroundColor: Colors.blue,
-          child: const Icon(Icons.add_photo_alternate, color: Colors.white),
+          heroTag: 'add_object',
+          onPressed: () => _showObjectPicker(context),
+          backgroundColor: Colors.green,
+          child: const Icon(Icons.add, color: Colors.white),
         ),
         const SizedBox(height: 8),
         // 選択解除ボタン
@@ -95,6 +94,26 @@ class _StageEditorState extends State<StageEditor> {
           ),
       ],
     );
+  }
+
+  Future<void> _showObjectPicker(BuildContext context) async {
+    final selected = await ObjectPicker.show(context);
+    if (selected == null) return;
+
+    // 選択されたオブジェクトを追加
+    switch (selected.type) {
+      case ObjectType.primitive:
+        if (selected.id == 'platform') {
+          await widget.game.addPlatform();
+        }
+        break;
+      case ObjectType.image:
+        if (selected.imagePath != null) {
+          await widget.game.addImageObject(selected.imagePath!);
+        }
+        break;
+    }
+    setState(() {});
   }
 
   Widget _buildObjectPanel() {
