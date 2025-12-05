@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../game/otedama_game.dart';
 import '../models/stage_data.dart' show StageEntry;
+import 'clear_screen.dart';
 import 'physics_tuner.dart';
 import 'stage_editor.dart';
 
@@ -32,6 +33,7 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late OtedamaGame _game;
   bool _isLoading = true;
+  bool _showClearScreen = false;
 
   @override
   void initState() {
@@ -47,10 +49,25 @@ class _GameScreenState extends State<GameScreen> {
     _game.onEditModeChanged = () {
       setState(() {});
     };
+    // ゴール到達時のコールバック
+    _game.onGoalReachedCallback = _onGoalReached;
 
     setState(() {
       _isLoading = false;
     });
+  }
+
+  void _onGoalReached() {
+    setState(() {
+      _showClearScreen = true;
+    });
+  }
+
+  void _onRetry() {
+    setState(() {
+      _showClearScreen = false;
+    });
+    _game.resetOtedama();
   }
 
   @override
@@ -107,6 +124,14 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
           ],
+
+          // クリア画面
+          if (_showClearScreen && _game.clearTime != null)
+            ClearScreen(
+              clearTime: _game.clearTime!,
+              onRetry: _onRetry,
+              onBackToStart: widget.onBackToStart,
+            ),
         ],
       ),
     );

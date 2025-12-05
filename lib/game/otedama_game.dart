@@ -34,6 +34,28 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   bool _goalReached = false;
   bool get goalReached => _goalReached;
 
+  /// タイマー関連
+  DateTime? _gameStartTime;
+  DateTime? _gameEndTime;
+  bool _timerStarted = false;
+
+  /// ゲーム開始からの経過時間（秒）
+  double get elapsedSeconds {
+    if (_gameStartTime == null) return 0;
+    final endTime = _gameEndTime ?? DateTime.now();
+    return endTime.difference(_gameStartTime!).inMilliseconds / 1000;
+  }
+
+  /// タイマーが開始しているか
+  bool get timerStarted => _timerStarted;
+
+  /// クリアタイム（ゴール到達時の経過時間）
+  double? _clearTime;
+  double? get clearTime => _clearTime;
+
+  /// ゴール到達コールバック（外部通知用）
+  VoidCallback? onGoalReachedCallback;
+
   /// お手玉をつかめる距離（お手玉半径の倍率）
   static const double grabRadiusMultiplier = 1.8;
 
@@ -150,6 +172,11 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       if (otedama!.centerPosition.y > StageConfig.fallThreshold) {
         resetOtedama();
       }
+
+      // ゴール判定（お手玉の中心がゴール内にあるか）
+      if (!_goalReached && goal != null) {
+        _checkGoalReached();
+      }
     }
 
     // パララックス効果を更新
@@ -176,12 +203,50 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     }
   }
 
+  /// ゴール判定チェック
+  void _checkGoalReached() {
+    if (goal == null || otedama == null) return;
+
+    final pos = otedama!.centerPosition;
+    final goalPos = goal!.position;
+    final halfW = goal!.width / 2 - goal!.wallThickness;
+    final halfH = goal!.height / 2 - goal!.wallThickness;
+
+    // お手玉の中心がゴール内部にあるか
+    if (pos.x >= goalPos.x - halfW &&
+        pos.x <= goalPos.x + halfW &&
+        pos.y >= goalPos.y - halfH &&
+        pos.y <= goalPos.y + halfH) {
+      _onGoalReached();
+    }
+  }
+
+  /// タイマー開始
+  void _startTimer() {
+    _timerStarted = true;
+    _gameStartTime = DateTime.now();
+    _gameEndTime = null;
+    _clearTime = null;
+  }
+
+  /// タイマーリセット
+  void _resetTimer() {
+    _timerStarted = false;
+    _gameStartTime = null;
+    _gameEndTime = null;
+    _clearTime = null;
+  }
+
   /// ゴール到達時の処理
   void _onGoalReached() {
     if (!_goalReached) {
       _goalReached = true;
-      debugPrint('🎉 Goal reached!');
-      // TODO: Phase 6でゴール演出を追加
+      // タイマー停止＆クリアタイム記録
+      _gameEndTime = DateTime.now();
+      _clearTime = elapsedSeconds;
+      debugPrint('🎉 Goal reached! Clear time: ${_clearTime?.toStringAsFixed(2)}s');
+      // 外部コールバックを呼び出し
+      onGoalReachedCallback?.call();
     }
   }
 
@@ -262,6 +327,11 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       final diff = otedamaPos - _dragCurrent!;
       // タップ位置に力を加える（回転が発生する）
       otedama!.launch(diff, touchPoint: _dragStart!);
+
+      // 初回発射時にタイマー開始
+      if (!_timerStarted) {
+        _startTimer();
+      }
     }
 
     // 状態をリセット
@@ -394,6 +464,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   void resetOtedama() {
     otedama?.reset();
     _goalReached = false;
+    _resetTimer();
   }
 
   // --- ステージ管理 ---
@@ -460,7 +531,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
           break;
         case 'goal':
           goal = Goal.fromJson(objJson);
-          (goal as Goal).onGoalReached;
+          goal!.onGoalReached = _onGoalReached;
           await _addStageObject(goal!);
           break;
       }

@@ -23,7 +23,7 @@ class Goal extends BodyComponent with StageObject, ContactCallbacks {
   final Color color;
 
   /// ゴール判定コールバック
-  final void Function()? onGoalReached;
+  void Function()? onGoalReached;
 
   /// ゴールに入っているかどうか
   bool _isOtedamaInside = false;
