@@ -1,12 +1,11 @@
-import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import 'components/stage/goal.dart';
 import 'components/stage/image_object.dart';
 import 'components/stage/platform.dart';
-import 'game/otedama_game.dart';
-import 'ui/physics_tuner.dart';
-import 'ui/stage_editor.dart';
+import 'models/stage_data.dart';
+import 'ui/game_screen.dart';
+import 'ui/start_screen.dart';
 
 void main() {
   // ステージオブジェクトのファクトリを登録
@@ -25,41 +24,59 @@ class OtedamaApp extends StatefulWidget {
 }
 
 class _OtedamaAppState extends State<OtedamaApp> {
-  late OtedamaGame _game;
+  /// 現在の画面状態
+  _ScreenState _screenState = _ScreenState.start;
 
-  @override
-  void initState() {
-    super.initState();
-    _game = OtedamaGame(backgroundImage: 'tatami.jpg');
-    _game.onEditModeChanged = () {
-      setState(() {});
-    };
+  /// 選択されたステージ
+  StageEntry? _selectedStage;
+
+  /// 開発者モード
+  bool _developerMode = false;
+
+  void _onStartGame(StartScreenResult result) {
+    setState(() {
+      _selectedStage = result.selectedStage;
+      _developerMode = result.developerMode;
+      _screenState = _ScreenState.game;
+    });
+  }
+
+  void _onBackToStart() {
+    setState(() {
+      _screenState = _ScreenState.start;
+      _selectedStage = null;
+      _developerMode = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Stack(
-          children: [
-            // ゲーム本体
-            GameWidget(game: _game),
-            // ステージエディタUI
-            StageEditor(game: _game),
-            // パラメータ調整UI（開発用）- 編集モード中は非表示
-            if (!_game.isEditMode)
-              PhysicsTuner(
-                onRebuild: () {
-                  _game.otedama?.rebuild();
-                },
-                onReset: () {
-                  _game.resetOtedama();
-                },
-              ),
-          ],
-        ),
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        primarySwatch: Colors.orange,
       ),
+      home: _buildCurrentScreen(),
     );
   }
+
+  Widget _buildCurrentScreen() {
+    switch (_screenState) {
+      case _ScreenState.start:
+        return StartScreen(onStart: _onStartGame);
+      case _ScreenState.game:
+        return GameScreen(
+          initialStage: _selectedStage,
+          developerMode: _developerMode,
+          onBackToStart: _onBackToStart,
+        );
+    }
+  }
+}
+
+/// 画面状態
+enum _ScreenState {
+  start,
+  game,
 }

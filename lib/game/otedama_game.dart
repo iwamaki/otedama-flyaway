@@ -41,6 +41,9 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   String? _backgroundImage;
   String? get currentBackground => _backgroundImage;
 
+  /// 初期ステージのアセットパス
+  final String? _initialStageAsset;
+
   /// 現在のステージレベル
   int currentStageLevel = 0;
 
@@ -75,8 +78,9 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   /// UI更新コールバック
   VoidCallback? onEditModeChanged;
 
-  OtedamaGame({String? backgroundImage})
+  OtedamaGame({String? backgroundImage, String? initialStageAsset})
       : _backgroundImage = backgroundImage,
+        _initialStageAsset = initialStageAsset,
         super(gravity: Vector2(0, PhysicsConfig.gravityY));
 
   @override
@@ -99,7 +103,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     _dragLine = DragLine();
     camera.viewport.add(_dragLine!);
 
-    // ステージを構築
+    // ステージを構築（地面のみ）
     await _buildStage();
 
     // お手玉を配置（粒子ベース）
@@ -107,6 +111,16 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       position: Vector2(StageConfig.spawnX, StageConfig.spawnY),
     );
     await world.add(otedama!);
+
+    // 初期ステージが指定されている場合は読み込む
+    if (_initialStageAsset != null) {
+      try {
+        final stageData = await StageData.loadFromAsset(_initialStageAsset);
+        await loadStage(stageData);
+      } catch (e) {
+        debugPrint('Failed to load initial stage: $e');
+      }
+    }
   }
 
   /// 現在の高さ（Y座標の負数、上が正）
@@ -144,54 +158,14 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     }
   }
 
-  /// ステージの構築
+  /// ステージの構築（地面のみ）
   Future<void> _buildStage() async {
-    // 地面（スタート地点）- Groundを維持（大きな地面用）
+    // 地面（スタート地点）
     _ground = Ground(
       position: Vector2(0, StageConfig.groundY),
       size: Vector2(StageConfig.groundWidth, 1),
     );
     await world.add(_ground!);
-
-    // デモ用の足場を配置（Platformを使用、角度対応）
-    await _addStageObject(Platform(
-      position: Vector2(5, 0),
-      width: 8,
-      height: 0.5,
-    ));
-    await _addStageObject(Platform(
-      position: Vector2(-4, -8),
-      width: 10,
-      height: 0.5,
-      angle: -0.15, // 少し傾斜
-    ));
-    await _addStageObject(Platform(
-      position: Vector2(3, -16),
-      width: 8,
-      height: 0.5,
-      angle: 0.1,
-    ));
-    await _addStageObject(Platform(
-      position: Vector2(-5, -24),
-      width: 10,
-      height: 0.5,
-    ));
-
-    // 画像ベースのオブジェクト（テスト）
-    await _addStageObject(ImageObject(
-      imagePath: 'branch.png',
-      position: Vector2(0, -12),
-      scale: 0.08, // 調整可能
-    ));
-
-    // ゴール（籠）を配置
-    goal = Goal(
-      position: Vector2(0, -32),
-      width: 5,
-      height: 4,
-      onGoalReached: _onGoalReached,
-    );
-    await _addStageObject(goal!);
   }
 
   /// ステージオブジェクトを追加（管理リストにも登録）
