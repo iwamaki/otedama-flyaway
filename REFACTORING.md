@@ -22,6 +22,16 @@
 - 不要な `dart:math` import を削除
 - **削減: 約80行**
 
+### 5. ParticleOtedama の分割 (730行 → 408行)
+- `lib/components/particle_renderer.dart` を作成 (183行)
+  - 外殻・ビーズの描画ロジック
+  - Catmull-Romスプライン、縫い目模様
+- `lib/components/particle_physics_solver.dart` を作成 (229行)
+  - PBD距離制約ソルバー
+  - ビーズ封じ込め（レイキャスティング）
+  - 相対速度減衰
+- **メインクラス削減: 約320行**
+
 ---
 
 ## 次のステップ（優先度順）
@@ -41,17 +51,9 @@ lib/game/
 
 **備考**: `StageManagerMixin` を作成したが、OtedamaGameとのフィールド競合が多いため統合を保留。
 
-### Phase 2: ParticleOtedama の分割 (730行 → 3クラス)
+### Phase 2: ParticleOtedama の分割 ✅ 完了
 
-**現状の問題**: 物理シミュレーション、レンダリング、発射機構が混在
-
-**分割案**:
-```
-lib/components/
-├── particle_otedama.dart           # メインクラス（軽量化）
-├── particle_physics_solver.dart    # 距離拘束・ビーズ制御
-└── particle_renderer.dart          # 描画ロジック
-```
+上記「5. ParticleOtedama の分割」を参照
 
 ### Phase 3: ImageObject の整理 (400行)
 
