@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/stage_data.dart';
+import 'settings_modal.dart';
 
 /// スタート画面の結果
 class StartScreenResult {
@@ -77,6 +78,10 @@ class _StartScreenState extends State<StartScreen>
     _lastTitleTap = now;
   }
 
+  void _openSettings(BuildContext context) {
+    SettingsModal.show(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,58 +112,71 @@ class _StartScreenState extends State<StartScreen>
           SafeArea(
             child: FadeTransition(
               opacity: _fadeAnimation,
-              child: Column(
-                  children: [
-                    const Spacer(flex: 2),
-                    // タイトル
-                    GestureDetector(
-                      onTap: _onTitleTap,
-                      child: const Column(
-                        children: [
-                          Text(
-                            'Otedama',
-                            style: TextStyle(
-                              fontSize: 56,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 4,
-                              shadows: [
-                                Shadow(
-                                  offset: Offset(2, 2),
-                                  blurRadius: 8,
-                                  color: Colors.black54,
-                                ),
-                              ],
+              child: Stack(
+                children: [
+                  // メインコンテンツ
+                  Column(
+                    children: [
+                      const Spacer(flex: 2),
+                      // タイトル
+                      GestureDetector(
+                        onTap: _onTitleTap,
+                        child: const Column(
+                          children: [
+                            Text(
+                              'Otedama',
+                              style: TextStyle(
+                                fontSize: 56,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 4,
+                                shadows: [
+                                  Shadow(
+                                    offset: Offset(2, 2),
+                                    blurRadius: 8,
+                                    color: Colors.black54,
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          Text(
-                            'Flyaway',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w300,
-                              color: Colors.white70,
-                              letterSpacing: 8,
+                            Text(
+                              'Flyaway',
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w300,
+                                color: Colors.white70,
+                                letterSpacing: 8,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const Spacer(flex: 3),
-                    // ゲーム開始ボタン
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 48),
-                      child: _StartButton(
-                        onTap: () {
-                          // デフォルトステージ（最初のステージ）で開始
-                          final defaultStage = StageRegistry.entries.isNotEmpty
-                              ? StageRegistry.entries.first
-                              : null;
-                          widget.onStart(StartScreenResult(selectedStage: defaultStage));
-                        },
+                      const Spacer(flex: 3),
+                      // ゲーム開始ボタン
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 48),
+                        child: _StartButton(
+                          onTap: () {
+                            // デフォルトステージ（最初のステージ）で開始
+                            final defaultStage = StageRegistry.entries.isNotEmpty
+                                ? StageRegistry.entries.first
+                                : null;
+                            widget.onStart(StartScreenResult(selectedStage: defaultStage));
+                          },
+                        ),
                       ),
+                      const Spacer(flex: 1),
+                    ],
+                  ),
+                  // 設定ボタン（右上）
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: _SettingsButton(
+                      onTap: () => _openSettings(context),
                     ),
-                    const Spacer(flex: 1),
-                  ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -205,6 +223,46 @@ class _StartButtonState extends State<_StartButton> {
                 color: Colors.black45,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 設定ボタン
+class _SettingsButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _SettingsButton({required this.onTap});
+
+  @override
+  State<_SettingsButton> createState() => _SettingsButtonState();
+}
+
+class _SettingsButtonState extends State<_SettingsButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 100),
+        opacity: _isPressed ? 0.6 : 1.0,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.3),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.settings,
+            color: Colors.white70,
+            size: 24,
           ),
         ),
       ),

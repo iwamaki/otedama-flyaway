@@ -4,14 +4,20 @@ import 'components/stage/goal.dart';
 import 'components/stage/image_object.dart';
 import 'components/stage/platform.dart';
 import 'models/stage_data.dart';
+import 'services/settings_service.dart';
 import 'ui/game_screen.dart';
 import 'ui/start_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   // ステージオブジェクトのファクトリを登録
   registerPlatformFactory();
   registerImageObjectFactory();
   registerGoalFactory();
+
+  // 設定サービスを初期化
+  await SettingsService.instance.init();
 
   runApp(const OtedamaApp());
 }

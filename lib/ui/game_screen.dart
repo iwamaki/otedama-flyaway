@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../game/otedama_game.dart';
 import '../models/stage_data.dart' show StageEntry;
+import '../services/settings_service.dart';
 import 'clear_screen.dart';
 import 'physics_tuner.dart';
 import 'stage_editor.dart';
@@ -42,9 +43,13 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _initGame() async {
+    // 設定からスキンを取得
+    final skin = SettingsService.instance.selectedSkin;
+
     _game = OtedamaGame(
       backgroundImage: 'tatami.jpg',
       initialStageAsset: widget.initialStage?.assetPath,
+      otedamaSkin: skin,
     );
     _game.onEditModeChanged = () {
       setState(() {});

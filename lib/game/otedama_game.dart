@@ -11,6 +11,7 @@ import '../components/stage/goal.dart';
 import '../components/stage/image_object.dart';
 import '../components/stage/platform.dart';
 import '../components/stage/stage_object.dart';
+import '../config/otedama_skin_config.dart';
 import '../config/physics_config.dart';
 import '../models/stage_data.dart';
 import 'camera_controller.dart';
@@ -79,6 +80,9 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   /// 地面オブジェクト（クリア時に再利用）
   Ground? _ground;
 
+  /// お手玉のスキン設定
+  OtedamaSkin _otedamaSkin;
+
   // --- 編集モード ---
 
   /// 編集モードフラグ
@@ -100,10 +104,20 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   /// UI更新コールバック
   VoidCallback? onEditModeChanged;
 
-  OtedamaGame({String? backgroundImage, String? initialStageAsset})
-      : _backgroundImage = backgroundImage,
+  OtedamaGame({
+    String? backgroundImage,
+    String? initialStageAsset,
+    OtedamaSkin? otedamaSkin,
+  })  : _backgroundImage = backgroundImage,
         _initialStageAsset = initialStageAsset,
+        _otedamaSkin = otedamaSkin ?? OtedamaSkinConfig.defaultSkin,
         super(gravity: Vector2(0, PhysicsConfig.gravityY));
+
+  /// スキンを変更
+  Future<void> setOtedamaSkin(OtedamaSkin skin) async {
+    _otedamaSkin = skin;
+    await otedama?.setSkin(skin);
+  }
 
   @override
   Future<void> onLoad() async {
@@ -131,6 +145,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     // お手玉を配置（粒子ベース）
     otedama = ParticleOtedama(
       position: Vector2(StageConfig.spawnX, StageConfig.spawnY),
+      skin: _otedamaSkin,
     );
     await world.add(otedama!);
 

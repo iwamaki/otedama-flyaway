@@ -1,19 +1,52 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+
+import '../config/otedama_skin_config.dart';
 
 /// ParticleOtedama の描画ヘルパー
 /// 外殻・ビーズの描画ロジックを担当
 class ParticleRenderer {
-  final Color color;
   final double shellRadius;
   final double beadRadius;
 
+  /// 現在のスキン設定
+  OtedamaSkin _skin;
+
+  /// テクスチャ画像（テクスチャスキン時に使用）
+  ui.Image? _textureImage;
+
   ParticleRenderer({
-    required this.color,
+    Color color = const Color(0xFFCC3333),
     required this.shellRadius,
     required this.beadRadius,
-  });
+    OtedamaSkin? skin,
+  }) : _skin = skin ??
+            OtedamaSkin.solid(
+              name: 'カスタム',
+              color: color,
+            );
+
+  /// スキンを更新
+  void setSkin(OtedamaSkin skin) {
+    _skin = skin;
+  }
+
+  /// テクスチャ画像を設定
+  void setTextureImage(ui.Image? image) {
+    _textureImage = image;
+  }
+
+  /// 現在のスキンを取得
+  OtedamaSkin get skin => _skin;
+
+  /// ベースカラーを取得（単色スキンまたはフォールバック）
+  Color get _baseColor => _skin.baseColor ?? const Color(0xFFCC3333);
+
+  /// 縁取り色を取得
+  Color get _borderColor =>
+      _skin.borderColor ?? Color.lerp(_baseColor, Colors.black, 0.25)!;
 
   /// 外殻とビーズを描画
   /// [canvas] 描画先
@@ -67,24 +100,22 @@ class ParticleRenderer {
     // Catmull-Romスプラインで滑らかに
     final smoothPath = _createSmoothPath(points);
 
-    // 袋の塗りつぶし
-    final gradient = RadialGradient(
-      center: const Alignment(-0.3, -0.4),
-      radius: 1.2,
-      colors: [
-        color,
-        Color.lerp(color, Colors.black, 0.4)!,
-      ],
-    );
     final bounds = smoothPath.getBounds();
     if (bounds.isEmpty) return;
 
-    final paint = Paint()..shader = gradient.createShader(bounds);
-    canvas.drawPath(smoothPath, paint);
+    // スキンタイプに応じて描画
+    switch (_skin.type) {
+      case OtedamaSkinType.solidColor:
+        _drawSolidFill(canvas, smoothPath, bounds);
+        break;
+      case OtedamaSkinType.texture:
+        _drawTextureFill(canvas, smoothPath, bounds);
+        break;
+    }
 
     // 縁取り
     final borderPaint = Paint()
-      ..color = Color.lerp(color, Colors.black, 0.25)!
+      ..color = _borderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.08;
     canvas.drawPath(smoothPath, borderPaint);
@@ -105,7 +136,69 @@ class ParticleRenderer {
     }
 
     // 縫い目模様
-    _drawPattern(canvas, bounds);
+    if (_skin.showStitchPattern) {
+      _drawPattern(canvas, bounds);
+    }
+  }
+
+  /// 単色グラデーションで塗りつぶし
+  void _drawSolidFill(Canvas canvas, Path path, Rect bounds) {
+    final gradient = RadialGradient(
+      center: const Alignment(-0.3, -0.4),
+      radius: 1.2,
+      colors: [
+        _baseColor,
+        Color.lerp(_baseColor, Colors.black, 0.4)!,
+      ],
+    );
+
+    final paint = Paint()..shader = gradient.createShader(bounds);
+    canvas.drawPath(path, paint);
+  }
+
+  /// テクスチャで塗りつぶし
+  void _drawTextureFill(Canvas canvas, Path path, Rect bounds) {
+    if (_textureImage == null) {
+      // テクスチャが未読み込みの場合はフォールバック色で描画
+      _drawSolidFill(canvas, path, bounds);
+      return;
+    }
+
+    canvas.save();
+    canvas.clipPath(path);
+
+    // テクスチャを袋の形状にフィットさせる
+    final srcRect = Rect.fromLTWH(
+      0,
+      0,
+      _textureImage!.width.toDouble(),
+      _textureImage!.height.toDouble(),
+    );
+
+    // 袋の中心に配置し、適切なサイズにスケール
+    final dstRect = bounds;
+
+    canvas.drawImageRect(
+      _textureImage!,
+      srcRect,
+      dstRect,
+      Paint()..filterQuality = FilterQuality.medium,
+    );
+
+    canvas.restore();
+
+    // 立体感を出すための半透明グラデーションオーバーレイ
+    final overlayGradient = RadialGradient(
+      center: const Alignment(-0.3, -0.4),
+      radius: 1.2,
+      colors: [
+        Colors.white.withValues(alpha: 0.1),
+        Colors.black.withValues(alpha: 0.3),
+      ],
+    );
+
+    final overlayPaint = Paint()..shader = overlayGradient.createShader(bounds);
+    canvas.drawPath(path, overlayPaint);
   }
 
   /// Catmull-Romスプラインで滑らかなパスを生成

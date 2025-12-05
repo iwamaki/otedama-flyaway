@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 
+import '../config/otedama_skin_config.dart';
 import '../config/physics_config.dart';
+import '../services/texture_manager.dart';
 import 'particle_physics_solver.dart';
 import 'particle_renderer.dart';
 
@@ -12,6 +14,9 @@ import 'particle_renderer.dart';
 class ParticleOtedama extends BodyComponent {
   final Vector2 initialPosition;
   final Color color;
+
+  /// 現在のスキン設定
+  OtedamaSkin _skin;
 
   // 外殻のボディ（袋を形成）
   final List<Body> shellBodies = [];
@@ -74,7 +79,26 @@ class ParticleOtedama extends BodyComponent {
   ParticleOtedama({
     required Vector2 position,
     this.color = const Color(0xFFCC3333),
-  }) : initialPosition = position;
+    OtedamaSkin? skin,
+  })  : initialPosition = position,
+        _skin = skin ?? OtedamaSkinConfig.defaultSkin;
+
+  /// 現在のスキンを取得
+  OtedamaSkin get skin => _skin;
+
+  /// スキンを変更
+  Future<void> setSkin(OtedamaSkin newSkin) async {
+    _skin = newSkin;
+    _renderer.setSkin(newSkin);
+
+    // テクスチャスキンの場合は画像を読み込み
+    if (newSkin.type == OtedamaSkinType.texture && newSkin.texturePath != null) {
+      final image = await TextureManager.instance.loadTexture(newSkin.texturePath!);
+      _renderer.setTextureImage(image);
+    } else {
+      _renderer.setTextureImage(null);
+    }
+  }
 
   @override
   void update(double dt) {
@@ -145,7 +169,15 @@ class ParticleOtedama extends BodyComponent {
       color: color,
       shellRadius: shellRadius,
       beadRadius: beadRadius,
+      skin: _skin,
     );
+
+    // テクスチャスキンの場合は画像を読み込み
+    if (_skin.type == OtedamaSkinType.texture && _skin.texturePath != null) {
+      final image = await TextureManager.instance.loadTexture(_skin.texturePath!);
+      _renderer.setTextureImage(image);
+    }
+
     _physicsSolver = ParticlePhysicsSolver(
       constraintIterations: distanceConstraintIterations,
       constraintStiffness: distanceConstraintStiffness,
