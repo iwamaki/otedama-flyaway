@@ -238,6 +238,9 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
 
     // 通常モード: お手玉をつかめる距離かチェック
     if (otedama != null) {
+      // 発射可能かチェック
+      if (!otedama!.canLaunch) return;
+
       final otedamaPos = otedama!.centerPosition;
       final distance = (touchPos - otedamaPos).length;
       final grabRadius = ParticleOtedama.overallRadius * grabRadiusMultiplier;

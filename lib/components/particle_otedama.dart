@@ -49,6 +49,20 @@ class ParticleOtedama extends BodyComponent {
   // 初期ジョイント長を記録
   final List<double> _initialJointLengths = [];
 
+  // 発射制限用
+  int _launchCount = 0; // 発射回数（0: 未発射, 1: 初回発射済み, 2: 空中発射済み）
+  bool _isGrounded = false; // 接地中フラグ
+  static const double _groundedVelocityThreshold = 1.5; // 接地判定の速度閾値
+
+  /// 空中発射の力の倍率（初回の何倍か）
+  static double airLaunchMultiplier = 0.5;
+
+  /// 発射可能かどうか
+  bool get canLaunch => _launchCount < 2;
+
+  /// 空中発射かどうか（UI表示用）
+  bool get isAirLaunch => _launchCount == 1 && !_isGrounded;
+
   ParticleOtedama({
     required Vector2 position,
     this.color = const Color(0xFFCC3333),
@@ -71,6 +85,35 @@ class ParticleOtedama extends BodyComponent {
     if (shellBodies.isNotEmpty || beadBodies.isNotEmpty) {
       body.setTransform(centerPosition, 0);
     }
+
+    // 接地判定（速度ベース）と発射カウントリセット
+    _updateGroundedState();
+  }
+
+  /// 接地状態の更新と発射カウントのリセット
+  void _updateGroundedState() {
+    // 平均速度を計算
+    final avgVelocity = _getAverageVelocity();
+
+    // 速度が閾値以下なら接地とみなす
+    final wasGrounded = _isGrounded;
+    _isGrounded = avgVelocity < _groundedVelocityThreshold;
+
+    // 接地した瞬間に発射カウントをリセット
+    if (_isGrounded && !wasGrounded && _launchCount > 0) {
+      _launchCount = 0;
+    }
+  }
+
+  /// 外殻粒子の平均速度を取得
+  double _getAverageVelocity() {
+    if (shellBodies.isEmpty) return 0;
+
+    double totalSpeed = 0;
+    for (final body in shellBodies) {
+      totalSpeed += body.linearVelocity.length;
+    }
+    return totalSpeed / shellBodies.length;
   }
 
   /// 隣接する節間の相対速度に減衰力を適用
@@ -555,8 +598,20 @@ class ParticleOtedama extends BodyComponent {
   /// touchPointを指定すると、その位置に近い外殻粒子に強いインパルスが加わり
   /// 回転（トルク）が発生する
   /// ※内部ビーズには力を加えない
+  ///
+  /// 発射制限:
+  /// - 初回発射: フルパワー
+  /// - 空中発射: 1回だけ、半分のパワー（airLaunchMultiplier）
+  /// - それ以降: 発射不可
   void launch(Vector2 impulse, {Vector2? touchPoint}) {
-    final scaledImpulse = impulse * PhysicsConfig.launchMultiplier;
+    // 発射可能かチェック
+    if (!canLaunch) {
+      return; // 発射回数制限に達している
+    }
+
+    // 空中発射かどうかで力を調整
+    final powerMultiplier = (_launchCount >= 1) ? airLaunchMultiplier : 1.0;
+    final scaledImpulse = impulse * PhysicsConfig.launchMultiplier * powerMultiplier;
 
     if (touchPoint == null || shellBodies.isEmpty) {
       // タップ位置がない場合は従来通り全体に均一に力を加える
@@ -590,12 +645,17 @@ class ParticleOtedama extends BodyComponent {
     }
     // beadBodiesには一切インパルスを加えない
     // → 外殻に閉じ込められているので、衝突で自然に動く
+
+    // 発射カウントを増加
+    _launchCount++;
   }
 
   /// リセット
   void reset() {
     _destroyAllBodies();
     _createParticleBodies();
+    _launchCount = 0;
+    _isGrounded = true;
   }
 
   /// 指定位置にリセット
@@ -614,6 +674,10 @@ class ParticleOtedama extends BodyComponent {
       body.linearVelocity = Vector2.zero();
       body.angularVelocity = 0;
     }
+
+    // 発射カウントもリセット
+    _launchCount = 0;
+    _isGrounded = true;
   }
 
   /// 物理を一時停止（編集モード用）
