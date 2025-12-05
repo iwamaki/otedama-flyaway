@@ -8,13 +8,16 @@ class DragLine extends Component {
   Vector2? _startScreen;
   /// スクリーン座標での終了位置
   Vector2? _endScreen;
+  /// 空中発射モードかどうか
+  bool _isAirLaunch = false;
 
   DragLine();
 
   /// スクリーン座標で更新
-  void updateScreen({required Vector2 start, required Vector2 end}) {
+  void updateScreen({required Vector2 start, required Vector2 end, bool isAirLaunch = false}) {
     _startScreen = start;
     _endScreen = end;
+    _isAirLaunch = isAirLaunch;
   }
 
   void clear() {
@@ -33,8 +36,12 @@ class DragLine extends Component {
     final length = direction.length;
 
     // 引っ張り線（ゴムバンド風）
+    // 空中発射時はオレンジ系、通常は茶色
+    final lineColor = _isAirLaunch
+        ? Colors.orange.withValues(alpha: 0.7)
+        : Colors.brown.withValues(alpha: 0.7);
     final linePaint = Paint()
-      ..color = Colors.brown.withValues(alpha: 0.7)
+      ..color = lineColor
       ..strokeWidth = 4
       ..style = PaintingStyle.stroke;
 
@@ -46,8 +53,12 @@ class DragLine extends Component {
 
     // 発射方向を示す矢印（タップ位置から）
     if (length > 20) {
+      // 空中発射時は黄色、通常は赤
+      final arrowColor = _isAirLaunch
+          ? Colors.yellow.withValues(alpha: 0.7)
+          : Colors.red.withValues(alpha: 0.6);
       final arrowPaint = Paint()
-        ..color = Colors.red.withValues(alpha: 0.6)
+        ..color = arrowColor
         ..strokeWidth = 3
         ..style = PaintingStyle.stroke;
 

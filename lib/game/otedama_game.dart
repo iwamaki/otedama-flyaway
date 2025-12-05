@@ -255,6 +255,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
         _dragLine?.updateScreen(
           start: worldToScreen(_dragStart!),
           end: worldToScreen(_dragCurrent!),
+          isAirLaunch: otedama?.isAirLaunch ?? false,
         );
       }
     }
@@ -279,6 +280,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     _dragLine?.updateScreen(
       start: worldToScreen(_dragStart!),
       end: worldToScreen(_dragCurrent!),
+      isAirLaunch: otedama?.isAirLaunch ?? false,
     );
   }
 
