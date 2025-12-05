@@ -29,6 +29,9 @@ class OtedamaSkin {
   /// 縫い目模様を表示するか
   final bool showStitchPattern;
 
+  /// ビーズを表示するか
+  final bool showBeads;
+
   const OtedamaSkin._({
     required this.name,
     required this.type,
@@ -36,6 +39,7 @@ class OtedamaSkin {
     this.texturePath,
     this.borderColor,
     this.showStitchPattern = true,
+    this.showBeads = true,
   });
 
   /// 単色スキンを作成
@@ -44,12 +48,14 @@ class OtedamaSkin {
     required Color color,
     Color? borderColor,
     bool showStitchPattern = true,
+    bool showBeads = true,
   }) : this._(
           name: name,
           type: OtedamaSkinType.solidColor,
           baseColor: color,
           borderColor: borderColor,
           showStitchPattern: showStitchPattern,
+          showBeads: showBeads,
         );
 
   /// テクスチャスキンを作成
@@ -58,12 +64,14 @@ class OtedamaSkin {
     required String assetPath,
     Color? borderColor,
     bool showStitchPattern = false,
+    bool showBeads = false,
   }) : this._(
           name: name,
           type: OtedamaSkinType.texture,
           texturePath: assetPath,
           borderColor: borderColor,
           showStitchPattern: showStitchPattern,
+          showBeads: showBeads,
         );
 }
 
@@ -97,7 +105,7 @@ class OtedamaSkinConfig {
     OtedamaSkin.texture(
       name: '桜',
       assetPath: 'assets/texture/sakura.jpeg',
-      borderColor: Color(0xFFFFB7C5),
+      borderColor: Color(0xFF8B4557), // 濃い桜色
     ),
   ];
 

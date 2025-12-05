@@ -109,7 +109,9 @@ class ParticleRenderer {
         _drawSolidFill(canvas, smoothPath, bounds);
         break;
       case OtedamaSkinType.texture:
-        _drawTextureFill(canvas, smoothPath, bounds);
+        // 回転角度を計算（最初の外殻粒子の位置から）
+        final rotationAngle = _calculateRotationAngle(points, centerX, centerY);
+        _drawTextureFill(canvas, smoothPath, bounds, rotationAngle);
         break;
     }
 
@@ -117,22 +119,24 @@ class ParticleRenderer {
     final borderPaint = Paint()
       ..color = _borderColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.08;
+      ..strokeWidth = 0.12;
     canvas.drawPath(smoothPath, borderPaint);
 
-    // ビーズを描画（半透明）
-    final beadPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.3)
-      ..style = PaintingStyle.fill;
-    for (final beadPos in beadPositions) {
-      canvas.drawCircle(
-        Offset(
-          beadPos.dx - bodyPos.dx,
-          beadPos.dy - bodyPos.dy,
-        ),
-        beadRadius,
-        beadPaint,
-      );
+    // ビーズを描画（スキン設定で有効な場合のみ）
+    if (_skin.showBeads) {
+      final beadPaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.3)
+        ..style = PaintingStyle.fill;
+      for (final beadPos in beadPositions) {
+        canvas.drawCircle(
+          Offset(
+            beadPos.dx - bodyPos.dx,
+            beadPos.dy - bodyPos.dy,
+          ),
+          beadRadius,
+          beadPaint,
+        );
+      }
     }
 
     // 縫い目模様
@@ -156,8 +160,23 @@ class ParticleRenderer {
     canvas.drawPath(path, paint);
   }
 
+  /// 外殻粒子から回転角度を計算
+  /// 最初の粒子と中心を結ぶ線の角度を返す
+  double _calculateRotationAngle(List<Offset> points, double centerX, double centerY) {
+    if (points.isEmpty) return 0;
+
+    // 最初の外殻粒子の位置から回転角を計算
+    final firstPoint = points[0];
+    final dx = firstPoint.dx - centerX;
+    final dy = firstPoint.dy - centerY;
+
+    // 初期状態では最初の粒子は右側（角度0）にあるので、
+    // 現在の角度がそのまま回転量になる
+    return math.atan2(dy, dx);
+  }
+
   /// テクスチャで塗りつぶし
-  void _drawTextureFill(Canvas canvas, Path path, Rect bounds) {
+  void _drawTextureFill(Canvas canvas, Path path, Rect bounds, double rotationAngle) {
     if (_textureImage == null) {
       // テクスチャが未読み込みの場合はフォールバック色で描画
       _drawSolidFill(canvas, path, bounds);
@@ -175,8 +194,21 @@ class ParticleRenderer {
       _textureImage!.height.toDouble(),
     );
 
-    // 袋の中心に配置し、適切なサイズにスケール
-    final dstRect = bounds;
+    // 袋の中心
+    final center = bounds.center;
+
+    // テクスチャを正方形で描画するために大きい方のサイズを使用
+    final size = math.max(bounds.width, bounds.height) * 1.2;
+    final dstRect = Rect.fromCenter(
+      center: center,
+      width: size,
+      height: size,
+    );
+
+    // 中心を原点に移動してから回転
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(rotationAngle);
+    canvas.translate(-center.dx, -center.dy);
 
     canvas.drawImageRect(
       _textureImage!,
