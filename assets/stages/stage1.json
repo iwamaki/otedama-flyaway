@@ -1,5 +1,6 @@
 {
-  "name": "New Stage",
+  "level": 1,
+  "name": "ステージ1",
   "background": "tatami.jpg",
   "spawnX": 0,
   "spawnY": 5,
@@ -38,6 +39,24 @@
       "width": 6,
       "height": 0.5,
       "angle": 0,
+      "color": 4285238819
+    },
+    {
+      "type": "platform",
+      "x": 22.68952178955078,
+      "y": -57.694007873535156,
+      "width": 6,
+      "height": 0.5,
+      "angle": 0,
+      "color": 4285238819
+    },
+    {
+      "type": "platform",
+      "x": 33.44972229003906,
+      "y": -80.04910278320312,
+      "width": 6,
+      "height": 0.5,
+      "angle": -0.26456737876963166,
       "color": 4285238819
     }
   ]

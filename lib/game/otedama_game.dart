@@ -37,6 +37,11 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   String? _backgroundImage;
   String? get currentBackground => _backgroundImage;
 
+  /// 現在のステージレベル
+  int _currentStageLevel = 0;
+  int get currentStageLevel => _currentStageLevel;
+  set currentStageLevel(int value) => _currentStageLevel = value;
+
   /// 現在のステージ名
   String _currentStageName = 'New Stage';
   String get currentStageName => _currentStageName;
@@ -430,6 +435,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   StageData exportStage() {
     final objects = _stageObjects.map((obj) => obj.toJson()).toList();
     return StageData(
+      level: _currentStageLevel,
       name: _currentStageName,
       background: _backgroundImage,
       spawnX: _spawnX,
@@ -450,6 +456,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     goal = null;
 
     // ステージ情報をリセット
+    _currentStageLevel = 0;
     _currentStageName = 'New Stage';
     _goalReached = false;
 
@@ -462,6 +469,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     clearStage();
 
     // ステージ情報を設定
+    _currentStageLevel = stageData.level;
     _currentStageName = stageData.name;
     _spawnX = stageData.spawnX;
     _spawnY = stageData.spawnY;

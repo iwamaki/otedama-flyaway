@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 /// ステージデータモデル
 /// JSONファイルからステージ情報を読み込み・保存する
 class StageData {
+  /// ステージレベル（表示順・識別用）
+  final int level;
+
   /// ステージ名
   final String name;
 
@@ -21,6 +24,7 @@ class StageData {
   final List<Map<String, dynamic>> objects;
 
   const StageData({
+    required this.level,
     required this.name,
     this.background,
     required this.spawnX,
@@ -31,6 +35,7 @@ class StageData {
   /// JSONからStageDataを生成
   factory StageData.fromJson(Map<String, dynamic> json) {
     return StageData(
+      level: (json['level'] as num?)?.toInt() ?? 0,
       name: json['name'] as String? ?? 'Unnamed Stage',
       background: json['background'] as String?,
       spawnX: (json['spawnX'] as num?)?.toDouble() ?? 0.0,
@@ -45,6 +50,7 @@ class StageData {
   /// JSONに変換
   Map<String, dynamic> toJson() {
     return {
+      'level': level,
       'name': name,
       'background': background,
       'spawnX': spawnX,
@@ -67,8 +73,9 @@ class StageData {
   }
 
   /// 空のステージを作成
-  factory StageData.empty({String? name, String? background}) {
+  factory StageData.empty({int? level, String? name, String? background}) {
     return StageData(
+      level: level ?? 0,
       name: name ?? 'New Stage',
       background: background,
       spawnX: 0.0,
@@ -79,6 +86,7 @@ class StageData {
 
   /// コピーして一部のフィールドを変更
   StageData copyWith({
+    int? level,
     String? name,
     String? background,
     double? spawnX,
@@ -86,6 +94,7 @@ class StageData {
     List<Map<String, dynamic>>? objects,
   }) {
     return StageData(
+      level: level ?? this.level,
       name: name ?? this.name,
       background: background ?? this.background,
       spawnX: spawnX ?? this.spawnX,
@@ -95,26 +104,48 @@ class StageData {
   }
 }
 
+/// ステージエントリ（一覧表示用）
+class StageEntry {
+  final int level;
+  final String name;
+  final String assetPath;
+
+  const StageEntry({
+    required this.level,
+    required this.name,
+    required this.assetPath,
+  });
+}
+
 /// 利用可能なステージのレジストリ
 /// 新しいステージを追加する場合はここに追加
 class StageRegistry {
-  static const List<String> stages = [
-    'assets/stages/stage1.json',
-    // 新しいステージを追加:
-    // 'assets/stages/stage2.json',
+  /// 登録済みステージ一覧（レベル順）
+  static const List<StageEntry> entries = [
+    StageEntry(level: 1, name: 'ステージ1', assetPath: 'assets/stages/stage1.json'),
+    StageEntry(level: 2, name: 'ステージ2', assetPath: 'assets/stages/stage2.json'),
   ];
 
-  /// 全ステージを読み込み
+  /// 全ステージを読み込み（レベル順）
   static Future<List<StageData>> loadAll() async {
     final result = <StageData>[];
-    for (final path in stages) {
+    for (final entry in entries) {
       try {
-        final stage = await StageData.loadFromAsset(path);
+        final stage = await StageData.loadFromAsset(entry.assetPath);
         result.add(stage);
       } catch (e) {
         // ファイルが見つからない場合はスキップ
       }
     }
+    // レベル順にソート
+    result.sort((a, b) => a.level.compareTo(b.level));
     return result;
+  }
+
+  /// エントリ一覧を取得（レベル順）
+  static List<StageEntry> get sortedEntries {
+    final sorted = List<StageEntry>.from(entries);
+    sorted.sort((a, b) => a.level.compareTo(b.level));
+    return sorted;
   }
 }

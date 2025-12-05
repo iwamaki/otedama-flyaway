@@ -5,8 +5,10 @@ import 'package:flutter/services.dart';
 
 import '../components/stage/image_object.dart';
 import '../game/otedama_game.dart';
+import '../models/stage_data.dart';
 import 'background_picker.dart';
 import 'object_picker.dart';
+import 'stage_picker.dart';
 
 /// ステージエディタUI
 /// 編集モードの切り替えと、選択オブジェクトの操作パネルを提供
@@ -75,6 +77,14 @@ class _StageEditorState extends State<StageEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ステージ管理ボタン
+        FloatingActionButton.small(
+          heroTag: 'stage_manager',
+          onPressed: () => _showStagePicker(context),
+          backgroundColor: Colors.amber,
+          child: const Icon(Icons.folder_open, color: Colors.white),
+        ),
+        const SizedBox(height: 8),
         // オブジェクト追加ボタン
         FloatingActionButton.small(
           heroTag: 'add_object',
@@ -94,17 +104,9 @@ class _StageEditorState extends State<StageEditor> {
         // エクスポートボタン
         FloatingActionButton.small(
           heroTag: 'export',
-          onPressed: _exportStage,
+          onPressed: () => _showExportDialog(context),
           backgroundColor: Colors.blue,
           child: const Icon(Icons.save, color: Colors.white),
-        ),
-        const SizedBox(height: 8),
-        // 新規作成ボタン
-        FloatingActionButton.small(
-          heroTag: 'new_stage',
-          onPressed: _confirmClearStage,
-          backgroundColor: Colors.red,
-          child: const Icon(Icons.delete_sweep, color: Colors.white),
         ),
         const SizedBox(height: 8),
         // 選択解除ボタン
@@ -135,6 +137,107 @@ class _StageEditorState extends State<StageEditor> {
     }
   }
 
+  /// ステージ管理ピッカーを表示
+  Future<void> _showStagePicker(BuildContext context) async {
+    final result = await StagePicker.show(context);
+    if (result == null) return;
+
+    if (result.isNewStage) {
+      // 新規作成
+      widget.game.clearStage();
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('新しいステージを作成しました'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else if (result.selectedEntry != null) {
+      // 既存ステージを読み込み
+      try {
+        final stageData = await StageData.loadFromAsset(result.selectedEntry!.assetPath);
+        await widget.game.loadStage(stageData);
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${result.selectedEntry!.name} を読み込みました'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('読み込みに失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// エクスポートダイアログを表示
+  Future<void> _showExportDialog(BuildContext context) async {
+    final levelController = TextEditingController(
+      text: widget.game.currentStageLevel.toString(),
+    );
+    final nameController = TextEditingController(
+      text: widget.game.currentStageName,
+    );
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ステージをエクスポート'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: levelController,
+              decoration: const InputDecoration(
+                labelText: 'ステージレベル',
+                hintText: '1, 2, 3...',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'ステージ名',
+                hintText: 'ステージ1',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('エクスポート'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      // 入力値をゲームに反映
+      widget.game.currentStageLevel = int.tryParse(levelController.text) ?? 0;
+      widget.game.currentStageName = nameController.text.isNotEmpty
+          ? nameController.text
+          : 'New Stage';
+
+      // エクスポート実行
+      _exportStage();
+    }
+
+    levelController.dispose();
+    nameController.dispose();
+  }
+
+  /// ステージをエクスポート
   void _exportStage() {
     final stageData = widget.game.exportStage();
     final jsonString = stageData.toJsonString();
@@ -149,37 +252,11 @@ class _StageEditorState extends State<StageEditor> {
 
     // フィードバック
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('ステージJSONをクリップボードにコピーしました'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text('ステージ「${widget.game.currentStageName}」をクリップボードにコピーしました'),
+        duration: const Duration(seconds: 2),
       ),
     );
-  }
-
-  Future<void> _confirmClearStage() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('ステージをクリア'),
-        content: const Text('全てのオブジェクトが削除されます。よろしいですか？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('キャンセル'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('クリア'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      widget.game.clearStage();
-      setState(() {});
-    }
   }
 
   Future<void> _showObjectPicker(BuildContext context) async {
