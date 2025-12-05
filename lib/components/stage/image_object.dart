@@ -7,6 +7,8 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../utils/json_helpers.dart';
+import '../../utils/selection_highlight.dart';
 import 'stage_object.dart';
 
 /// 透過画像ベースのステージオブジェクト
@@ -65,17 +67,14 @@ class ImageObject extends BodyComponent with StageObject {
   /// JSONから生成
   factory ImageObject.fromJson(Map<String, dynamic> json) {
     return ImageObject(
-      imagePath: json['imagePath'] as String? ?? '',
-      position: Vector2(
-        (json['x'] as num?)?.toDouble() ?? 0.0,
-        (json['y'] as num?)?.toDouble() ?? 0.0,
-      ),
-      angle: (json['angle'] as num?)?.toDouble() ?? 0.0,
-      scale: (json['scale'] as num?)?.toDouble() ?? 0.05,
-      friction: (json['friction'] as num?)?.toDouble() ?? 0.5,
-      restitution: (json['restitution'] as num?)?.toDouble() ?? 0.2,
-      flipX: json['flipX'] as bool? ?? false,
-      flipY: json['flipY'] as bool? ?? false,
+      imagePath: json.getString('imagePath'),
+      position: json.getVector2(),
+      angle: json.getDouble('angle'),
+      scale: json.getDouble('scale', 0.05),
+      friction: json.getDouble('friction', 0.5),
+      restitution: json.getDouble('restitution', 0.2),
+      flipX: json.getBool('flipX'),
+      flipY: json.getBool('flipY'),
     );
   }
 
@@ -465,36 +464,16 @@ class ImageObject extends BodyComponent with StageObject {
 
     // 選択中ならハイライト表示
     if (isSelected) {
-      _drawSelectionHighlight(canvas);
+      SelectionHighlight.draw(
+        canvas,
+        halfWidth: _worldSize.x / 2,
+        halfHeight: _worldSize.y / 2,
+        handleRadius: 0.3,
+      );
     }
 
     // デバッグ: 輪郭を描画
     // _debugDrawContours(canvas);
-  }
-
-  void _drawSelectionHighlight(Canvas canvas) {
-    final halfW = _worldSize.x / 2;
-    final halfH = _worldSize.y / 2;
-    final rect = Rect.fromLTRB(-halfW, -halfH, halfW, halfH);
-
-    // 選択枠
-    final borderPaint = Paint()
-      ..color = Colors.cyan
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.15;
-    canvas.drawRect(rect, borderPaint);
-
-    // コーナーハンドル
-    final handleSize = 0.3;
-    final handlePaint = Paint()
-      ..color = Colors.cyan
-      ..style = PaintingStyle.fill;
-
-    // 四隅
-    canvas.drawCircle(Offset(-halfW, -halfH), handleSize, handlePaint);
-    canvas.drawCircle(Offset(halfW, -halfH), handleSize, handlePaint);
-    canvas.drawCircle(Offset(-halfW, halfH), handleSize, handlePaint);
-    canvas.drawCircle(Offset(halfW, halfH), handleSize, handlePaint);
   }
 
   void _debugDrawContours(Canvas canvas) {

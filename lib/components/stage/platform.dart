@@ -2,6 +2,8 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 
 import '../../config/physics_config.dart';
+import '../../utils/json_helpers.dart';
+import '../../utils/selection_highlight.dart';
 import 'stage_object.dart';
 
 /// 足場コンポーネント
@@ -32,16 +34,11 @@ class Platform extends BodyComponent with StageObject {
   /// JSONから生成
   factory Platform.fromJson(Map<String, dynamic> json) {
     return Platform(
-      position: Vector2(
-        (json['x'] as num?)?.toDouble() ?? 0.0,
-        (json['y'] as num?)?.toDouble() ?? 0.0,
-      ),
-      width: (json['width'] as num?)?.toDouble() ?? 3.0,
-      height: (json['height'] as num?)?.toDouble() ?? 0.3,
-      angle: (json['angle'] as num?)?.toDouble() ?? 0.0,
-      color: json['color'] != null
-          ? Color(json['color'] as int)
-          : const Color(0xFF6B8E23),
+      position: json.getVector2(),
+      width: json.getDouble('width', 3.0),
+      height: json.getDouble('height', 0.3),
+      angle: json.getDouble('angle'),
+      color: json.getColor('color', const Color(0xFF6B8E23)),
     );
   }
 
@@ -150,29 +147,8 @@ class Platform extends BodyComponent with StageObject {
 
     // 選択中ならハイライト
     if (isSelected) {
-      _drawSelectionHighlight(canvas);
+      SelectionHighlight.draw(canvas, halfWidth: size.x, halfHeight: size.y);
     }
-  }
-
-  void _drawSelectionHighlight(Canvas canvas) {
-    final borderPaint = Paint()
-      ..color = Colors.cyan
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.15;
-    canvas.drawRect(
-      Rect.fromCenter(center: Offset.zero, width: size.x * 2, height: size.y * 2),
-      borderPaint,
-    );
-
-    // コーナーハンドル
-    final handleSize = 0.25;
-    final handlePaint = Paint()
-      ..color = Colors.cyan
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(-size.x, -size.y), handleSize, handlePaint);
-    canvas.drawCircle(Offset(size.x, -size.y), handleSize, handlePaint);
-    canvas.drawCircle(Offset(-size.x, size.y), handleSize, handlePaint);
-    canvas.drawCircle(Offset(size.x, size.y), handleSize, handlePaint);
   }
 
   void _drawWoodGrain(Canvas canvas, Rect rect) {

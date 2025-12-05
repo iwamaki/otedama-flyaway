@@ -1,6 +1,8 @@
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 
+import '../../utils/json_helpers.dart';
+import '../../utils/selection_highlight.dart';
 import 'stage_object.dart';
 
 /// ゴール籠コンポーネント
@@ -41,16 +43,11 @@ class Goal extends BodyComponent with StageObject, ContactCallbacks {
   /// JSONから生成
   factory Goal.fromJson(Map<String, dynamic> json) {
     return Goal(
-      position: Vector2(
-        (json['x'] as num?)?.toDouble() ?? 0.0,
-        (json['y'] as num?)?.toDouble() ?? 0.0,
-      ),
-      width: (json['width'] as num?)?.toDouble() ?? 4.0,
-      height: (json['height'] as num?)?.toDouble() ?? 3.0,
-      angle: (json['angle'] as num?)?.toDouble() ?? 0.0,
-      color: json['color'] != null
-          ? Color(json['color'] as int)
-          : const Color(0xFF8B4513),
+      position: json.getVector2(),
+      width: json.getDouble('width', 4.0),
+      height: json.getDouble('height', 3.0),
+      angle: json.getDouble('angle'),
+      color: json.getColor('color', const Color(0xFF8B4513)),
     );
   }
 
@@ -259,29 +256,8 @@ class Goal extends BodyComponent with StageObject, ContactCallbacks {
 
     // 選択中ならハイライト
     if (isSelected) {
-      _drawSelectionHighlight(canvas, halfWidth, halfHeight);
+      SelectionHighlight.draw(canvas, halfWidth: halfWidth, halfHeight: halfHeight);
     }
-  }
-
-  void _drawSelectionHighlight(Canvas canvas, double halfW, double halfH) {
-    final borderPaint = Paint()
-      ..color = Colors.cyan
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.15;
-    canvas.drawRect(
-      Rect.fromLTRB(-halfW, -halfH, halfW, halfH),
-      borderPaint,
-    );
-
-    // コーナーハンドル
-    final handleSize = 0.25;
-    final handlePaint = Paint()
-      ..color = Colors.cyan
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(-halfW, -halfH), handleSize, handlePaint);
-    canvas.drawCircle(Offset(halfW, -halfH), handleSize, handlePaint);
-    canvas.drawCircle(Offset(-halfW, halfH), handleSize, handlePaint);
-    canvas.drawCircle(Offset(halfW, halfH), handleSize, handlePaint);
   }
 
   void _drawBasketPattern(Canvas canvas, double halfWidth, double halfHeight) {
