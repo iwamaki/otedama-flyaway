@@ -12,6 +12,7 @@ import '../components/stage/image_object.dart';
 import '../components/stage/platform.dart';
 import '../components/stage/stage_object.dart';
 import '../config/physics_config.dart';
+import '../models/stage_data.dart';
 
 /// メインゲームクラス
 class OtedamaGame extends Forge2DGame with DragCallbacks {
@@ -33,7 +34,20 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   static const double grabRadiusMultiplier = 1.8;
 
   /// 背景画像のパス（nullならデフォルト背景）
-  final String? backgroundImage;
+  String? _backgroundImage;
+  String? get currentBackground => _backgroundImage;
+
+  /// 現在のステージ名
+  String _currentStageName = 'New Stage';
+  String get currentStageName => _currentStageName;
+  set currentStageName(String value) => _currentStageName = value;
+
+  /// スポーン位置
+  double _spawnX = 0.0;
+  double _spawnY = 5.0;
+
+  /// 地面オブジェクト（クリア時に再利用）
+  Ground? _ground;
 
   // --- 編集モード ---
 
@@ -56,8 +70,9 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   /// UI更新コールバック
   VoidCallback? onEditModeChanged;
 
-  OtedamaGame({this.backgroundImage})
-      : super(gravity: Vector2(0, PhysicsConfig.gravityY));
+  OtedamaGame({String? backgroundImage})
+      : _backgroundImage = backgroundImage,
+        super(gravity: Vector2(0, PhysicsConfig.gravityY));
 
   @override
   Future<void> onLoad() async {
@@ -68,7 +83,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     camera.viewfinder.zoom = CameraConfig.zoom;
 
     // 背景を追加（最背面に表示、パララックス効果付き）
-    _background = Background(imagePath: backgroundImage)
+    _background = Background(imagePath: _backgroundImage)
       ..size = size
       ..position = Vector2.zero()
       ..priority = -100; // 最背面
@@ -139,10 +154,11 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   /// ステージの構築
   Future<void> _buildStage() async {
     // 地面（スタート地点）- Groundを維持（大きな地面用）
-    await world.add(Ground(
+    _ground = Ground(
       position: Vector2(0, StageConfig.groundY),
       size: Vector2(StageConfig.groundWidth, 1),
-    ));
+    );
+    await world.add(_ground!);
 
     // デモ用の足場を配置（Platformを使用、角度対応）
     await _addStageObject(Platform(
@@ -406,5 +422,116 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   void resetOtedama() {
     otedama?.reset();
     _goalReached = false;
+  }
+
+  // --- ステージ管理 ---
+
+  /// 現在のステージをStageDataにエクスポート
+  StageData exportStage() {
+    final objects = _stageObjects.map((obj) => obj.toJson()).toList();
+    return StageData(
+      name: _currentStageName,
+      background: _backgroundImage,
+      spawnX: _spawnX,
+      spawnY: _spawnY,
+      objects: objects,
+    );
+  }
+
+  /// ステージをクリア（全オブジェクト削除）
+  void clearStage() {
+    deselectObject();
+
+    // 全オブジェクトを削除
+    for (final obj in _stageObjects) {
+      (obj as dynamic).removeFromParent();
+    }
+    _stageObjects.clear();
+    goal = null;
+
+    // ステージ情報をリセット
+    _currentStageName = 'New Stage';
+    _goalReached = false;
+
+    onEditModeChanged?.call();
+  }
+
+  /// StageDataからステージを読み込み
+  Future<void> loadStage(StageData stageData) async {
+    // 既存のステージをクリア
+    clearStage();
+
+    // ステージ情報を設定
+    _currentStageName = stageData.name;
+    _spawnX = stageData.spawnX;
+    _spawnY = stageData.spawnY;
+
+    // 背景を変更
+    if (stageData.background != _backgroundImage) {
+      await changeBackground(stageData.background);
+    }
+
+    // オブジェクトを配置
+    for (final objJson in stageData.objects) {
+      final type = objJson['type'] as String?;
+      if (type == null) continue;
+
+      switch (type) {
+        case 'platform':
+          await _addStageObject(Platform.fromJson(objJson));
+          break;
+        case 'image_object':
+          await _addStageObject(ImageObject.fromJson(objJson));
+          break;
+        case 'goal':
+          goal = Goal.fromJson(objJson);
+          (goal as Goal).onGoalReached;
+          await _addStageObject(goal!);
+          break;
+      }
+    }
+
+    // お手玉を新しいスポーン位置に移動
+    otedama?.resetToPosition(Vector2(_spawnX, _spawnY));
+
+    onEditModeChanged?.call();
+  }
+
+  /// 背景を変更
+  Future<void> changeBackground(String? newBackground) async {
+    _backgroundImage = newBackground;
+
+    // 既存の背景を削除
+    if (_background != null) {
+      _background!.removeFromParent();
+    }
+
+    // 新しい背景を追加
+    _background = Background(imagePath: _backgroundImage)
+      ..size = size
+      ..position = Vector2.zero()
+      ..priority = -100;
+    camera.backdrop.add(_background!);
+
+    onEditModeChanged?.call();
+  }
+
+  /// ゴールを追加
+  Future<void> addGoal({Vector2? position}) async {
+    // 既存のゴールがあれば削除
+    if (goal != null) {
+      _stageObjects.remove(goal);
+      (goal as dynamic).removeFromParent();
+    }
+
+    final pos = position ?? camera.viewfinder.position.clone();
+    goal = Goal(
+      position: pos,
+      width: 5,
+      height: 4,
+      onGoalReached: _onGoalReached,
+    );
+    await _addStageObject(goal!);
+    selectObject(goal!);
   }
 }

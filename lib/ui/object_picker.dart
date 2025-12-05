@@ -41,6 +41,12 @@ class ObjectRegistry {
       type: ObjectType.primitive,
       icon: Icons.horizontal_rule,
     ),
+    InsertableObject(
+      id: 'goal',
+      name: 'ゴール',
+      type: ObjectType.primitive,
+      icon: Icons.sports_score,
+    ),
   ];
 
   /// 画像オブジェクト

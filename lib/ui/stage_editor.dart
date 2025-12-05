@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../components/stage/image_object.dart';
 import '../game/otedama_game.dart';
+import 'background_picker.dart';
 import 'object_picker.dart';
 
 /// ステージエディタUI
@@ -81,6 +83,30 @@ class _StageEditorState extends State<StageEditor> {
           child: const Icon(Icons.add, color: Colors.white),
         ),
         const SizedBox(height: 8),
+        // 背景変更ボタン
+        FloatingActionButton.small(
+          heroTag: 'change_bg',
+          onPressed: () => _showBackgroundPicker(context),
+          backgroundColor: Colors.purple,
+          child: const Icon(Icons.image, color: Colors.white),
+        ),
+        const SizedBox(height: 8),
+        // エクスポートボタン
+        FloatingActionButton.small(
+          heroTag: 'export',
+          onPressed: _exportStage,
+          backgroundColor: Colors.blue,
+          child: const Icon(Icons.save, color: Colors.white),
+        ),
+        const SizedBox(height: 8),
+        // 新規作成ボタン
+        FloatingActionButton.small(
+          heroTag: 'new_stage',
+          onPressed: _confirmClearStage,
+          backgroundColor: Colors.red,
+          child: const Icon(Icons.delete_sweep, color: Colors.white),
+        ),
+        const SizedBox(height: 8),
         // 選択解除ボタン
         if (widget.game.selectedObject != null)
           FloatingActionButton.small(
@@ -96,6 +122,66 @@ class _StageEditorState extends State<StageEditor> {
     );
   }
 
+  Future<void> _showBackgroundPicker(BuildContext context) async {
+    final selected = await BackgroundPicker.show(
+      context,
+      currentBackground: widget.game.currentBackground,
+    );
+    // nullの場合はデフォルト背景、それ以外は選択された背景
+    // キャンセル時は何も返されないのでそのまま
+    if (selected != widget.game.currentBackground) {
+      await widget.game.changeBackground(selected);
+      setState(() {});
+    }
+  }
+
+  void _exportStage() {
+    final stageData = widget.game.exportStage();
+    final jsonString = stageData.toJsonString();
+
+    // クリップボードにコピー
+    Clipboard.setData(ClipboardData(text: jsonString));
+
+    // コンソールにも出力
+    debugPrint('=== Stage JSON ===');
+    debugPrint(jsonString);
+    debugPrint('==================');
+
+    // フィードバック
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('ステージJSONをクリップボードにコピーしました'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _confirmClearStage() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ステージをクリア'),
+        content: const Text('全てのオブジェクトが削除されます。よろしいですか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('クリア'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      widget.game.clearStage();
+      setState(() {});
+    }
+  }
+
   Future<void> _showObjectPicker(BuildContext context) async {
     final selected = await ObjectPicker.show(context);
     if (selected == null) return;
@@ -105,6 +191,8 @@ class _StageEditorState extends State<StageEditor> {
       case ObjectType.primitive:
         if (selected.id == 'platform') {
           await widget.game.addPlatform();
+        } else if (selected.id == 'goal') {
+          await widget.game.addGoal();
         }
         break;
       case ObjectType.image:

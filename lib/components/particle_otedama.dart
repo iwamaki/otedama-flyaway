@@ -598,6 +598,24 @@ class ParticleOtedama extends BodyComponent {
     _createParticleBodies();
   }
 
+  /// 指定位置にリセット
+  void resetToPosition(Vector2 newPosition) {
+    // 現在位置との差分を計算
+    final diff = newPosition - centerPosition;
+
+    // 全ボディを移動
+    for (final body in shellBodies) {
+      body.setTransform(body.position + diff, body.angle);
+      body.linearVelocity = Vector2.zero();
+      body.angularVelocity = 0;
+    }
+    for (final body in beadBodies) {
+      body.setTransform(body.position + diff, body.angle);
+      body.linearVelocity = Vector2.zero();
+      body.angularVelocity = 0;
+    }
+  }
+
   /// 物理を一時停止（編集モード用）
   void freeze() {
     for (final body in shellBodies) {

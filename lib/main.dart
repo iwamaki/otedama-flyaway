@@ -1,11 +1,19 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
+import 'components/stage/goal.dart';
+import 'components/stage/image_object.dart';
+import 'components/stage/platform.dart';
 import 'game/otedama_game.dart';
 import 'ui/physics_tuner.dart';
 import 'ui/stage_editor.dart';
 
 void main() {
+  // ステージオブジェクトのファクトリを登録
+  registerPlatformFactory();
+  registerImageObjectFactory();
+  registerGoalFactory();
+
   runApp(const OtedamaApp());
 }
 
