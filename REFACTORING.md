@@ -10,22 +10,36 @@
 - `lib/utils/selection_highlight.dart` を作成
 - 3ファイルで ~60行の重複コードを削除
 
+### 3. CameraController の抽出
+- `lib/game/camera_controller.dart` を作成
+- OtedamaGame から `_updateCameraFollow` を分離
+- カメラ追従ロジックを独立クラスに
+
+### 4. ImageObject の未使用コード削除
+- `_splitContourIntoChunks` (未使用) を削除
+- `_convexHull`, `_cross`, `_calculateCenter` (上記に依存) を削除
+- `_debugDrawContours` (デバッグ用) を削除
+- 不要な `dart:math` import を削除
+- **削減: 約80行**
+
 ---
 
 ## 次のステップ（優先度順）
 
-### Phase 1: OtedamaGame の分割 (550行 → 4クラス)
+### Phase 1: OtedamaGame の分割 (530行 → 3クラス)
 
-**現状の問題**: ゲーム状態、入力処理、カメラ、編集モードが1ファイルに混在
+**現状の問題**: ゲーム状態、入力処理、編集モードが1ファイルに混在
 
-**分割案**:
+**残りの分割案**:
 ```
 lib/game/
 ├── otedama_game.dart       # メインゲームクラス（軽量化）
-├── game_input_handler.dart # ドラッグ入力処理
-├── camera_controller.dart  # カメラ追従ロジック
-└── stage_manager.dart      # ステージ読み込み/保存
+├── camera_controller.dart  # ✅ 完了
+├── stage_manager.dart      # Mixin作成済み、統合は保留
+└── game_input_handler.dart # 入力処理（OtedamaGameと密結合、要検討）
 ```
+
+**備考**: `StageManagerMixin` を作成したが、OtedamaGameとのフィールド競合が多いため統合を保留。
 
 ### Phase 2: ParticleOtedama の分割 (730行 → 3クラス)
 
@@ -39,18 +53,10 @@ lib/components/
 └── particle_renderer.dart          # 描画ロジック
 ```
 
-### Phase 3: ImageObject の整理 (521行)
+### Phase 3: ImageObject の整理 (400行)
 
 **分割案**:
-- 凸包計算 (`_convexHull`, `_cross`) → `lib/utils/geometry.dart`
-- 輪郭分割ロジック → `lib/utils/contour_processor.dart`
-
----
-
-## 削除候補（未使用コード）
-
-- `ImageObject._splitContourIntoChunks` (未使用)
-- `ImageObject._debugDrawContours` (デバッグ用、コメントアウト中)
+- 凸包計算が必要になった場合 → `lib/utils/geometry.dart` に抽出
 
 ---
 

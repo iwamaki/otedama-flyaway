@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flame/flame.dart';
@@ -359,85 +358,6 @@ class ImageObject extends BodyComponent with StageObject {
     debugPrint('ImageObject: Created $createdCount ChainShape fixtures');
   }
 
-  /// 輪郭を複数のチャンクに分割（凸包で近似）
-  List<List<Vector2>> _splitContourIntoChunks(List<Vector2> contour, int maxPoints) {
-    if (contour.length <= maxPoints) {
-      // 凸包に変換
-      final hull = _convexHull(contour);
-      if (hull.length >= 3) {
-        return [hull];
-      }
-      return [];
-    }
-
-    // 輪郭を複数のセグメントに分割してそれぞれ凸包化
-    final chunks = <List<Vector2>>[];
-    final chunkSize = maxPoints - 1;
-
-    for (int i = 0; i < contour.length; i += chunkSize ~/ 2) {
-      final end = (i + chunkSize).clamp(0, contour.length);
-      final segment = contour.sublist(i, end);
-
-      // 中心点を追加して凸包を作る
-      final center = _calculateCenter(contour);
-      final withCenter = [...segment, center];
-      final hull = _convexHull(withCenter);
-
-      if (hull.length >= 3 && hull.length <= maxPoints) {
-        chunks.add(hull);
-      }
-    }
-
-    return chunks;
-  }
-
-  /// 凸包を計算（Graham scan）
-  List<Vector2> _convexHull(List<Vector2> points) {
-    if (points.length < 3) return points;
-
-    // 最も下（Y最大）で左の点を見つける
-    var start = points[0];
-    for (final p in points) {
-      if (p.y > start.y || (p.y == start.y && p.x < start.x)) {
-        start = p;
-      }
-    }
-
-    // 角度でソート
-    final sorted = List<Vector2>.from(points);
-    sorted.sort((a, b) {
-      final diffA = a - start;
-      final diffB = b - start;
-      final angleA = math.atan2(diffA.y, diffA.x);
-      final angleB = math.atan2(diffB.y, diffB.x);
-      if (angleA != angleB) return angleA.compareTo(angleB);
-      return diffA.length.compareTo(diffB.length);
-    });
-
-    // スタックベースの凸包構築
-    final hull = <Vector2>[];
-    for (final p in sorted) {
-      while (hull.length >= 2 && _cross(hull[hull.length - 2], hull[hull.length - 1], p) <= 0) {
-        hull.removeLast();
-      }
-      hull.add(p);
-    }
-
-    return hull;
-  }
-
-  double _cross(Vector2 o, Vector2 a, Vector2 b) {
-    return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-  }
-
-  Vector2 _calculateCenter(List<Vector2> points) {
-    var sum = Vector2.zero();
-    for (final p in points) {
-      sum += p;
-    }
-    return sum / points.length.toDouble();
-  }
-
   @override
   void render(Canvas canvas) {
     if (_image == null) return;
@@ -472,25 +392,6 @@ class ImageObject extends BodyComponent with StageObject {
       );
     }
 
-    // デバッグ: 輪郭を描画
-    // _debugDrawContours(canvas);
-  }
-
-  void _debugDrawContours(Canvas canvas) {
-    final paint = Paint()
-      ..color = Colors.red
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.05;
-
-    for (final contour in _contours) {
-      if (contour.isEmpty) continue;
-      final path = Path()..moveTo(contour.first.x, contour.first.y);
-      for (int i = 1; i < contour.length; i++) {
-        path.lineTo(contour[i].x, contour[i].y);
-      }
-      path.close();
-      canvas.drawPath(path, paint);
-    }
   }
 }
 

@@ -13,6 +13,7 @@ import '../components/stage/platform.dart';
 import '../components/stage/stage_object.dart';
 import '../config/physics_config.dart';
 import '../models/stage_data.dart';
+import 'camera_controller.dart';
 
 /// メインゲームクラス
 class OtedamaGame extends Forge2DGame with DragCallbacks {
@@ -22,6 +23,9 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   Vector2? _dragStart;
   Vector2? _dragCurrent;
   bool _isDraggingOtedama = false; // お手玉をつかんでいるか
+
+  /// カメラコントローラー
+  late CameraController _cameraController;
 
   /// ゴール
   Goal? goal;
@@ -86,6 +90,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     // カメラ設定
     camera.viewfinder.anchor = Anchor.center;
     camera.viewfinder.zoom = CameraConfig.zoom;
+    _cameraController = CameraController(camera);
 
     // 背景を追加（最背面に表示、パララックス効果付き）
     _background = Background(imagePath: _backgroundImage)
@@ -124,7 +129,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
 
     if (otedama != null) {
       // カメラ追従
-      _updateCameraFollow(otedama!.centerPosition);
+      _cameraController.follow(otedama!.centerPosition);
 
       // 最高高さを更新
       if (currentHeight > _maxHeight) {
@@ -141,19 +146,6 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     if (otedama != null && _background != null) {
       _background!.updateParallax(otedama!.centerPosition);
     }
-  }
-
-  /// カメラをお手玉に追従させる
-  void _updateCameraFollow(Vector2 targetPosition) {
-    final currentPos = camera.viewfinder.position;
-    final diff = targetPosition - currentPos;
-
-    // デッドゾーン内なら追従しない
-    if (diff.length < CameraConfig.deadZone) return;
-
-    // Lerp補間でスムーズに追従
-    final newPos = currentPos + diff * CameraConfig.followLerpSpeed;
-    camera.viewfinder.position = newPos;
   }
 
   /// ステージの構築
