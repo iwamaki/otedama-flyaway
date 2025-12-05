@@ -33,7 +33,6 @@ class _StartScreenState extends State<StartScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
 
   int _titleTapCount = 0;
   DateTime? _lastTitleTap;
@@ -43,23 +42,13 @@ class _StartScreenState extends State<StartScreen>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 800),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+        curve: Curves.easeOut,
       ),
     );
 
@@ -118,9 +107,7 @@ class _StartScreenState extends State<StartScreen>
           SafeArea(
             child: FadeTransition(
               opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Column(
+              child: Column(
                   children: [
                     const Spacer(flex: 2),
                     // タイトル
@@ -129,11 +116,12 @@ class _StartScreenState extends State<StartScreen>
                       child: const Column(
                         children: [
                           Text(
-                            'お手玉',
+                            'Otedama',
                             style: TextStyle(
-                              fontSize: 64,
+                              fontSize: 56,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
+                              letterSpacing: 4,
                               shadows: [
                                 Shadow(
                                   offset: Offset(2, 2),
@@ -156,15 +144,21 @@ class _StartScreenState extends State<StartScreen>
                       ),
                     ),
                     const Spacer(flex: 3),
-                    // ステージセレクト
-                    _StageSelectPanel(
-                      onStageSelected: (entry) {
-                        widget.onStart(StartScreenResult(selectedStage: entry));
-                      },
+                    // ゲーム開始ボタン
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 48),
+                      child: _StartButton(
+                        onTap: () {
+                          // デフォルトステージ（最初のステージ）で開始
+                          final defaultStage = StageRegistry.entries.isNotEmpty
+                              ? StageRegistry.entries.first
+                              : null;
+                          widget.onStart(StartScreenResult(selectedStage: defaultStage));
+                        },
+                      ),
                     ),
                     const Spacer(flex: 1),
                   ],
-                ),
               ),
             ),
           ),
@@ -174,62 +168,17 @@ class _StartScreenState extends State<StartScreen>
   }
 }
 
-/// ステージセレクトパネル
-class _StageSelectPanel extends StatelessWidget {
-  final void Function(StageEntry entry) onStageSelected;
-
-  const _StageSelectPanel({
-    required this.onStageSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final entries = StageRegistry.sortedEntries;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'ステージを選択',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.white70,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // ステージボタン
-          ...entries.map((entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _StageButton(
-                  entry: entry,
-                  onTap: () => onStageSelected(entry),
-                ),
-              )),
-        ],
-      ),
-    );
-  }
-}
-
-/// ステージボタン
-class _StageButton extends StatefulWidget {
-  final StageEntry entry;
+/// ゲーム開始ボタン
+class _StartButton extends StatefulWidget {
   final VoidCallback onTap;
 
-  const _StageButton({
-    required this.entry,
-    required this.onTap,
-  });
+  const _StartButton({required this.onTap});
 
   @override
-  State<_StageButton> createState() => _StageButtonState();
+  State<_StartButton> createState() => _StartButtonState();
 }
 
-class _StageButtonState extends State<_StageButton> {
+class _StartButtonState extends State<_StartButton> {
   bool _isPressed = false;
 
   @override
@@ -239,71 +188,24 @@ class _StageButtonState extends State<_StageButton> {
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
       onTap: widget.onTap,
-      child: AnimatedContainer(
+      child: AnimatedOpacity(
         duration: const Duration(milliseconds: 100),
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-        decoration: BoxDecoration(
-          color: _isPressed
-              ? Colors.orange.withValues(alpha: 0.8)
-              : Colors.orange.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.orange,
-            width: 2,
+        opacity: _isPressed ? 0.6 : 1.0,
+        child: const Text(
+          'Tap to Start',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+            letterSpacing: 3,
+            shadows: [
+              Shadow(
+                offset: Offset(1, 1),
+                blurRadius: 4,
+                color: Colors.black45,
+              ),
+            ],
           ),
-          boxShadow: _isPressed
-              ? []
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    offset: const Offset(0, 4),
-                    blurRadius: 8,
-                  ),
-                ],
-        ),
-        transform: _isPressed
-            ? Matrix4.translationValues(0, 2, 0)
-            : Matrix4.identity(),
-        child: Row(
-          children: [
-            // レベル番号
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  '${widget.entry.level}',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            // ステージ名
-            Expanded(
-              child: Text(
-                widget.entry.name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            // 矢印
-            const Icon(
-              Icons.play_arrow_rounded,
-              color: Colors.white,
-              size: 32,
-            ),
-          ],
         ),
       ),
     );
