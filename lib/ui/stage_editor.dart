@@ -146,6 +146,7 @@ class _StageEditorState extends State<StageEditor> {
       // 新規作成
       widget.game.clearStage();
       setState(() {});
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('新しいステージを作成しました'),
@@ -158,6 +159,7 @@ class _StageEditorState extends State<StageEditor> {
         final stageData = await StageData.loadFromAsset(result.selectedEntry!.assetPath);
         await widget.game.loadStage(stageData);
         setState(() {});
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${result.selectedEntry!.name} を読み込みました'),
@@ -165,6 +167,7 @@ class _StageEditorState extends State<StageEditor> {
           ),
         );
       } catch (e) {
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('読み込みに失敗しました: $e'),

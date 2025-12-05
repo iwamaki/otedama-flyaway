@@ -32,9 +32,7 @@ abstract mixin class StageObject {
   void applyProperties(Map<String, dynamic> props);
 
   /// 選択中かどうか（エディタ用）
-  bool _isSelected = false;
-  bool get isSelected => _isSelected;
-  set isSelected(bool value) => _isSelected = value;
+  bool isSelected = false;
 }
 
 /// StageObjectのファクトリ

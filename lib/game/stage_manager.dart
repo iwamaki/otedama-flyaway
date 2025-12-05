@@ -1,5 +1,5 @@
-import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
+import 'package:flutter/foundation.dart';
 
 import '../components/background.dart';
 import '../components/stage/goal.dart';

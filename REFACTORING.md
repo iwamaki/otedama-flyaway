@@ -64,5 +64,7 @@ lib/game/
 
 ## コード品質の改善
 
-- [ ] stage_object.dart: 不要なgetter/setter警告を修正
-- [ ] stage_editor.dart: BuildContext非同期警告を修正
+- [x] stage_object.dart: 不要なgetter/setter警告を修正
+- [x] otedama_game.dart: 不要なgetter/setter警告を修正
+- [x] stage_editor.dart: BuildContext非同期警告を修正
+- [x] stage_manager.dart: VoidCallback import追加、不要import削除
