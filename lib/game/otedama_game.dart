@@ -316,7 +316,14 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
 
     if (!_isDraggingOtedama || _dragStart == null) return;
 
-    _dragCurrent = touchPos;
+    // 最大引張距離を適用
+    final dragVector = touchPos - _dragStart!;
+    final distance = dragVector.length;
+    if (distance > PhysicsConfig.maxDragDistance) {
+      _dragCurrent = _dragStart! + dragVector.normalized() * PhysicsConfig.maxDragDistance;
+    } else {
+      _dragCurrent = touchPos;
+    }
 
     // スクリーン座標に変換して渡す
     _dragLine?.updateScreen(

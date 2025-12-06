@@ -22,6 +22,7 @@ class PhysicsConfig {
 
   // 発射パラメータ
   static const double launchMultiplier = 5.0; // スワイプ→力の変換係数
+  static const double maxDragDistance = 24.0; // 最大引張距離（ワールド座標）
 }
 
 /// カメラ設定
