@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 
+import '../../config/physics_config.dart';
 import '../../game/otedama_game.dart';
 import '../../services/logger_service.dart';
 import '../../utils/json_helpers.dart';
@@ -20,7 +21,7 @@ enum _TrampolineState {
 /// 接触したら上に弾いてお手玉を飛ばす
 class Trampoline extends BodyComponent with StageObject {
   /// デフォルト値
-  static const double defaultWidth = 8.0;
+  static const double defaultWidth = 6.0;
   static const double defaultHeight = 0.4;
   static const double defaultBounceForce = 120.0;
 
@@ -131,7 +132,7 @@ class Trampoline extends BodyComponent with StageObject {
   }
 
   /// バネの静止長
-  double get _springRestLength => 0.4;
+  double get _springRestLength => 1.0;
 
   // --- BodyComponent 実装 ---
 
@@ -184,8 +185,8 @@ class Trampoline extends BodyComponent with StageObject {
 
     _surfaceBody = world.createBody(surfaceDef);
     _surfaceBody!.createFixture(FixtureDef(surfaceShape)
-      ..friction = 0.3 // 滑りやすく
-      ..restitution = 1.2); // 強い反発
+      ..friction = 0.3
+      ..restitution = PhysicsConfig.groundRestitution);
 
     _surfaceBody!.userData = this;
 
@@ -364,22 +365,23 @@ class Trampoline extends BodyComponent with StageObject {
     }
   }
 
-  /// 脚を描画（ベースから表面への支柱）
+  /// ばね形状の支柱を描画
   void _drawLegs(Canvas canvas) {
     if (_surfaceBody == null) return;
 
-    final legPaint = Paint()
+    final springPaint = Paint()
       ..color = const Color(0xFF555555)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.15;
+      ..strokeWidth = 0.12
+      ..strokeCap = StrokeCap.round;
 
     final basePos = body.position;
     final surfacePos = _surfaceBody!.position;
     final cos = math.cos(body.angle);
     final sin = math.sin(body.angle);
 
-    // 左右の脚
-    for (final xOffset in [-size.x + 0.3, size.x - 0.3]) {
+    // 左右のばね
+    for (final xOffset in [-size.x + 0.5, size.x - 0.5]) {
       final basePoint = Offset(
         basePos.x + xOffset * cos,
         basePos.y + xOffset * sin,
@@ -388,8 +390,44 @@ class Trampoline extends BodyComponent with StageObject {
         surfacePos.x + xOffset * cos,
         surfacePos.y + xOffset * sin + size.y,
       );
-      canvas.drawLine(basePoint, surfacePoint, legPaint);
+
+      // ばねのジグザグを描画
+      _drawSpring(canvas, basePoint, surfacePoint, springPaint);
     }
+  }
+
+  /// ばね（ジグザグ）を描画
+  void _drawSpring(Canvas canvas, Offset start, Offset end, Paint paint) {
+    const int coils = 3; // コイルの数
+    const double amplitude = 0.3; // ジグザグの振幅
+
+    final direction = end - start;
+    final length = direction.distance;
+    if (length < 0.01) return;
+
+    final normalized = direction / length;
+    // 垂直方向（ジグザグの横方向）
+    final perpendicular = Offset(-normalized.dy, normalized.dx);
+
+    final path = Path();
+    path.moveTo(start.dx, start.dy);
+
+    // コイル部分
+    final coilStart = 0.05; // 最初のストレート部分
+    final coilEnd = 0.95; // 最後のストレート部分
+    final coilLength = coilEnd - coilStart;
+
+    for (int i = 0; i <= coils * 2; i++) {
+      final t = coilStart + (i / (coils * 2)) * coilLength;
+      final point = start + direction * t;
+      // 奇数で右、偶数で左にずらす
+      final offset = (i % 2 == 1 ? 1 : -1) * amplitude;
+      final zigzagPoint = point + perpendicular * offset;
+      path.lineTo(zigzagPoint.dx, zigzagPoint.dy);
+    }
+
+    path.lineTo(end.dx, end.dy);
+    canvas.drawPath(path, paint);
   }
 }
 
