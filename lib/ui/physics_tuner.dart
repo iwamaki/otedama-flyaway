@@ -124,6 +124,34 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
               _rebuild();
             },
           ),
+          _buildToggle(
+            'Spike',
+            ParticleOtedama.shellSpikeEnabled,
+            (v) {
+              ParticleOtedama.shellSpikeEnabled = v;
+              _rebuild();
+            },
+          ),
+          _buildSlider(
+            'SpikeLen',
+            ParticleOtedama.shellSpikeLength,
+            0.0,
+            1.0,
+            (v) {
+              ParticleOtedama.shellSpikeLength = v;
+              _rebuild();
+            },
+          ),
+          _buildSlider(
+            'SpikeRad',
+            ParticleOtedama.shellSpikeRadius,
+            0.05,
+            0.3,
+            (v) {
+              ParticleOtedama.shellSpikeRadius = v;
+              _rebuild();
+            },
+          ),
 
           const Divider(color: Colors.white24),
 
@@ -434,6 +462,9 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
       ParticleOtedama.shellFriction = 0.51;
       ParticleOtedama.beadFriction = 1.0;
       ParticleOtedama.shellRestitution = 0.0;
+      ParticleOtedama.shellSpikeEnabled = true;
+      ParticleOtedama.shellSpikeLength = 0.4;
+      ParticleOtedama.shellSpikeRadius = 0.15;
       ParticleOtedama.beadRestitution = 0.0;
       ParticleOtedama.jointFrequency = 0.0;
       ParticleOtedama.jointDamping = 0.0;

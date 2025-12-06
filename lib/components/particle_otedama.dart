@@ -63,6 +63,11 @@ class ParticleOtedama extends BodyComponent {
   // ビーズサイズのバリエーション（0.0〜1.0、大きいほどバラつく）
   static double beadSizeVariation = 0.5;
 
+  // 外殻の内側突起（ビーズとの接触を確保）
+  static bool shellSpikeEnabled = true; // 突起を有効化
+  static double shellSpikeLength = 0.4; // 突起の長さ（内側方向へのオフセット）
+  static double shellSpikeRadius = 0.15; // 突起の半径
+
   // 初期ジョイント長を記録
   final List<double> _initialJointLengths = [];
 
@@ -203,12 +208,9 @@ class ParticleOtedama extends BodyComponent {
       final x = initialPosition.x + math.cos(angle) * overallRadius * 0.7;
       final y = initialPosition.y + math.sin(angle) * overallRadius * 0.7;
 
-      final body = _createCircleBody(
+      final body = _createShellBody(
         Vector2(x, y),
-        shellRadius,
-        shellDensity,
-        shellFriction,
-        shellRestitution,
+        angle,
       );
       shellBodies.add(body);
     }
@@ -256,6 +258,42 @@ class ParticleOtedama extends BodyComponent {
       );
       beadBodies.add(body);
     }
+  }
+
+  /// 外殻粒子のボディを作成（内側突起付き）
+  Body _createShellBody(Vector2 position, double angle) {
+    final bodyDef = BodyDef()
+      ..type = BodyType.dynamic
+      ..position = position
+      ..angularDamping = 1.0
+      ..linearDamping = 0.1;
+
+    final body = world.createBody(bodyDef);
+
+    // メインの円形状
+    final mainShape = CircleShape()..radius = shellRadius;
+    body.createFixture(FixtureDef(mainShape)
+      ..density = shellDensity
+      ..friction = shellFriction
+      ..restitution = shellRestitution);
+
+    // 内側向きの突起を追加（ビーズとの接触用）
+    if (shellSpikeEnabled && shellSpikeLength > 0 && shellSpikeRadius > 0) {
+      // 内側方向（中心に向かう方向）= angleの逆方向
+      final spikeOffsetX = -math.cos(angle) * shellSpikeLength;
+      final spikeOffsetY = -math.sin(angle) * shellSpikeLength;
+
+      final spikeShape = CircleShape()
+        ..radius = shellSpikeRadius
+        ..position.setValues(spikeOffsetX, spikeOffsetY);
+
+      body.createFixture(FixtureDef(spikeShape)
+        ..density = shellDensity * 0.5 // 突起は軽めに
+        ..friction = shellFriction
+        ..restitution = shellRestitution);
+    }
+
+    return body;
   }
 
   Body _createCircleBody(
