@@ -42,6 +42,12 @@ class ObjectRegistry {
       icon: Icons.horizontal_rule,
     ),
     InsertableObject(
+      id: 'trampoline',
+      name: 'トランポリン',
+      type: ObjectType.primitive,
+      icon: Icons.arrow_upward,
+    ),
+    InsertableObject(
       id: 'goal',
       name: 'ゴール',
       type: ObjectType.primitive,
