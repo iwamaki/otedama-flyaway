@@ -69,13 +69,14 @@ class AppLogger {
     for (final category in LogCategory.values) {
       final logger = Logger(category.label);
       _loggers[category] = logger;
-
-      // ログ出力の設定
-      logger.onRecord.listen(_handleLogRecord);
     }
 
-    // ルートロガーのレベル設定
+    // ルートロガーのレベル設定とログ出力の設定
+    // 注意: 各カテゴリのロガーではなく、ルートロガーに一度だけリスナーを登録する
+    // これにより、重複出力を防ぐ
+    hierarchicalLoggingEnabled = true;
     Logger.root.level = _debugMode ? Level.ALL : Level.WARNING;
+    Logger.root.onRecord.listen(_handleLogRecord);
   }
 
   void _handleLogRecord(LogRecord record) {
