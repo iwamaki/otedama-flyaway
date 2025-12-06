@@ -53,11 +53,13 @@ class ParticleRenderer {
   /// [bodyPos] ボディの位置（座標変換の基準）
   /// [shellPositions] 外殻粒子のワールド座標リスト
   /// [beadPositions] ビーズのワールド座標リスト
+  /// [beadRadii] 各ビーズの半径リスト（省略時はデフォルトのbeadRadiusを使用）
   void render(
     Canvas canvas, {
     required Offset bodyPos,
     required List<Offset> shellPositions,
     required List<Offset> beadPositions,
+    List<double>? beadRadii,
   }) {
     if (shellPositions.isEmpty) return;
 
@@ -127,13 +129,18 @@ class ParticleRenderer {
       final beadPaint = Paint()
         ..color = Colors.white.withValues(alpha: 0.3)
         ..style = PaintingStyle.fill;
-      for (final beadPos in beadPositions) {
+      for (int i = 0; i < beadPositions.length; i++) {
+        final beadPos = beadPositions[i];
+        // 各ビーズの実際の半径を使用（リストがない場合はデフォルト値）
+        final radius = (beadRadii != null && i < beadRadii.length)
+            ? beadRadii[i]
+            : beadRadius;
         canvas.drawCircle(
           Offset(
             beadPos.dx - bodyPos.dx,
             beadPos.dy - bodyPos.dy,
           ),
-          beadRadius,
+          radius,
           beadPaint,
         );
       }

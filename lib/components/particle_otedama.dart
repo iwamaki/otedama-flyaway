@@ -60,6 +60,9 @@ class ParticleOtedama extends BodyComponent {
   static bool beadContainmentEnabled = true; // 封じ込め有効
   static double beadContainmentMargin = 0.25; // 外殻境界からのマージン
 
+  // ビーズサイズのバリエーション（0.0〜1.0、大きいほどバラつく）
+  static double beadSizeVariation = 0.5;
+
   // 初期ジョイント長を記録
   final List<double> _initialJointLengths = [];
 
@@ -188,6 +191,7 @@ class ParticleOtedama extends BodyComponent {
       beadContainmentEnabled: beadContainmentEnabled,
       beadContainmentMargin: beadContainmentMargin,
       beadRadius: beadRadius,
+      shellRadius: shellRadius,
     );
     _createParticleBodies();
   }
@@ -229,7 +233,7 @@ class ParticleOtedama extends BodyComponent {
       shellJoints.add(joint);
     }
 
-    // 内部ビーズを作成（ランダムに配置）
+    // 内部ビーズを作成（ランダムに配置、サイズもバリエーション）
     final random = math.Random();
     for (int i = 0; i < beadCount; i++) {
       // 中心付近にランダム配置
@@ -238,9 +242,14 @@ class ParticleOtedama extends BodyComponent {
       final x = initialPosition.x + math.cos(angle) * r;
       final y = initialPosition.y + math.sin(angle) * r;
 
+      // ビーズサイズにバリエーション（小さいビーズは外殻の隙間に入りやすい）
+      // 範囲: beadRadius * (1 - variation) 〜 beadRadius
+      final sizeMultiplier = 1.0 - random.nextDouble() * beadSizeVariation;
+      final actualRadius = beadRadius * sizeMultiplier;
+
       final body = _createCircleBody(
         Vector2(x, y),
-        beadRadius,
+        actualRadius,
         beadDensity,
         beadFriction,
         beadRestitution,
@@ -282,6 +291,12 @@ class ParticleOtedama extends BodyComponent {
       bodyPos: Offset(bodyPos.x, bodyPos.y),
       shellPositions: shellBodies.map((b) => Offset(b.position.x, b.position.y)).toList(),
       beadPositions: beadBodies.map((b) => Offset(b.position.x, b.position.y)).toList(),
+      beadRadii: beadBodies.map((b) {
+        // 各ビーズの実際の半径を取得（CircleShapeから）
+        final fixture = b.fixtures.first;
+        final shape = fixture.shape as CircleShape;
+        return shape.radius;
+      }).toList(),
     );
   }
 
@@ -442,6 +457,7 @@ class ParticleOtedama extends BodyComponent {
       beadContainmentEnabled: beadContainmentEnabled,
       beadContainmentMargin: beadContainmentMargin,
       beadRadius: beadRadius,
+      shellRadius: shellRadius,
     );
 
     reset();

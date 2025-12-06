@@ -151,6 +151,16 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
             },
           ),
           _buildSlider(
+            'SizeVar',
+            ParticleOtedama.beadSizeVariation,
+            0.0,
+            0.8,
+            (v) {
+              ParticleOtedama.beadSizeVariation = v;
+              _rebuild();
+            },
+          ),
+          _buildSlider(
             'Density',
             ParticleOtedama.beadDensity,
             0.1,
@@ -417,6 +427,7 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
       ParticleOtedama.beadCount = 20;
       ParticleOtedama.shellRadius = 0.28;
       ParticleOtedama.beadRadius = 0.3;
+      ParticleOtedama.beadSizeVariation = 0.5;
       ParticleOtedama.overallRadius = 2.50;
       ParticleOtedama.shellDensity = 5.0;
       ParticleOtedama.beadDensity = 5.0;

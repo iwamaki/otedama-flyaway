@@ -18,12 +18,16 @@ class ParticlePhysicsSolver {
   /// ビーズの半径
   final double beadRadius;
 
+  /// 外殻粒子の半径（接触判定に使用）
+  final double shellRadius;
+
   ParticlePhysicsSolver({
     required this.constraintIterations,
     required this.constraintStiffness,
     required this.beadContainmentEnabled,
     required this.beadContainmentMargin,
     required this.beadRadius,
+    required this.shellRadius,
   });
 
   /// 隣接する節間の相対速度に減衰力を適用
