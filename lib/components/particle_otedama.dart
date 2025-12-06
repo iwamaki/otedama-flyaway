@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../config/otedama_skin_config.dart';
 import '../config/physics_config.dart';
+import '../services/logger_service.dart';
 import '../services/texture_manager.dart';
 import 'particle_physics_solver.dart';
 import 'particle_renderer.dart';
@@ -316,11 +317,14 @@ class ParticleOtedama extends BodyComponent {
   void launch(Vector2 impulse, {Vector2? touchPoint}) {
     // 発射可能かチェック
     if (!canLaunch) {
+      logger.debug(LogCategory.input, 'Launch blocked: max launches reached');
       return; // 発射回数制限に達している
     }
 
     // 空中発射かどうかで力を調整
     final powerMultiplier = (_launchCount >= 1) ? airLaunchMultiplier : 1.0;
+    final launchType = _launchCount == 0 ? 'initial' : 'air';
+    logger.info(LogCategory.input, 'Launch ($launchType): impulse=${impulse.length.toStringAsFixed(2)}, power=$powerMultiplier');
     final scaledImpulse = impulse * PhysicsConfig.launchMultiplier * powerMultiplier;
 
     if (touchPoint == null || shellBodies.isEmpty) {
@@ -362,6 +366,7 @@ class ParticleOtedama extends BodyComponent {
 
   /// リセット
   void reset() {
+    logger.debug(LogCategory.game, 'Otedama reset');
     _destroyAllBodies();
     _createParticleBodies();
     _launchCount = 0;

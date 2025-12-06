@@ -1,9 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'components/stage/goal.dart';
 import 'components/stage/image_object.dart';
 import 'components/stage/platform.dart';
+import 'components/stage/trampoline.dart';
 import 'models/stage_data.dart';
+import 'services/logger_service.dart';
 import 'services/settings_service.dart';
 import 'ui/game_screen.dart';
 import 'ui/start_screen.dart';
@@ -11,13 +15,27 @@ import 'ui/start_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // .envファイルを読み込み
+  await dotenv.load(fileName: '.env');
+
+  // ロガーを初期化
+  // LOG_LEVEL で制御: debug, info, warning, error, none
+  // 未指定の場合はkDebugModeに従う
+  final logLevel = dotenv.env['LOG_LEVEL'] ?? '';
+  final debugMode = _resolveDebugMode(logLevel);
+  logger.setDebugMode(debugMode);
+  logger.info(LogCategory.system, 'App starting...');
+  logger.config(LogCategory.system, 'Debug mode: $debugMode (LOG_LEVEL: ${logLevel.isEmpty ? "not set" : logLevel})');
+
   // ステージオブジェクトのファクトリを登録
   registerPlatformFactory();
   registerImageObjectFactory();
   registerGoalFactory();
+  registerTrampolineFactory();
 
   // 設定サービスを初期化
   await SettingsService.instance.init();
+  logger.info(LogCategory.system, 'Settings service initialized');
 
   runApp(const OtedamaApp());
 }
@@ -85,4 +103,21 @@ class _OtedamaAppState extends State<OtedamaApp> {
 enum _ScreenState {
   start,
   game,
+}
+
+/// 環境変数からデバッグモードを解決
+bool _resolveDebugMode(String logLevel) {
+  switch (logLevel.toLowerCase()) {
+    case 'debug':
+    case 'info':
+    case 'all':
+      return true;
+    case 'warning':
+    case 'error':
+    case 'none':
+      return false;
+    default:
+      // 未指定の場合はFlutterのデフォルトに従う
+      return kDebugMode;
+  }
 }

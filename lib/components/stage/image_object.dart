@@ -3,9 +3,10 @@ import 'dart:ui' as ui;
 
 import 'package:flame/flame.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 
+import '../../services/logger_service.dart';
 import '../../utils/json_helpers.dart';
 import '../../utils/selection_highlight.dart';
 import 'stage_object.dart';
@@ -284,10 +285,10 @@ class ImageObject extends BodyComponent with StageObject {
         }).toList();
       }).toList();
 
-      debugPrint('ImageObject: Loaded ${_contours.length} contours from $jsonPath');
+      logger.debug(LogCategory.stage, 'ImageObject: Loaded ${_contours.length} contours from $jsonPath');
     } catch (e) {
-      debugPrint('ImageObject: Failed to load physics JSON: $e');
-      debugPrint('ImageObject: Falling back to simple box collision');
+      logger.warning(LogCategory.stage, 'ImageObject: Failed to load physics JSON: $e');
+      logger.debug(LogCategory.stage, 'ImageObject: Falling back to simple box collision');
       // フォールバック：単純な矩形
       final hw = _worldSize.x / 2;
       final hh = _worldSize.y / 2;
@@ -313,7 +314,7 @@ class ImageObject extends BodyComponent with StageObject {
   /// 輪郭からフィクスチャを作成（ChainShape版：凹型対応）
   void _createFixtures() {
     if (_contours.isEmpty) {
-      debugPrint('ImageObject: No contours found');
+      logger.warning(LogCategory.stage, 'ImageObject: No contours found');
       return;
     }
 
@@ -324,7 +325,7 @@ class ImageObject extends BodyComponent with StageObject {
     // 上位N個の輪郭のみ使用
     final contoursToUse = sortedContours.take(maxContours).toList();
 
-    debugPrint('ImageObject: Using ${contoursToUse.length} contours (largest: ${contoursToUse.first.length} points)');
+    logger.debug(LogCategory.stage, 'ImageObject: Using ${contoursToUse.length} contours (largest: ${contoursToUse.first.length} points)');
 
     int createdCount = 0;
     for (final contour in contoursToUse) {
@@ -339,7 +340,7 @@ class ImageObject extends BodyComponent with StageObject {
         }
       }
       if (!isValid) {
-        debugPrint('ImageObject: Skipping contour with invalid points');
+        logger.warning(LogCategory.stage, 'ImageObject: Skipping contour with invalid points');
         continue;
       }
 
@@ -351,11 +352,11 @@ class ImageObject extends BodyComponent with StageObject {
           ..restitution = restitution);
         createdCount++;
       } catch (e) {
-        debugPrint('ImageObject: Failed to create ChainShape: $e');
+        logger.error(LogCategory.stage, 'ImageObject: Failed to create ChainShape', error: e);
       }
     }
 
-    debugPrint('ImageObject: Created $createdCount ChainShape fixtures');
+    logger.debug(LogCategory.stage, 'ImageObject: Created $createdCount ChainShape fixtures');
   }
 
   @override

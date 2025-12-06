@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../game/otedama_game.dart';
 import '../models/stage_data.dart' show StageEntry;
+import '../services/logger_service.dart';
 import '../services/settings_service.dart';
 import 'clear_screen.dart';
 import 'physics_tuner.dart';
@@ -43,6 +44,8 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _initGame() async {
+    logger.info(LogCategory.game, 'Initializing game screen');
+
     // 設定からスキンを取得
     final skin = SettingsService.instance.selectedSkin;
 
@@ -57,18 +60,23 @@ class _GameScreenState extends State<GameScreen> {
     // ゴール到達時のコールバック
     _game.onGoalReachedCallback = _onGoalReached;
 
+    logger.debug(LogCategory.game, 'Stage: ${widget.initialStage?.name ?? "default"}');
+    logger.debug(LogCategory.game, 'Developer mode: ${widget.developerMode}');
+
     setState(() {
       _isLoading = false;
     });
   }
 
   void _onGoalReached() {
+    logger.info(LogCategory.game, 'Goal reached - showing clear screen');
     setState(() {
       _showClearScreen = true;
     });
   }
 
   void _onRetry() {
+    logger.info(LogCategory.game, 'Retry requested');
     setState(() {
       _showClearScreen = false;
     });

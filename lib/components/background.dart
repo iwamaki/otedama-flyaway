@@ -2,7 +2,9 @@ import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart';
+
+import '../services/logger_service.dart';
 
 /// 背景画像コンポーネント（パララックス効果付き）
 class Background extends PositionComponent {
@@ -27,7 +29,7 @@ class Background extends PositionComponent {
       try {
         _image = await Flame.images.load(imagePath!);
       } catch (e) {
-        debugPrint('Background image not found: $imagePath');
+        logger.warning(LogCategory.stage, 'Background image not found: $imagePath');
       }
     }
   }

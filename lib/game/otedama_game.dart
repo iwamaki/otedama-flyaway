@@ -4,6 +4,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 
 import '../components/background.dart';
+import '../services/logger_service.dart';
 import '../components/drag_line.dart';
 import '../components/ground.dart';
 import '../components/particle_otedama.dart';
@@ -11,6 +12,7 @@ import '../components/stage/goal.dart';
 import '../components/stage/image_object.dart';
 import '../components/stage/platform.dart';
 import '../components/stage/stage_object.dart';
+import '../components/stage/trampoline.dart';
 import '../config/otedama_skin_config.dart';
 import '../config/physics_config.dart';
 import '../models/stage_data.dart';
@@ -155,7 +157,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
         final stageData = await StageData.loadFromAsset(_initialStageAsset);
         await loadStage(stageData);
       } catch (e) {
-        debugPrint('Failed to load initial stage: $e');
+        logger.error(LogCategory.stage, 'Failed to load initial stage', error: e);
       }
     }
   }
@@ -252,17 +254,22 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     _clearTime = null;
   }
 
-  /// ゴール到達時の処理
+  /// ゴール到達時の処理（内部用）
   void _onGoalReached() {
     if (!_goalReached) {
       _goalReached = true;
       // タイマー停止＆クリアタイム記録
       _gameEndTime = DateTime.now();
       _clearTime = elapsedSeconds;
-      debugPrint('🎉 Goal reached! Clear time: ${_clearTime?.toStringAsFixed(2)}s');
+      logger.info(LogCategory.game, 'Goal reached! Clear time: ${_clearTime?.toStringAsFixed(2)}s');
       // 外部コールバックを呼び出し
       onGoalReachedCallback?.call();
     }
+  }
+
+  /// ゴール到達を通知（Goalコンポーネントから呼ばれる）
+  void notifyGoalReached() {
+    _onGoalReached();
   }
 
   // --- ドラッグ操作（パチンコ式発射 / 編集モード） ---
@@ -482,6 +489,18 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     selectObject(obj);
   }
 
+  /// トランポリンを追加
+  Future<void> addTrampoline({Vector2? position}) async {
+    final pos = position ?? camera.viewfinder.position.clone();
+    final obj = Trampoline(
+      position: pos,
+      width: 4.0,
+      height: 0.4,
+    );
+    await _addStageObject(obj);
+    selectObject(obj);
+  }
+
   /// お手玉をリセット
   void resetOtedama() {
     otedama?.reset();
@@ -539,24 +558,17 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       await changeBackground(stageData.background);
     }
 
-    // オブジェクトを配置
+    // オブジェクトを配置（ファクトリパターン）
     for (final objJson in stageData.objects) {
-      final type = objJson['type'] as String?;
-      if (type == null) continue;
+      final obj = StageObjectFactory.fromJson(objJson);
+      if (obj == null) continue;
 
-      switch (type) {
-        case 'platform':
-          await _addStageObject(Platform.fromJson(objJson));
-          break;
-        case 'image_object':
-          await _addStageObject(ImageObject.fromJson(objJson));
-          break;
-        case 'goal':
-          goal = Goal.fromJson(objJson);
-          goal!.onGoalReached = _onGoalReached;
-          await _addStageObject(goal!);
-          break;
+      // Goalの場合はフィールドに保持
+      if (obj is Goal) {
+        goal = obj;
       }
+
+      await _addStageObject(obj as BodyComponent);
     }
 
     // お手玉を新しいスポーン位置に移動
@@ -597,7 +609,6 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       position: pos,
       width: 5,
       height: 4,
-      onGoalReached: _onGoalReached,
     );
     await _addStageObject(goal!);
     selectObject(goal!);

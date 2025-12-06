@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../components/stage/image_object.dart';
 import '../game/otedama_game.dart';
 import '../models/stage_data.dart';
+import '../services/logger_service.dart';
 import 'background_picker.dart';
 import 'object_picker.dart';
 import 'stage_picker.dart';
@@ -249,9 +250,7 @@ class _StageEditorState extends State<StageEditor> {
     Clipboard.setData(ClipboardData(text: jsonString));
 
     // コンソールにも出力
-    debugPrint('=== Stage JSON ===');
-    debugPrint(jsonString);
-    debugPrint('==================');
+    logger.debug(LogCategory.stage, 'Stage exported: $jsonString');
 
     // フィードバック
     ScaffoldMessenger.of(context).showSnackBar(
@@ -271,6 +270,8 @@ class _StageEditorState extends State<StageEditor> {
       case ObjectType.primitive:
         if (selected.id == 'platform') {
           await widget.game.addPlatform();
+        } else if (selected.id == 'trampoline') {
+          await widget.game.addTrampoline();
         } else if (selected.id == 'goal') {
           await widget.game.addGoal();
         }
