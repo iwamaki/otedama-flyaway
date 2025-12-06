@@ -4,7 +4,6 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 
 import '../config/otedama_skin_config.dart';
-import '../config/physics_config.dart';
 import '../services/logger_service.dart';
 import '../services/texture_manager.dart';
 import 'particle_physics_solver.dart';
@@ -75,6 +74,9 @@ class ParticleOtedama extends BodyComponent {
   int _launchCount = 0; // 発射回数（0: 未発射, 1: 初回発射済み, 2: 空中発射済み）
   bool _isGrounded = false; // 接地中フラグ
   static const double _groundedVelocityThreshold = 1.5; // 接地判定の速度閾値
+
+  /// 発射力の倍率（スワイプ→力の変換係数）
+  static double launchMultiplier = 3.5;
 
   /// 空中発射の力の倍率（初回の何倍か）
   static double airLaunchMultiplier = 0.5;
@@ -381,7 +383,7 @@ class ParticleOtedama extends BodyComponent {
     final powerMultiplier = (_launchCount >= 1) ? airLaunchMultiplier : 1.0;
     final launchType = _launchCount == 0 ? 'initial' : 'air';
     logger.info(LogCategory.input, 'Launch ($launchType): impulse=${impulse.length.toStringAsFixed(2)}, power=$powerMultiplier');
-    final scaledImpulse = impulse * PhysicsConfig.launchMultiplier * powerMultiplier;
+    final scaledImpulse = impulse * launchMultiplier * powerMultiplier;
 
     if (touchPoint == null || shellBodies.isEmpty) {
       // タップ位置がない場合は従来通り全体に均一に力を加える

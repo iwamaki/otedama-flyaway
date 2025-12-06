@@ -305,6 +305,41 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
 
           const Divider(color: Colors.white24),
 
+          // 発射パラメータ
+          _buildSectionHeader('Launch (発射)'),
+          _buildSlider(
+            'Power',
+            ParticleOtedama.launchMultiplier,
+            1.0,
+            15.0,
+            (v) {
+              ParticleOtedama.launchMultiplier = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'AirPower',
+            ParticleOtedama.airLaunchMultiplier,
+            0.0,
+            1.0,
+            (v) {
+              ParticleOtedama.airLaunchMultiplier = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'TouchRadius',
+            ParticleOtedama.touchEffectRadius,
+            0.1,
+            3.0,
+            (v) {
+              ParticleOtedama.touchEffectRadius = v;
+              setState(() {});
+            },
+          ),
+
+          const Divider(color: Colors.white24),
+
           // 全体パラメータ
           _buildSectionHeader('Overall (全体)'),
           _buildSlider(
@@ -353,6 +388,19 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          // パラメータ出力ボタン
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _printParameters,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueGrey,
+              ),
+              icon: const Icon(Icons.terminal, size: 16),
+              label: const Text('Print to Console'),
+            ),
           ),
         ],
         ),
@@ -474,7 +522,56 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
       ParticleOtedama.gravityScale = 2.0;
       ParticleOtedama.beadContainmentEnabled = true;
       ParticleOtedama.beadContainmentMargin = 0.25;
+      ParticleOtedama.launchMultiplier = 3.5;
+      ParticleOtedama.airLaunchMultiplier = 0.5;
+      ParticleOtedama.touchEffectRadius = 1.0;
     });
     widget.onRebuild();
+  }
+
+  void _printParameters() {
+    debugPrint('''
+=== Otedama Parameters ===
+// Shell
+shellCount: ${ParticleOtedama.shellCount}
+shellRadius: ${ParticleOtedama.shellRadius}
+shellDensity: ${ParticleOtedama.shellDensity}
+shellFriction: ${ParticleOtedama.shellFriction}
+shellRestitution: ${ParticleOtedama.shellRestitution}
+shellSpikeEnabled: ${ParticleOtedama.shellSpikeEnabled}
+shellSpikeLength: ${ParticleOtedama.shellSpikeLength}
+shellSpikeRadius: ${ParticleOtedama.shellSpikeRadius}
+
+// Beads
+beadCount: ${ParticleOtedama.beadCount}
+beadRadius: ${ParticleOtedama.beadRadius}
+beadSizeVariation: ${ParticleOtedama.beadSizeVariation}
+beadDensity: ${ParticleOtedama.beadDensity}
+beadFriction: ${ParticleOtedama.beadFriction}
+beadRestitution: ${ParticleOtedama.beadRestitution}
+
+// Joints
+jointFrequency: ${ParticleOtedama.jointFrequency}
+jointDamping: ${ParticleOtedama.jointDamping}
+
+// Constraint
+distanceConstraintIterations: ${ParticleOtedama.distanceConstraintIterations}
+distanceConstraintStiffness: ${ParticleOtedama.distanceConstraintStiffness}
+shellRelativeDamping: ${ParticleOtedama.shellRelativeDamping}
+
+// Containment
+beadContainmentEnabled: ${ParticleOtedama.beadContainmentEnabled}
+beadContainmentMargin: ${ParticleOtedama.beadContainmentMargin}
+
+// Launch
+launchMultiplier: ${ParticleOtedama.launchMultiplier}
+airLaunchMultiplier: ${ParticleOtedama.airLaunchMultiplier}
+touchEffectRadius: ${ParticleOtedama.touchEffectRadius}
+
+// Overall
+overallRadius: ${ParticleOtedama.overallRadius}
+gravityScale: ${ParticleOtedama.gravityScale}
+==========================
+''');
   }
 }
