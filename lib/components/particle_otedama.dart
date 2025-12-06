@@ -420,6 +420,30 @@ class ParticleOtedama extends BodyComponent {
 
   /// パラメータ変更後の再構築
   void rebuild() {
+    // レンダラーを再作成（半径などのパラメータ変更を反映）
+    _renderer = ParticleRenderer(
+      color: color,
+      shellRadius: shellRadius,
+      beadRadius: beadRadius,
+      skin: _skin,
+    );
+
+    // テクスチャスキンの場合は画像を再設定
+    if (_skin.type == OtedamaSkinType.texture && _skin.texturePath != null) {
+      TextureManager.instance.loadTexture(_skin.texturePath!).then((image) {
+        _renderer.setTextureImage(image);
+      });
+    }
+
+    // 物理ソルバーも再作成
+    _physicsSolver = ParticlePhysicsSolver(
+      constraintIterations: distanceConstraintIterations,
+      constraintStiffness: distanceConstraintStiffness,
+      beadContainmentEnabled: beadContainmentEnabled,
+      beadContainmentMargin: beadContainmentMargin,
+      beadRadius: beadRadius,
+    );
+
     reset();
   }
 
