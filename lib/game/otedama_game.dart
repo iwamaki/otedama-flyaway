@@ -9,6 +9,7 @@ import '../components/drag_line.dart';
 import '../components/ground.dart';
 import '../components/particle_otedama.dart';
 import '../components/stage/goal.dart';
+import '../components/stage/ice_floor.dart';
 import '../components/stage/image_object.dart';
 import '../components/stage/platform.dart';
 import '../components/stage/stage_object.dart';
@@ -493,6 +494,14 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   Future<void> addTrampoline({Vector2? position}) async {
     final pos = position ?? camera.viewfinder.position.clone();
     final obj = Trampoline(position: pos);
+    await _addStageObject(obj);
+    selectObject(obj);
+  }
+
+  /// 氷床を追加
+  Future<void> addIceFloor({Vector2? position}) async {
+    final pos = position ?? camera.viewfinder.position.clone();
+    final obj = IceFloor(position: pos);
     await _addStageObject(obj);
     selectObject(obj);
   }

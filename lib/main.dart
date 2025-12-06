@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'components/stage/goal.dart';
+import 'components/stage/ice_floor.dart';
 import 'components/stage/image_object.dart';
 import 'components/stage/platform.dart';
 import 'components/stage/trampoline.dart';
@@ -32,6 +33,7 @@ void main() async {
   registerImageObjectFactory();
   registerGoalFactory();
   registerTrampolineFactory();
+  registerIceFloorFactory();
 
   // 設定サービスを初期化
   await SettingsService.instance.init();

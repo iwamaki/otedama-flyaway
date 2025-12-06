@@ -48,6 +48,12 @@ class ObjectRegistry {
       icon: Icons.arrow_upward,
     ),
     InsertableObject(
+      id: 'iceFloor',
+      name: '氷床',
+      type: ObjectType.primitive,
+      icon: Icons.ac_unit,
+    ),
+    InsertableObject(
       id: 'goal',
       name: 'ゴール',
       type: ObjectType.primitive,

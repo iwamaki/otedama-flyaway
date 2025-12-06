@@ -272,6 +272,8 @@ class _StageEditorState extends State<StageEditor> {
           await widget.game.addPlatform();
         } else if (selected.id == 'trampoline') {
           await widget.game.addTrampoline();
+        } else if (selected.id == 'iceFloor') {
+          await widget.game.addIceFloor();
         } else if (selected.id == 'goal') {
           await widget.game.addGoal();
         }
