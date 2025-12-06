@@ -1,6 +1,7 @@
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 
+import '../../game/otedama_game.dart';
 import '../../utils/json_helpers.dart';
 import '../../utils/selection_highlight.dart';
 import 'stage_object.dart';
@@ -8,6 +9,8 @@ import 'stage_object.dart';
 /// ゴール籠コンポーネント
 /// お手玉が入る目標地点
 class Goal extends BodyComponent with StageObject, ContactCallbacks {
+  /// ゲーム参照を取得（OtedamaGameにキャスト）
+  OtedamaGame get otedamaGame => game as OtedamaGame;
   /// 初期位置
   final Vector2 initialPosition;
 
@@ -22,9 +25,6 @@ class Goal extends BodyComponent with StageObject, ContactCallbacks {
   /// 籠の色
   final Color color;
 
-  /// ゴール判定コールバック
-  void Function()? onGoalReached;
-
   /// ゴールに入っているかどうか
   bool _isOtedamaInside = false;
   bool get isOtedamaInside => _isOtedamaInside;
@@ -36,7 +36,6 @@ class Goal extends BodyComponent with StageObject, ContactCallbacks {
     this.wallThickness = 0.3,
     double angle = 0.0,
     this.color = const Color(0xFF8B4513), // 茶色（竹籠風）
-    this.onGoalReached,
   })  : initialPosition = position.clone(),
         initialAngle = angle;
 
@@ -177,7 +176,8 @@ class Goal extends BodyComponent with StageObject, ContactCallbacks {
 
     if (isGoalSensor) {
       _isOtedamaInside = true;
-      onGoalReached?.call();
+      // ゲーム参照を通じてゴール到達を通知
+      otedamaGame.notifyGoalReached();
     }
   }
 
