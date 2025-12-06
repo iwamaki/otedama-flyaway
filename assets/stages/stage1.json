@@ -7,55 +7,165 @@
   "objects": [
     {
       "type": "platform",
-      "x": -1.1520293951034546,
-      "y": -0.7821172475814819,
+      "x": -3,
+      "y": 2,
       "width": 6,
       "height": 0.5,
-      "angle": 0.3102442579074083,
+      "angle": 0.2,
       "color": 4285238819
     },
     {
       "type": "platform",
-      "x": 12.729792594909668,
-      "y": -6.585145950317383,
-      "width": 6,
+      "x": 8,
+      "y": 0,
+      "width": 5,
       "height": 0.5,
-      "angle": -0.38913981656218377,
+      "angle": -0.15,
       "color": 4285238819
     },
     {
       "type": "platform",
-      "x": -1.4247560501098633,
-      "y": -20.15029525756836,
-      "width": 6,
+      "x": 0,
+      "y": -6,
+      "width": 7,
       "height": 0.5,
-      "angle": 0.2408398074385527,
+      "angle": 0.1,
       "color": 4285238819
     },
     {
       "type": "platform",
-      "x": 10.250503540039062,
-      "y": -38.801597595214844,
-      "width": 6,
+      "x": 12,
+      "y": -8,
+      "width": 4,
       "height": 0.5,
       "angle": 0,
       "color": 4285238819
     },
     {
       "type": "platform",
-      "x": 33.44972229003906,
-      "y": -80.04910278320312,
-      "width": 6,
+      "x": -5,
+      "y": -12,
+      "width": 5,
       "height": 0.5,
-      "angle": -0.26456737876963166,
+      "angle": 0.25,
       "color": 4285238819
     },
     {
-      "type": "goal",
-      "x": 21.351228713989258,
-      "y": -53.31918716430664,
+      "type": "platform",
+      "x": 6,
+      "y": -15,
+      "width": 6,
+      "height": 0.5,
+      "angle": -0.1,
+      "color": 4285238819
+    },
+    {
+      "type": "platform",
+      "x": -2,
+      "y": -20,
       "width": 5,
-      "height": 4,
+      "height": 0.5,
+      "angle": 0.15,
+      "color": 4285238819
+    },
+    {
+      "type": "platform",
+      "x": 10,
+      "y": -24,
+      "width": 5,
+      "height": 0.5,
+      "angle": 0,
+      "color": 4285238819
+    },
+    {
+      "type": "platform",
+      "x": 2,
+      "y": -30,
+      "width": 6,
+      "height": 0.5,
+      "angle": -0.1,
+      "color": 4285238819
+    },
+    {
+      "type": "platform",
+      "x": -6,
+      "y": -35,
+      "width": 4,
+      "height": 0.5,
+      "angle": 0.2,
+      "color": 4285238819
+    },
+    {
+      "type": "platform",
+      "x": 8,
+      "y": -38,
+      "width": 5,
+      "height": 0.5,
+      "angle": 0,
+      "color": 4285238819
+    },
+    {
+      "type": "iceFloor",
+      "x": -2,
+      "y": -45,
+      "width": 8,
+      "height": 0.4,
+      "angle": -0.15,
+      "color": 4287090411
+    },
+    {
+      "type": "platform",
+      "x": 12,
+      "y": -50,
+      "width": 5,
+      "height": 0.5,
+      "angle": 0.1,
+      "color": 4285238819
+    },
+    {
+      "type": "iceFloor",
+      "x": 3,
+      "y": -56,
+      "width": 6,
+      "height": 0.4,
+      "angle": 0.1,
+      "color": 4287090411
+    },
+    {
+      "type": "trampoline",
+      "x": -5,
+      "y": -62,
+      "width": 5,
+      "height": 0.4,
+      "angle": 0,
+      "bounceForce": 100,
+      "color": 4293467747
+    },
+    {
+      "type": "platform",
+      "x": 8,
+      "y": -70,
+      "width": 6,
+      "height": 0.5,
+      "angle": 0,
+      "color": 4285238819
+    },
+    {
+      "type": "trampoline",
+      "x": 0,
+      "y": -78,
+      "width": 5,
+      "height": 0.4,
+      "angle": 0,
+      "bounceForce": 120,
+      "color": 4293467747
+    },
+    {
+      "type": "goal",
+      "x": 10,
+      "y": -90,
+      "width": 6,
+      "height": 5,
       "angle": 0,
       "color": 4287317267
     }
