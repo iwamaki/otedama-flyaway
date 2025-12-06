@@ -111,6 +111,9 @@ class ParticleOtedama extends BodyComponent {
     // 距離制約を強制（PBD：位置ベースで補正）
     _physicsSolver.enforceDistanceConstraints(shellBodies, _initialJointLengths);
 
+    // 外殻の反転（クロス）を防止
+    _physicsSolver.preventShellInversion(shellBodies);
+
     // ビーズ封じ込め制約（外殻の内側に留める）
     _physicsSolver.enforceBeadContainment(shellBodies, beadBodies);
 

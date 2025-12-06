@@ -226,4 +226,104 @@ class ParticlePhysicsSolver {
     }
     return sum / polygon.length.toDouble();
   }
+
+  /// 外殻の反転（クロス）を検出して補正する
+  /// 強い衝撃で外殻が八の字にクロスしてしまう問題を防ぐ
+  void preventShellInversion(List<Body> shellBodies) {
+    if (shellBodies.length < 3) return;
+
+    final positions = shellBodies.map((b) => b.position).toList();
+    final centroid = _calculateCentroid(positions);
+    final n = shellBodies.length;
+
+    // 各頂点について、隣接する3点で凹みが発生していないかチェック
+    for (int i = 0; i < n; i++) {
+      final prev = positions[(i - 1 + n) % n];
+      final curr = positions[i];
+      final next = positions[(i + 1) % n];
+
+      // 外積で回転方向をチェック（反時計回りなら正）
+      final cross = _crossProduct2D(curr - prev, next - curr);
+
+      // 凹み（内側に折れ曲がり）を検出
+      // 正常な凸多角形なら全て同じ符号になるはず
+      if (cross < -0.01) {
+        // この頂点が内側に折れ込んでいる（反転の兆候）
+        // 重心から外側に押し出す
+        final toVertex = curr - centroid;
+        final dist = toVertex.length;
+
+        if (dist < 0.01) continue;
+
+        // 隣接頂点の重心からの平均距離を計算
+        final prevDist = (prev - centroid).length;
+        final nextDist = (next - centroid).length;
+        final avgNeighborDist = (prevDist + nextDist) / 2;
+
+        // 現在の頂点が隣より内側にいる場合、押し出す
+        if (dist < avgNeighborDist * 0.7) {
+          final targetDist = avgNeighborDist * 0.9;
+          final correction = toVertex.normalized() * (targetDist - dist);
+
+          final body = shellBodies[i];
+          final newPos = curr + correction;
+
+          if (!newPos.x.isNaN && !newPos.y.isNaN) {
+            body.setTransform(newPos, body.angle);
+
+            // 内向きの速度成分も除去
+            final vel = body.linearVelocity;
+            final inwardVel = vel.dot(-toVertex.normalized());
+            if (inwardVel > 0) {
+              body.linearVelocity = vel + toVertex.normalized() * inwardVel;
+            }
+          }
+        }
+      }
+    }
+
+    // 全体の符号付き面積もチェック（完全に反転した場合）
+    final signedArea = _calculateSignedArea(positions);
+    if (signedArea < 0) {
+      // 多角形全体が反転している場合、各頂点を重心から押し出す
+      _expandFromCentroid(shellBodies, centroid);
+    }
+  }
+
+  /// 2Dベクトルの外積（スカラー値）
+  double _crossProduct2D(Vector2 a, Vector2 b) {
+    return a.x * b.y - a.y * b.x;
+  }
+
+  /// 符号付き面積を計算（正=反時計回り、負=時計回り=反転）
+  double _calculateSignedArea(List<Vector2> polygon) {
+    double area = 0;
+    final n = polygon.length;
+    for (int i = 0; i < n; i++) {
+      final curr = polygon[i];
+      final next = polygon[(i + 1) % n];
+      area += curr.x * next.y - next.x * curr.y;
+    }
+    return area / 2;
+  }
+
+  /// 全頂点を重心から押し広げる
+  void _expandFromCentroid(List<Body> shellBodies, Vector2 centroid) {
+    for (final body in shellBodies) {
+      final pos = body.position;
+      final toVertex = pos - centroid;
+      final dist = toVertex.length;
+
+      if (dist < 0.01) continue;
+
+      // 最低限の距離を確保
+      const minDist = 0.5;
+      if (dist < minDist) {
+        final newPos = centroid + toVertex.normalized() * minDist;
+        if (!newPos.x.isNaN && !newPos.y.isNaN) {
+          body.setTransform(newPos, body.angle);
+        }
+      }
+    }
+  }
 }
