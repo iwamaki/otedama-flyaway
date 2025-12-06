@@ -36,19 +36,19 @@ class ParticleOtedama extends BodyComponent {
   late ParticlePhysicsSolver _physicsSolver;
 
   // 設定可能なパラメータ（調整済みデフォルト値）
-  static int shellCount = 13;
-  static int beadCount = 20;
-  static double shellRadius = 0.28;
-  static double beadRadius = 0.3;
+  static int shellCount = 20;
+  static int beadCount = 14;
+  static double shellRadius = 0.25;
+  static double beadRadius = 0.38;
   static double overallRadius = 2.50;
   static double shellDensity = 5.0;
   static double beadDensity = 5.0;
-  static double shellFriction = 0.51;
+  static double shellFriction = 1.0;
   static double beadFriction = 1.0;
-  static double shellRestitution = 0.0;
+  static double shellRestitution = 0.05;
   static double beadRestitution = 0.0;
   static double jointFrequency = 0.0; // 0=硬い接続（伸びない）、>0=バネ
-  static double jointDamping = 0.0;
+  static double jointDamping = 1.0;
   static double shellRelativeDamping = 0.0; // 節同士の相対運動の減衰（重力に影響しない）
   static double gravityScale = 2.0; // 重力スケール（1.0 = 通常）
 
@@ -61,12 +61,12 @@ class ParticleOtedama extends BodyComponent {
   static double beadContainmentMargin = 0.25; // 外殻境界からのマージン
 
   // ビーズサイズのバリエーション（0.0〜1.0、大きいほどバラつく）
-  static double beadSizeVariation = 0.5;
+  static double beadSizeVariation = 0.26;
 
   // 外殻の内側突起（ビーズとの接触を確保）
   static bool shellSpikeEnabled = true; // 突起を有効化
-  static double shellSpikeLength = 0.4; // 突起の長さ（内側方向へのオフセット）
-  static double shellSpikeRadius = 0.15; // 突起の半径
+  static double shellSpikeLength = 0.39; // 突起の長さ（内側方向へのオフセット）
+  static double shellSpikeRadius = 0.11; // 突起の半径
 
   // 初期ジョイント長を記録
   final List<double> _initialJointLengths = [];

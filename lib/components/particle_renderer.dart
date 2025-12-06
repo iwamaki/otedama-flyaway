@@ -73,27 +73,38 @@ class ParticleRenderer {
     centerY /= shellPositions.length;
 
     // 袋の形状（外殻の外縁を結ぶPath）
+    // 隣接する2粒子の外接円の共通外接線を使用して、物理と一致させる
     final points = <Offset>[];
+    final n = shellPositions.length;
 
-    for (final pos in shellPositions) {
-      final sx = pos.dx - bodyPos.dx;
-      final sy = pos.dy - bodyPos.dy;
+    for (int i = 0; i < n; i++) {
+      final curr = shellPositions[i];
+      final next = shellPositions[(i + 1) % n];
 
-      // 中心から外側への方向ベクトル
-      final dx = sx - centerX;
-      final dy = sy - centerY;
+      // ローカル座標に変換
+      final cx = curr.dx - bodyPos.dx;
+      final cy = curr.dy - bodyPos.dy;
+      final nx = next.dx - bodyPos.dx;
+      final ny = next.dy - bodyPos.dy;
+
+      // 2粒子間の方向ベクトル
+      final dx = nx - cx;
+      final dy = ny - cy;
       final dist = math.sqrt(dx * dx + dy * dy);
 
       if (dist > 0.001) {
-        // 外殻の外縁にオフセット（shellRadiusだけ外側へ）
-        final nx = dx / dist;
-        final ny = dy / dist;
+        // 外接線の法線方向（粒子間ベクトルの垂直方向、外向き）
+        // 時計回りの多角形なので右側が外側
+        final perpX = dy / dist;
+        final perpY = -dx / dist;
+
+        // 各粒子の外接点（外側にshellRadius分オフセット）
         points.add(Offset(
-          sx + nx * shellRadius,
-          sy + ny * shellRadius,
+          cx + perpX * shellRadius,
+          cy + perpY * shellRadius,
         ));
       } else {
-        points.add(Offset(sx, sy));
+        points.add(Offset(cx, cy));
       }
     }
 

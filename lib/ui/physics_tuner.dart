@@ -77,7 +77,7 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
             'Count',
             ParticleOtedama.shellCount.toDouble(),
             8,
-            24,
+            50,
             (v) {
               ParticleOtedama.shellCount = v.round();
               _rebuild();
@@ -451,23 +451,23 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
 
   void _resetToDefaults() {
     setState(() {
-      ParticleOtedama.shellCount = 13;
-      ParticleOtedama.beadCount = 20;
-      ParticleOtedama.shellRadius = 0.28;
-      ParticleOtedama.beadRadius = 0.3;
-      ParticleOtedama.beadSizeVariation = 0.5;
+      ParticleOtedama.shellCount = 20;
+      ParticleOtedama.beadCount = 14;
+      ParticleOtedama.shellRadius = 0.25;
+      ParticleOtedama.beadRadius = 0.38;
+      ParticleOtedama.beadSizeVariation = 0.26;
       ParticleOtedama.overallRadius = 2.50;
       ParticleOtedama.shellDensity = 5.0;
       ParticleOtedama.beadDensity = 5.0;
-      ParticleOtedama.shellFriction = 0.51;
+      ParticleOtedama.shellFriction = 1.0;
       ParticleOtedama.beadFriction = 1.0;
-      ParticleOtedama.shellRestitution = 0.0;
+      ParticleOtedama.shellRestitution = 0.05;
       ParticleOtedama.shellSpikeEnabled = true;
-      ParticleOtedama.shellSpikeLength = 0.4;
-      ParticleOtedama.shellSpikeRadius = 0.15;
+      ParticleOtedama.shellSpikeLength = 0.39;
+      ParticleOtedama.shellSpikeRadius = 0.11;
       ParticleOtedama.beadRestitution = 0.0;
       ParticleOtedama.jointFrequency = 0.0;
-      ParticleOtedama.jointDamping = 0.0;
+      ParticleOtedama.jointDamping = 1.0;
       ParticleOtedama.distanceConstraintIterations = 10;
       ParticleOtedama.distanceConstraintStiffness = 1.0;
       ParticleOtedama.shellRelativeDamping = 0.0;
