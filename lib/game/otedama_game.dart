@@ -492,11 +492,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   /// トランポリンを追加
   Future<void> addTrampoline({Vector2? position}) async {
     final pos = position ?? camera.viewfinder.position.clone();
-    final obj = Trampoline(
-      position: pos,
-      width: 4.0,
-      height: 0.4,
-    );
+    final obj = Trampoline(position: pos);
     await _addStageObject(obj);
     selectObject(obj);
   }
