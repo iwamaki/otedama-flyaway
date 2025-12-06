@@ -15,7 +15,9 @@ class Goal extends BodyComponent with StageObject, ContactCallbacks {
   final Vector2 initialPosition;
 
   /// 籠のサイズ
+  @override
   final double width;
+  @override
   final double height;
   final double wallThickness;
 

@@ -21,6 +21,18 @@ abstract mixin class StageObject {
   /// 垂直反転
   bool get flipY => false;
 
+  /// 幅（サイズ変更可能なオブジェクト用）
+  double? get width => null;
+
+  /// 高さ（サイズ変更可能なオブジェクト用）
+  double? get height => null;
+
+  /// サイズ変更可能かどうか
+  bool get canResize => false;
+
+  /// 反転可能かどうか
+  bool get canFlip => false;
+
   /// バウンディングボックス（選択判定用）
   /// 左上と右下をワールド座標で返す
   (Vector2 min, Vector2 max) get bounds;

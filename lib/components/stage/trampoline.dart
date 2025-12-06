@@ -29,13 +29,19 @@ class Trampoline extends BodyComponent with StageObject {
   final Vector2 initialPosition;
 
   /// サイズ（幅、高さの半分）
-  final Vector2 size;
+  Vector2 _size;
 
   /// 初期角度（ラジアン）
   final double initialAngle;
 
   /// 弾く力
   final double bounceForce;
+
+  /// 水平反転
+  bool _flipX;
+
+  /// 垂直反転
+  bool _flipY;
 
   /// 色
   final Color color;
@@ -61,10 +67,14 @@ class Trampoline extends BodyComponent with StageObject {
     double height = defaultHeight,
     double angle = 0.0,
     this.bounceForce = defaultBounceForce,
+    bool flipX = false,
+    bool flipY = false,
     this.color = const Color(0xFFE74C3C),
   })  : initialPosition = position.clone(),
-        size = Vector2(width / 2, height / 2),
-        initialAngle = angle;
+        _size = Vector2(width / 2, height / 2),
+        initialAngle = angle,
+        _flipX = flipX,
+        _flipY = flipY;
 
   /// JSONから生成
   factory Trampoline.fromJson(Map<String, dynamic> json) {
@@ -74,6 +84,8 @@ class Trampoline extends BodyComponent with StageObject {
       height: json.getDouble('height', defaultHeight),
       angle: json.getDouble('angle'),
       bounceForce: json.getDouble('bounceForce', defaultBounceForce),
+      flipX: json.getBool('flipX'),
+      flipY: json.getBool('flipY'),
       color: json.getColor('color', const Color(0xFFE74C3C)),
     );
   }
@@ -90,11 +102,29 @@ class Trampoline extends BodyComponent with StageObject {
   double get angle => body.angle;
 
   @override
+  double get width => _size.x * 2;
+
+  @override
+  double get height => _size.y * 2;
+
+  @override
+  bool get canResize => true;
+
+  @override
+  bool get canFlip => true;
+
+  @override
+  bool get flipX => _flipX;
+
+  @override
+  bool get flipY => _flipY;
+
+  @override
   (Vector2 min, Vector2 max) get bounds {
     final pos = body.position;
     return (
-      Vector2(pos.x - size.x, pos.y - size.y - 0.5),
-      Vector2(pos.x + size.x, pos.y + size.y + 0.3),
+      Vector2(pos.x - _size.x, pos.y - _size.y - 0.5),
+      Vector2(pos.x + _size.x, pos.y + _size.y + 0.3),
     );
   }
 
@@ -104,10 +134,12 @@ class Trampoline extends BodyComponent with StageObject {
       'type': type,
       'x': position.x,
       'y': position.y,
-      'width': size.x * 2,
-      'height': size.y * 2,
+      'width': _size.x * 2,
+      'height': _size.y * 2,
       'angle': angle,
       'bounceForce': bounceForce,
+      'flipX': _flipX,
+      'flipY': _flipY,
       // ignore: deprecated_member_use
       'color': color.value,
     };
@@ -129,6 +161,47 @@ class Trampoline extends BodyComponent with StageObject {
       final newAngle = (props['angle'] as num?)?.toDouble() ?? 0.0;
       body.setTransform(body.position, newAngle);
     }
+    if (props.containsKey('width')) {
+      final newWidth = (props['width'] as num?)?.toDouble() ?? width;
+      _size.x = newWidth / 2;
+      _rebuildFixtures();
+    }
+    if (props.containsKey('height')) {
+      final newHeight = (props['height'] as num?)?.toDouble() ?? height;
+      _size.y = newHeight / 2;
+      _rebuildFixtures();
+    }
+    if (props.containsKey('flipX')) {
+      _flipX = props['flipX'] as bool? ?? _flipX;
+    }
+    if (props.containsKey('flipY')) {
+      _flipY = props['flipY'] as bool? ?? _flipY;
+    }
+  }
+
+  /// 物理フィクスチャを再構築
+  void _rebuildFixtures() {
+    if (!isMounted) return;
+
+    // ベースボディのフィクスチャを再構築
+    while (body.fixtures.isNotEmpty) {
+      body.destroyFixture(body.fixtures.first);
+    }
+    final baseShape = PolygonShape()..setAsBoxXY(_size.x, 0.1);
+    body.createFixture(FixtureDef(baseShape)
+      ..friction = 0.5
+      ..restitution = 0.0);
+
+    // 表面ボディのフィクスチャを再構築
+    if (_surfaceBody != null) {
+      while (_surfaceBody!.fixtures.isNotEmpty) {
+        _surfaceBody!.destroyFixture(_surfaceBody!.fixtures.first);
+      }
+      final surfaceShape = PolygonShape()..setAsBoxXY(_size.x, _size.y);
+      _surfaceBody!.createFixture(FixtureDef(surfaceShape)
+        ..friction = 0.3
+        ..restitution = PhysicsConfig.groundRestitution);
+    }
   }
 
   /// バネの静止長
@@ -139,7 +212,7 @@ class Trampoline extends BodyComponent with StageObject {
   @override
   Body createBody() {
     // ベース部分（static、見えない土台）
-    final baseShape = PolygonShape()..setAsBoxXY(size.x, 0.1);
+    final baseShape = PolygonShape()..setAsBoxXY(_size.x, 0.1);
     final baseDef = BodyDef()
       ..type = BodyType.static
       ..position = initialPosition
@@ -177,7 +250,7 @@ class Trampoline extends BodyComponent with StageObject {
         'Trampoline: surfaceRestPosition=$_surfaceRestPosition');
 
     // 弾む面（kinematic - プログラムで位置制御）
-    final surfaceShape = PolygonShape()..setAsBoxXY(size.x, size.y);
+    final surfaceShape = PolygonShape()..setAsBoxXY(_size.x, _size.y);
     final surfaceDef = BodyDef()
       ..type = BodyType.kinematic
       ..position = _surfaceRestPosition!.clone()
@@ -263,10 +336,10 @@ class Trampoline extends BodyComponent with StageObject {
 
     // 表面のAABB
     final surfacePos = _surfaceBody!.position;
-    final surfaceMinX = surfacePos.x - size.x;
-    final surfaceMaxX = surfacePos.x + size.x;
-    final surfaceMinY = surfacePos.y - size.y;
-    final surfaceMaxY = surfacePos.y + size.y;
+    final surfaceMinX = surfacePos.x - _size.x;
+    final surfaceMaxX = surfacePos.x + _size.x;
+    final surfaceMinY = surfacePos.y - _size.y;
+    final surfaceMaxY = surfacePos.y + _size.y;
 
     // お手玉の全ボディをチェック
     final allBodies = [...otedama.shellBodies, ...otedama.beadBodies];
@@ -303,8 +376,8 @@ class Trampoline extends BodyComponent with StageObject {
     if (isSelected) {
       SelectionHighlight.draw(
         canvas,
-        halfWidth: size.x,
-        halfHeight: size.y + _springRestLength,
+        halfWidth: _size.x,
+        halfHeight: _size.y + _springRestLength,
       );
     }
   }
@@ -326,12 +399,15 @@ class Trampoline extends BodyComponent with StageObject {
     canvas.translate(pos.x, pos.y);
     canvas.rotate(_surfaceBody!.angle);
 
+    // 反転のためのスケール
+    canvas.scale(_flipX ? -1 : 1, _flipY ? -1 : 1);
+
     // トランポリンの弾む面
     final surfacePaint = Paint()..color = color;
     final surfaceRect = Rect.fromCenter(
       center: Offset.zero,
-      width: size.x * 2,
-      height: size.y * 2,
+      width: _size.x * 2,
+      height: _size.y * 2,
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(surfaceRect, const Radius.circular(0.1)),
@@ -344,8 +420,8 @@ class Trampoline extends BodyComponent with StageObject {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.08;
     canvas.drawLine(
-      Offset(-size.x + 0.1, -size.y + 0.05),
-      Offset(size.x - 0.1, -size.y + 0.05),
+      Offset(-_size.x + 0.1, -_size.y + 0.05),
+      Offset(_size.x - 0.1, -_size.y + 0.05),
       highlightPaint,
     );
 
@@ -358,8 +434,8 @@ class Trampoline extends BodyComponent with StageObject {
       canvas.rotate(body.angle);
       SelectionHighlight.draw(
         canvas,
-        halfWidth: size.x,
-        halfHeight: size.y + _springRestLength,
+        halfWidth: _size.x,
+        halfHeight: _size.y + _springRestLength,
       );
       canvas.restore();
     }
@@ -381,14 +457,14 @@ class Trampoline extends BodyComponent with StageObject {
     final sin = math.sin(body.angle);
 
     // 左右のばね
-    for (final xOffset in [-size.x + 0.5, size.x - 0.5]) {
+    for (final xOffset in [-_size.x + 0.5, _size.x - 0.5]) {
       final basePoint = Offset(
         basePos.x + xOffset * cos,
         basePos.y + xOffset * sin,
       );
       final surfacePoint = Offset(
         surfacePos.x + xOffset * cos,
-        surfacePos.y + xOffset * sin + size.y,
+        surfacePos.y + xOffset * sin + _size.y,
       );
 
       // ばねのジグザグを描画

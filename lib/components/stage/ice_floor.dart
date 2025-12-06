@@ -20,13 +20,19 @@ class IceFloor extends BodyComponent with StageObject {
   final Vector2 initialPosition;
 
   /// サイズ（幅、高さの半分）
-  final Vector2 size;
+  Vector2 _size;
 
   /// 初期角度（ラジアン）
   final double initialAngle;
 
   /// 摩擦（デフォルトで非常に低い）
   final double friction;
+
+  /// 水平反転
+  bool _flipX;
+
+  /// 垂直反転
+  bool _flipY;
 
   /// 色
   final Color color;
@@ -40,21 +46,26 @@ class IceFloor extends BodyComponent with StageObject {
     double height = defaultHeight,
     double angle = 0.0,
     this.friction = defaultFriction,
+    bool flipX = false,
+    bool flipY = false,
     this.color = const Color(0xFF87CEEB), // スカイブルー
   })  : initialPosition = position.clone(),
-        size = Vector2(width / 2, height / 2),
-        initialAngle = angle {
+        _size = Vector2(width / 2, height / 2),
+        initialAngle = angle,
+        _flipX = flipX,
+        _flipY = flipY {
     _initSparkles();
   }
 
   /// キラキラを初期化
   void _initSparkles() {
+    _sparkles.clear();
     final random = math.Random();
-    final count = (size.x * 2).floor().clamp(3, 8);
+    final count = (_size.x * 2).floor().clamp(3, 8);
     for (int i = 0; i < count; i++) {
       _sparkles.add(_Sparkle(
-        x: -size.x + random.nextDouble() * size.x * 2,
-        y: -size.y * 0.5 + random.nextDouble() * size.y,
+        x: -_size.x + random.nextDouble() * _size.x * 2,
+        y: -_size.y * 0.5 + random.nextDouble() * _size.y,
         size: 0.1 + random.nextDouble() * 0.15,
         phase: random.nextDouble() * math.pi * 2,
       ));
@@ -69,6 +80,8 @@ class IceFloor extends BodyComponent with StageObject {
       height: json.getDouble('height', defaultHeight),
       angle: json.getDouble('angle'),
       friction: json.getDouble('friction', defaultFriction),
+      flipX: json.getBool('flipX'),
+      flipY: json.getBool('flipY'),
       color: json.getColor('color', const Color(0xFF87CEEB)),
     );
   }
@@ -85,11 +98,29 @@ class IceFloor extends BodyComponent with StageObject {
   double get angle => body.angle;
 
   @override
+  double get width => _size.x * 2;
+
+  @override
+  double get height => _size.y * 2;
+
+  @override
+  bool get canResize => true;
+
+  @override
+  bool get canFlip => true;
+
+  @override
+  bool get flipX => _flipX;
+
+  @override
+  bool get flipY => _flipY;
+
+  @override
   (Vector2 min, Vector2 max) get bounds {
     final pos = body.position;
     return (
-      Vector2(pos.x - size.x, pos.y - size.y),
-      Vector2(pos.x + size.x, pos.y + size.y),
+      Vector2(pos.x - _size.x, pos.y - _size.y),
+      Vector2(pos.x + _size.x, pos.y + _size.y),
     );
   }
 
@@ -99,10 +130,12 @@ class IceFloor extends BodyComponent with StageObject {
       'type': type,
       'x': position.x,
       'y': position.y,
-      'width': size.x * 2,
-      'height': size.y * 2,
+      'width': _size.x * 2,
+      'height': _size.y * 2,
       'angle': angle,
       'friction': friction,
+      'flipX': _flipX,
+      'flipY': _flipY,
       // ignore: deprecated_member_use
       'color': color.value,
     };
@@ -119,13 +152,51 @@ class IceFloor extends BodyComponent with StageObject {
       final newAngle = (props['angle'] as num?)?.toDouble() ?? 0.0;
       body.setTransform(body.position, newAngle);
     }
+    if (props.containsKey('width')) {
+      final newWidth = (props['width'] as num?)?.toDouble() ?? width;
+      _size.x = newWidth / 2;
+      _rebuildFixtures();
+      _initSparkles();
+    }
+    if (props.containsKey('height')) {
+      final newHeight = (props['height'] as num?)?.toDouble() ?? height;
+      _size.y = newHeight / 2;
+      _rebuildFixtures();
+      _initSparkles();
+    }
+    if (props.containsKey('flipX')) {
+      _flipX = props['flipX'] as bool? ?? _flipX;
+    }
+    if (props.containsKey('flipY')) {
+      _flipY = props['flipY'] as bool? ?? _flipY;
+    }
+  }
+
+  /// 物理フィクスチャを再構築
+  void _rebuildFixtures() {
+    if (!isMounted) return;
+
+    // 既存フィクスチャを削除
+    while (body.fixtures.isNotEmpty) {
+      body.destroyFixture(body.fixtures.first);
+    }
+    // 新しいフィクスチャを作成
+    _createFixture();
+  }
+
+  /// フィクスチャを作成
+  void _createFixture() {
+    final shape = PolygonShape()..setAsBoxXY(_size.x, _size.y);
+    body.createFixture(FixtureDef(shape)
+      ..friction = friction
+      ..restitution = PhysicsConfig.groundRestitution);
   }
 
   // --- BodyComponent 実装 ---
 
   @override
   Body createBody() {
-    final shape = PolygonShape()..setAsBoxXY(size.x, size.y);
+    final shape = PolygonShape()..setAsBoxXY(_size.x, _size.y);
 
     final fixtureDef = FixtureDef(shape)
       ..friction = friction // 非常に低い摩擦
@@ -149,6 +220,10 @@ class IceFloor extends BodyComponent with StageObject {
 
   @override
   void render(Canvas canvas) {
+    // 反転のためのスケール
+    canvas.save();
+    canvas.scale(_flipX ? -1 : 1, _flipY ? -1 : 1);
+
     // 氷のグラデーション
     final gradient = LinearGradient(
       begin: Alignment.topLeft,
@@ -161,8 +236,8 @@ class IceFloor extends BodyComponent with StageObject {
 
     final rect = Rect.fromCenter(
       center: Offset.zero,
-      width: size.x * 2,
-      height: size.y * 2,
+      width: _size.x * 2,
+      height: _size.y * 2,
     );
 
     final paint = Paint()
@@ -185,9 +260,11 @@ class IceFloor extends BodyComponent with StageObject {
     // キラキラを描画
     _drawSparkles(canvas);
 
+    canvas.restore();
+
     // 選択中ならハイライト
     if (isSelected) {
-      SelectionHighlight.draw(canvas, halfWidth: size.x, halfHeight: size.y);
+      SelectionHighlight.draw(canvas, halfWidth: _size.x, halfHeight: _size.y);
     }
   }
 

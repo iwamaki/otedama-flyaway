@@ -13,10 +13,16 @@ class Platform extends BodyComponent with StageObject {
   final Vector2 initialPosition;
 
   /// サイズ（幅、高さの半分）
-  final Vector2 size;
+  Vector2 _size;
 
   /// 初期角度（ラジアン）
   final double initialAngle;
+
+  /// 水平反転
+  bool _flipX;
+
+  /// 垂直反転
+  bool _flipY;
 
   /// 色
   final Color color;
@@ -26,10 +32,14 @@ class Platform extends BodyComponent with StageObject {
     double width = 3.0,
     double height = 0.3,
     double angle = 0.0,
+    bool flipX = false,
+    bool flipY = false,
     this.color = const Color(0xFF6B8E23), // オリーブグリーン
   })  : initialPosition = position.clone(),
-        size = Vector2(width / 2, height / 2),
-        initialAngle = angle;
+        _size = Vector2(width / 2, height / 2),
+        initialAngle = angle,
+        _flipX = flipX,
+        _flipY = flipY;
 
   /// JSONから生成
   factory Platform.fromJson(Map<String, dynamic> json) {
@@ -38,6 +48,8 @@ class Platform extends BodyComponent with StageObject {
       width: json.getDouble('width', 3.0),
       height: json.getDouble('height', 0.3),
       angle: json.getDouble('angle'),
+      flipX: json.getBool('flipX'),
+      flipY: json.getBool('flipY'),
       color: json.getColor('color', const Color(0xFF6B8E23)),
     );
   }
@@ -54,11 +66,29 @@ class Platform extends BodyComponent with StageObject {
   double get angle => body.angle;
 
   @override
+  double get width => _size.x * 2;
+
+  @override
+  double get height => _size.y * 2;
+
+  @override
+  bool get canResize => true;
+
+  @override
+  bool get canFlip => true;
+
+  @override
+  bool get flipX => _flipX;
+
+  @override
+  bool get flipY => _flipY;
+
+  @override
   (Vector2 min, Vector2 max) get bounds {
     final pos = body.position;
     return (
-      Vector2(pos.x - size.x, pos.y - size.y),
-      Vector2(pos.x + size.x, pos.y + size.y),
+      Vector2(pos.x - _size.x, pos.y - _size.y),
+      Vector2(pos.x + _size.x, pos.y + _size.y),
     );
   }
 
@@ -68,9 +98,11 @@ class Platform extends BodyComponent with StageObject {
       'type': type,
       'x': position.x,
       'y': position.y,
-      'width': size.x * 2,
-      'height': size.y * 2,
+      'width': _size.x * 2,
+      'height': _size.y * 2,
       'angle': angle,
+      'flipX': _flipX,
+      'flipY': _flipY,
       // ignore: deprecated_member_use
       'color': color.value,
     };
@@ -87,14 +119,49 @@ class Platform extends BodyComponent with StageObject {
       final newAngle = (props['angle'] as num?)?.toDouble() ?? 0.0;
       body.setTransform(body.position, newAngle);
     }
-    // サイズ変更は物理ボディの再生成が必要なため、現時点では未対応
+    if (props.containsKey('width')) {
+      final newWidth = (props['width'] as num?)?.toDouble() ?? width;
+      _size.x = newWidth / 2;
+      _rebuildFixtures();
+    }
+    if (props.containsKey('height')) {
+      final newHeight = (props['height'] as num?)?.toDouble() ?? height;
+      _size.y = newHeight / 2;
+      _rebuildFixtures();
+    }
+    if (props.containsKey('flipX')) {
+      _flipX = props['flipX'] as bool? ?? _flipX;
+    }
+    if (props.containsKey('flipY')) {
+      _flipY = props['flipY'] as bool? ?? _flipY;
+    }
+  }
+
+  /// 物理フィクスチャを再構築
+  void _rebuildFixtures() {
+    if (!isMounted) return;
+
+    // 既存フィクスチャを削除
+    while (body.fixtures.isNotEmpty) {
+      body.destroyFixture(body.fixtures.first);
+    }
+    // 新しいフィクスチャを作成
+    _createFixture();
+  }
+
+  /// フィクスチャを作成
+  void _createFixture() {
+    final shape = PolygonShape()..setAsBoxXY(_size.x, _size.y);
+    body.createFixture(FixtureDef(shape)
+      ..friction = PhysicsConfig.groundFriction
+      ..restitution = PhysicsConfig.groundRestitution);
   }
 
   // --- BodyComponent 実装 ---
 
   @override
   Body createBody() {
-    final shape = PolygonShape()..setAsBoxXY(size.x, size.y);
+    final shape = PolygonShape()..setAsBoxXY(_size.x, _size.y);
 
     final fixtureDef = FixtureDef(shape)
       ..friction = PhysicsConfig.groundFriction
@@ -110,13 +177,17 @@ class Platform extends BodyComponent with StageObject {
 
   @override
   void render(Canvas canvas) {
+    // 反転のためのスケール
+    canvas.save();
+    canvas.scale(_flipX ? -1 : 1, _flipY ? -1 : 1);
+
     final paint = Paint()..color = color;
 
     // 板の本体
     final rect = Rect.fromCenter(
       center: Offset.zero,
-      width: size.x * 2,
-      height: size.y * 2,
+      width: _size.x * 2,
+      height: _size.y * 2,
     );
     canvas.drawRect(rect, paint);
 
@@ -126,8 +197,8 @@ class Platform extends BodyComponent with StageObject {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.05;
     canvas.drawLine(
-      Offset(-size.x, -size.y),
-      Offset(size.x, -size.y),
+      Offset(-_size.x, -_size.y),
+      Offset(_size.x, -_size.y),
       highlightPaint,
     );
 
@@ -137,17 +208,19 @@ class Platform extends BodyComponent with StageObject {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.05;
     canvas.drawLine(
-      Offset(-size.x, size.y),
-      Offset(size.x, size.y),
+      Offset(-_size.x, _size.y),
+      Offset(_size.x, _size.y),
       shadowPaint,
     );
 
     // 木目風のテクスチャ（オプション）
     _drawWoodGrain(canvas, rect);
 
+    canvas.restore();
+
     // 選択中ならハイライト
     if (isSelected) {
-      SelectionHighlight.draw(canvas, halfWidth: size.x, halfHeight: size.y);
+      SelectionHighlight.draw(canvas, halfWidth: _size.x, halfHeight: _size.y);
     }
   }
 
@@ -158,12 +231,12 @@ class Platform extends BodyComponent with StageObject {
       ..strokeWidth = 0.02;
 
     // 横線を数本描画
-    final grainCount = (size.x * 2 / 0.5).floor().clamp(2, 10);
+    final grainCount = (_size.x * 2 / 0.5).floor().clamp(2, 10);
     for (int i = 1; i < grainCount; i++) {
-      final x = -size.x + (size.x * 2 / grainCount) * i;
+      final x = -_size.x + (_size.x * 2 / grainCount) * i;
       canvas.drawLine(
-        Offset(x, -size.y + 0.02),
-        Offset(x, size.y - 0.02),
+        Offset(x, -_size.y + 0.02),
+        Offset(x, _size.y - 0.02),
         grainPaint,
       );
     }

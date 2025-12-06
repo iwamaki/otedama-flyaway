@@ -328,25 +328,22 @@ class _StageEditorState extends State<StageEditor> {
           ),
           const SizedBox(height: 12),
 
-          // 回転スライダー
-          Row(
-            children: [
-              const Icon(Icons.rotate_left, color: Colors.white70, size: 20),
-              Expanded(
-                child: Slider(
-                  value: _normalizeAngle(obj.angle),
-                  min: -math.pi,
-                  max: math.pi,
-                  onChanged: (value) {
-                    obj.applyProperties({'angle': value});
-                    setState(() {});
-                  },
-                  activeColor: Colors.amber,
-                ),
-              ),
-              const Icon(Icons.rotate_right, color: Colors.white70, size: 20),
-            ],
-          ),
+          // 回転スライダー（1度刻み）
+          _buildAngleSlider(obj),
+
+          // サイズ変更スライダー（対応オブジェクトのみ）
+          if (obj.canResize && obj.width != null) ...[
+            _buildSizeSlider('幅', obj.width!, 1.0, 15.0, (value) {
+              obj.applyProperties({'width': value});
+              setState(() {});
+            }),
+          ],
+          if (obj.canResize && obj.height != null) ...[
+            _buildSizeSlider('高さ', obj.height!, 0.2, 3.0, (value) {
+              obj.applyProperties({'height': value});
+              setState(() {});
+            }),
+          ],
 
           // スケールスライダー（ImageObjectのみ）
           if (obj is ImageObject) ...[
@@ -378,26 +375,36 @@ class _StageEditorState extends State<StageEditor> {
             runSpacing: 8,
             alignment: WrapAlignment.center,
             children: [
-              // 水平反転（ImageObjectのみ）
-              if (obj is ImageObject)
+              // 水平反転（対応オブジェクト）
+              if (obj.canFlip || obj is ImageObject)
                 _buildActionButton(
                   Icons.flip,
                   'H反転',
                   () {
-                    obj.toggleFlipX();
+                    if (obj is ImageObject) {
+                      obj.toggleFlipX();
+                    } else {
+                      obj.applyProperties({'flipX': !obj.flipX});
+                    }
                     setState(() {});
                   },
+                  isActive: obj.flipX,
                 ),
-              // 垂直反転（ImageObjectのみ）
-              if (obj is ImageObject)
+              // 垂直反転（対応オブジェクト）
+              if (obj.canFlip || obj is ImageObject)
                 _buildActionButton(
                   Icons.flip,
                   'V反転',
                   () {
-                    obj.toggleFlipY();
+                    if (obj is ImageObject) {
+                      obj.toggleFlipY();
+                    } else {
+                      obj.applyProperties({'flipY': !obj.flipY});
+                    }
                     setState(() {});
                   },
                   rotated: true,
+                  isActive: obj.flipY,
                 ),
               // 削除
               _buildActionButton(
@@ -441,11 +448,12 @@ class _StageEditorState extends State<StageEditor> {
     VoidCallback onPressed, {
     Color color = Colors.blue,
     bool rotated = false,
+    bool isActive = false,
   }) {
     return ElevatedButton.icon(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: color,
+        backgroundColor: isActive ? Colors.green : color,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
       icon: Transform.rotate(
@@ -456,13 +464,74 @@ class _StageEditorState extends State<StageEditor> {
     );
   }
 
-  double _normalizeAngle(double angle) {
-    while (angle > math.pi) {
-      angle -= 2 * math.pi;
-    }
-    while (angle < -math.pi) {
-      angle += 2 * math.pi;
-    }
-    return angle;
+  /// 回転スライダー（1度刻み）
+  Widget _buildAngleSlider(dynamic obj) {
+    final angleDegrees = (obj.angle * 180 / math.pi).round();
+    return Row(
+      children: [
+        const Icon(Icons.rotate_left, color: Colors.white70, size: 20),
+        Expanded(
+          child: Slider(
+            value: angleDegrees.toDouble(),
+            min: -180,
+            max: 180,
+            divisions: 360,
+            onChanged: (value) {
+              final angleRadians = value * math.pi / 180;
+              obj.applyProperties({'angle': angleRadians});
+              setState(() {});
+            },
+            activeColor: Colors.amber,
+          ),
+        ),
+        SizedBox(
+          width: 40,
+          child: Text(
+            '$angleDegrees°',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ],
+    );
   }
+
+  /// サイズ変更スライダー
+  Widget _buildSizeSlider(
+    String label,
+    double value,
+    double min,
+    double max,
+    ValueChanged<double> onChanged,
+  ) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 32,
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
+        ),
+        Expanded(
+          child: Slider(
+            value: value.clamp(min, max),
+            min: min,
+            max: max,
+            onChanged: onChanged,
+            activeColor: Colors.cyan,
+          ),
+        ),
+        SizedBox(
+          width: 36,
+          child: Text(
+            value.toStringAsFixed(1),
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ],
+    );
+  }
+
 }
