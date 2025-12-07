@@ -4,6 +4,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import '../../components/drag_line.dart';
 import '../../components/particle_otedama.dart';
 import '../../config/physics_config.dart';
+import '../../services/audio_service.dart';
 import 'game_timer_mixin.dart';
 
 /// ドラッグ操作（パチンコ式発射）用Mixin
@@ -108,7 +109,11 @@ mixin DragHandlerMixin on Forge2DGame, GameTimerMixin {
       final otedamaPos = otedama!.centerPosition;
       final diff = otedamaPos - _dragCurrent!;
       // タップ位置に力を加える（回転が発生する）
-      otedama!.launch(diff, touchPoint: _dragStart!);
+      if (otedama!.canLaunch) {
+        otedama!.launch(diff, touchPoint: _dragStart!);
+        // 発射音を再生
+        AudioService.instance.playLaunch();
+      }
 
       // 初回発射時にタイマー開始
       if (!timerStarted) {

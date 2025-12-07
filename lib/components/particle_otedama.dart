@@ -4,6 +4,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 
 import '../config/otedama_skin_config.dart';
+import '../services/audio_service.dart';
 import '../services/logger_service.dart';
 import '../services/texture_manager.dart';
 import 'particle_physics_solver.dart';
@@ -70,6 +71,11 @@ class ParticleOtedama extends BodyComponent {
   // 初期ジョイント長を記録
   final List<double> _initialJointLengths = [];
 
+  // 衝突検出用（速度変化を監視）
+  final List<Vector2> _previousVelocities = [];
+  static const double _impactThreshold = 12.0; // 衝突判定の速度変化閾値
+  static const double _maxImpactIntensity = 30.0; // 最大強度（正規化用）
+
   // 発射制限用
   int _launchCount = 0; // 発射回数（0: 未発射, 1: 初回発射済み, 2: 空中発射済み）
   bool _isGrounded = false; // 接地中フラグ
@@ -115,6 +121,9 @@ class ParticleOtedama extends BodyComponent {
   void update(double dt) {
     super.update(dt);
 
+    // 衝突検出（速度変化を監視）
+    _detectImpact();
+
     // 節同士の相対運動に減衰を適用（重力には影響しない）
     _physicsSolver.applyRelativeDamping(shellBodies, dt, shellRelativeDamping);
 
@@ -134,6 +143,38 @@ class ParticleOtedama extends BodyComponent {
 
     // 接地判定（速度ベース）と発射カウントリセット
     _updateGroundedState();
+
+    // 現在の速度を保存（次フレームの衝突検出用）
+    _storePreviousVelocities();
+  }
+
+  /// 衝突検出（外殻粒子の速度変化を監視）
+  void _detectImpact() {
+    if (_previousVelocities.isEmpty || shellBodies.isEmpty) return;
+
+    double maxImpact = 0;
+    for (int i = 0; i < shellBodies.length && i < _previousVelocities.length; i++) {
+      final prevVel = _previousVelocities[i];
+      final currVel = shellBodies[i].linearVelocity;
+      final velocityChange = (currVel - prevVel).length;
+      if (velocityChange > maxImpact) {
+        maxImpact = velocityChange;
+      }
+    }
+
+    // 閾値を超える速度変化があれば衝突音を再生
+    if (maxImpact > _impactThreshold) {
+      final intensity = ((maxImpact - _impactThreshold) / _maxImpactIntensity).clamp(0.0, 1.0);
+      AudioService.instance.playHit(intensity: intensity);
+    }
+  }
+
+  /// 現在の速度を保存
+  void _storePreviousVelocities() {
+    _previousVelocities.clear();
+    for (final body in shellBodies) {
+      _previousVelocities.add(body.linearVelocity.clone());
+    }
   }
 
   /// 接地状態の更新と発射カウントのリセット

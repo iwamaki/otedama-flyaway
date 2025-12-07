@@ -11,6 +11,7 @@ import '../config/otedama_skin_config.dart';
 import '../config/physics_config.dart';
 import '../models/stage_data.dart';
 import '../models/transition_info.dart';
+import '../services/audio_service.dart';
 import '../services/logger_service.dart';
 import 'camera_controller.dart';
 import 'mixins/drag_handler_mixin.dart';
@@ -110,6 +111,9 @@ class OtedamaGame extends Forge2DGame
   Future<void> onLoad() async {
     await super.onLoad();
 
+    // 音声サービスを初期化
+    await AudioService.instance.initialize();
+
     // カメラ設定
     camera.viewfinder.anchor = Anchor.center;
     camera.viewfinder.zoom = CameraConfig.zoom;
@@ -154,6 +158,9 @@ class OtedamaGame extends Forge2DGame
   void update(double dt) {
     super.update(dt);
 
+    // 音声サービスの更新（クールダウン管理）
+    AudioService.instance.update(dt);
+
     // 重力スケールを適用
     world.gravity = Vector2(0, PhysicsConfig.gravityY * ParticleOtedama.gravityScale);
 
@@ -175,6 +182,8 @@ class OtedamaGame extends Forge2DGame
 
         // 落下境界チェック
         if (pos.y > boundaries.fallThreshold) {
+          // 落下音を再生
+          AudioService.instance.playFall();
           resetOtedama();
         }
       }

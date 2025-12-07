@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../components/particle_otedama.dart';
 import '../../components/stage/goal.dart';
+import '../../services/audio_service.dart';
 import '../../services/logger_service.dart';
 import 'game_timer_mixin.dart';
 
@@ -45,6 +46,8 @@ mixin GoalHandlerMixin on Forge2DGame, GameTimerMixin {
       _goalReached = true;
       // タイマー停止＆クリアタイム記録
       stopTimer();
+      // ゴール音を再生
+      AudioService.instance.playGoal();
       logger.info(LogCategory.game, 'Goal reached! Clear time: ${clearTime?.toStringAsFixed(2)}s');
       // 外部コールバックを呼び出し
       onGoalReachedCallback?.call();
