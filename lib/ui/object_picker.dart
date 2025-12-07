@@ -59,6 +59,12 @@ class ObjectRegistry {
       type: ObjectType.primitive,
       icon: Icons.sports_score,
     ),
+    InsertableObject(
+      id: 'terrain',
+      name: '地形',
+      type: ObjectType.primitive,
+      icon: Icons.landscape,
+    ),
   ];
 
   /// 画像オブジェクト

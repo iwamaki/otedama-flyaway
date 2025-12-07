@@ -6,6 +6,7 @@ import 'components/stage/goal.dart';
 import 'components/stage/ice_floor.dart';
 import 'components/stage/image_object.dart';
 import 'components/stage/platform.dart';
+import 'components/stage/terrain.dart';
 import 'components/stage/trampoline.dart';
 import 'models/stage_data.dart';
 import 'services/logger_service.dart';
@@ -34,6 +35,7 @@ void main() async {
   registerGoalFactory();
   registerTrampolineFactory();
   registerIceFloorFactory();
+  registerTerrainFactory();
 
   // 設定サービスを初期化
   await SettingsService.instance.init();

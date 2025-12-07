@@ -276,6 +276,8 @@ class _StageEditorState extends State<StageEditor> {
           await widget.game.addIceFloor();
         } else if (selected.id == 'goal') {
           await widget.game.addGoal();
+        } else if (selected.id == 'terrain') {
+          await widget.game.addTerrain();
         }
         break;
       case ObjectType.image:

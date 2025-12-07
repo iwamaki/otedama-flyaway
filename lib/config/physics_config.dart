@@ -20,6 +20,10 @@ class PhysicsConfig {
   static const double wallFriction = 0.3;
   static const double wallRestitution = 0.4;
 
+  // 地形（Terrain）のパラメータ
+  static const double terrainFriction = 0.5;
+  static const double terrainRestitution = 0.2;
+
   // 発射パラメータ
   static const double launchMultiplier = 5.0; // スワイプ→力の変換係数
   static const double maxDragDistance = 24.0; // 最大引張距離（ワールド座標）
