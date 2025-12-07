@@ -125,8 +125,31 @@ class _TransitionZoneSettingsState extends State<TransitionZoneSettings> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            // 戻りゾーン追加ボタン
+            const SizedBox(height: 8),
+            // リンクID表示
+            Row(
+              children: [
+                const Text(
+                  'リンクID: ',
+                  style: TextStyle(color: Colors.teal, fontSize: 9),
+                ),
+                Expanded(
+                  child: Text(
+                    widget.zone.linkId.length > 12
+                        ? '${widget.zone.linkId.substring(0, 12)}...'
+                        : widget.zone.linkId,
+                    style: TextStyle(
+                      color: Colors.teal.withValues(alpha: 0.7),
+                      fontSize: 9,
+                      fontFamily: 'monospace',
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // 戻りゾーン追加/更新ボタン
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -134,13 +157,14 @@ class _TransitionZoneSettingsState extends State<TransitionZoneSettings> {
                   final success = await widget.game.addReturnTransitionZoneToTargetStage(
                     targetStageAsset: widget.zone.nextStage,
                     currentZonePosition: widget.zone.position.clone(),
+                    linkId: widget.zone.linkId,
                   );
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(success
-                            ? '遷移先に戻りゾーンを追加しました'
-                            : '戻りゾーンの追加に失敗しました'),
+                            ? '戻りゾーンを追加/更新しました'
+                            : '戻りゾーンの追加/更新に失敗しました'),
                         backgroundColor: success ? Colors.green : Colors.red,
                         duration: const Duration(seconds: 2),
                       ),
@@ -153,9 +177,9 @@ class _TransitionZoneSettingsState extends State<TransitionZoneSettings> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 8),
                 ),
-                icon: const Icon(Icons.add_link, size: 16),
+                icon: const Icon(Icons.sync_alt, size: 16),
                 label: const Text(
-                  '遷移先に戻りゾーンを追加',
+                  '戻りゾーンを追加/更新',
                   style: TextStyle(fontSize: 11),
                 ),
               ),

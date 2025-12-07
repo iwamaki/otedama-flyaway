@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 
@@ -36,12 +38,22 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
   double? spawnX;
   double? spawnY;
 
+  /// リンクID（ペアの遷移ゾーンを識別するための一意のID）
+  String linkId;
+
   /// ゾーンの色
   final Color color;
 
   /// サイズ変更可能
   @override
   bool get canResize => true;
+
+  /// 一意のリンクIDを生成
+  static String generateLinkId() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final random = Random().nextInt(0xFFFF);
+    return '${now.toRadixString(36)}_${random.toRadixString(36)}';
+  }
 
   TransitionZone({
     required Vector2 position,
@@ -51,11 +63,13 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     this.nextStage = '',
     this.spawnX,
     this.spawnY,
+    String? linkId,
     this.color = const Color(0xFF00BCD4), // シアン
   })  : initialPosition = position.clone(),
         _width = width,
         _height = height,
-        initialAngle = angle;
+        initialAngle = angle,
+        linkId = linkId ?? generateLinkId();
 
   /// JSONから生成
   factory TransitionZone.fromJson(Map<String, dynamic> json) {
@@ -67,6 +81,7 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       nextStage: json['nextStage'] as String? ?? '',
       spawnX: (json['spawnX'] as num?)?.toDouble(),
       spawnY: (json['spawnY'] as num?)?.toDouble(),
+      linkId: json['linkId'] as String?,
       color: json.getColor('color', const Color(0xFF00BCD4)),
     );
   }
@@ -105,6 +120,7 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       'nextStage': nextStage,
       if (spawnX != null) 'spawnX': spawnX,
       if (spawnY != null) 'spawnY': spawnY,
+      'linkId': linkId,
       // ignore: deprecated_member_use
       'color': color.value,
     };
@@ -137,6 +153,9 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     }
     if (props.containsKey('spawnY')) {
       spawnY = (props['spawnY'] as num?)?.toDouble();
+    }
+    if (props.containsKey('linkId')) {
+      linkId = props['linkId'] as String? ?? linkId;
     }
   }
 

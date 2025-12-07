@@ -291,10 +291,12 @@ class OtedamaGame extends Forge2DGame
   Future<bool> addReturnTransitionZoneToTargetStage({
     required String targetStageAsset,
     required Vector2 currentZonePosition,
+    required String linkId,
   }) =>
       _stageManager.addReturnTransitionZoneToTargetStage(
         targetStageAsset: targetStageAsset,
         currentZonePosition: currentZonePosition,
+        linkId: linkId,
       );
 
   /// StageDataからステージを読み込み

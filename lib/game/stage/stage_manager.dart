@@ -208,10 +208,12 @@ class StageManager {
     onChanged?.call();
   }
 
-  /// 遷移先ステージに戻り用TransitionZoneを追加
+  /// 遷移先ステージに戻り用TransitionZoneを追加（または更新）
+  /// linkId でペアを特定するため、同じステージ間に複数の遷移ゾーンがあっても正しく対応できる
   Future<bool> addReturnTransitionZoneToTargetStage({
     required String targetStageAsset,
     required Vector2 currentZonePosition,
+    required String linkId,
   }) async {
     if (_currentStageAsset == null) {
       logger.warning(LogCategory.stage, 'Cannot add return zone: current stage asset is null');
@@ -233,39 +235,54 @@ class StageManager {
         logger.debug(LogCategory.stage, 'Loaded stage from asset: $targetStageAsset');
       }
 
-      // 遷移先ステージのスポーン位置の下に戻りゾーンを配置
-      final returnZoneX = targetStage.spawnX;
-      final returnZoneY = targetStage.spawnY + 5.0;
+      // 既存の戻りゾーンを linkId で検索
+      final existingReturnZoneIndex = targetStage.objects.indexWhere((obj) =>
+          obj['type'] == 'transitionZone' && obj['linkId'] == linkId);
 
-      // 戻り用TransitionZoneのJSONを作成
-      final returnZoneJson = {
-        'type': 'transitionZone',
-        'x': returnZoneX,
-        'y': returnZoneY,
-        'width': 5.0,
-        'height': 5.0,
-        'angle': 0.0,
-        'nextStage': _currentStageAsset!,
-        'spawnX': currentZonePosition.x,
-        'spawnY': currentZonePosition.y,
-        'color': 0xFFFF9800,
-      };
+      List<Map<String, dynamic>> newObjects;
+      String logMessage;
 
-      // 新しいオブジェクトリストを作成
-      final newObjects = [...targetStage.objects, returnZoneJson];
+      if (existingReturnZoneIndex >= 0) {
+        // 既存の戻りゾーンがある場合は spawnX/spawnY を更新
+        newObjects = List<Map<String, dynamic>>.from(targetStage.objects);
+        final existingZone = Map<String, dynamic>.from(newObjects[existingReturnZoneIndex]);
+        existingZone['spawnX'] = currentZonePosition.x;
+        existingZone['spawnY'] = currentZonePosition.y;
+        newObjects[existingReturnZoneIndex] = existingZone;
+        logMessage = 'Updated return TransitionZone (linkId=$linkId) spawn position in $targetStageAsset to (${currentZonePosition.x.toStringAsFixed(1)}, ${currentZonePosition.y.toStringAsFixed(1)})';
+      } else {
+        // 新規に戻りゾーンを追加
+        final returnZoneX = targetStage.spawnX;
+        final returnZoneY = targetStage.spawnY + 5.0;
+
+        final returnZoneJson = {
+          'type': 'transitionZone',
+          'x': returnZoneX,
+          'y': returnZoneY,
+          'width': 5.0,
+          'height': 5.0,
+          'angle': 0.0,
+          'nextStage': _currentStageAsset!,
+          'spawnX': currentZonePosition.x,
+          'spawnY': currentZonePosition.y,
+          'linkId': linkId,
+          'color': 0xFFFF9800,
+        };
+        newObjects = [...targetStage.objects, returnZoneJson];
+        logMessage = 'Added return TransitionZone (linkId=$linkId) to $targetStageAsset at (${returnZoneX.toStringAsFixed(1)}, ${returnZoneY.toStringAsFixed(1)}) -> $_currentStageAsset';
+      }
 
       // 更新したステージデータを作成
       final updatedStage = targetStage.copyWith(objects: newObjects);
 
       // 一時保存に保存
       _unsavedStages[targetStageAsset] = updatedStage;
-      logger.info(LogCategory.stage,
-          'Added return TransitionZone to $targetStageAsset at (${returnZoneX.toStringAsFixed(1)}, ${returnZoneY.toStringAsFixed(1)}) -> $_currentStageAsset');
+      logger.info(LogCategory.stage, logMessage);
 
       onChanged?.call();
       return true;
     } catch (e) {
-      logger.error(LogCategory.stage, 'Failed to add return zone to $targetStageAsset', error: e);
+      logger.error(LogCategory.stage, 'Failed to add/update return zone to $targetStageAsset', error: e);
       return false;
     }
   }
