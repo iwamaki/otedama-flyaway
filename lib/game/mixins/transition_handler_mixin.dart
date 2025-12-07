@@ -17,7 +17,7 @@ mixin TransitionHandlerMixin on Forge2DGame {
 
   /// 遷移クールダウン（遷移直後の再遷移を防止）
   double _transitionCooldown = 0.0;
-  static const double transitionCooldownDuration = 1.0; // 1秒
+  static const double transitionCooldownDuration = 0.5; // 0.5秒
 
   /// お手玉への参照（サブクラスで実装）
   ParticleOtedama? get otedama;
