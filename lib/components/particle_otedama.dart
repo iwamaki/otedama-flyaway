@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../config/otedama_skin_config.dart';
 import '../services/audio_service.dart';
 import '../services/logger_service.dart';
+import '../services/performance_monitor.dart';
 import '../services/texture_manager.dart';
 import 'particle_physics_solver.dart';
 import 'particle_renderer.dart';
@@ -72,7 +73,8 @@ class ParticleOtedama extends BodyComponent {
   final List<double> _initialJointLengths = [];
 
   // 衝突検出用（速度変化を監視）
-  final List<Vector2> _previousVelocities = [];
+  List<Vector2> _previousVelocities = [];
+  bool _velocityBufferInitialized = false;
   static const double _impactThreshold = 12.0; // 衝突判定の速度変化閾値
   static const double _maxImpactIntensity = 30.0; // 最大強度（正規化用）
 
@@ -128,13 +130,17 @@ class ParticleOtedama extends BodyComponent {
     _physicsSolver.applyRelativeDamping(shellBodies, dt, shellRelativeDamping);
 
     // 距離制約を強制（PBD：位置ベースで補正）
+    PerformanceMonitor.instance.startSection('pbd');
     _physicsSolver.enforceDistanceConstraints(shellBodies, _initialJointLengths);
+    PerformanceMonitor.instance.endSection('pbd');
 
     // 外殻の反転（クロス）を防止
     _physicsSolver.preventShellInversion(shellBodies);
 
     // ビーズ封じ込め制約（外殻の内側に留める）
+    PerformanceMonitor.instance.startSection('bead');
     _physicsSolver.enforceBeadContainment(shellBodies, beadBodies);
+    PerformanceMonitor.instance.endSection('bead');
 
     // ダミーボディを粒子の重心に追従させる
     if (shellBodies.isNotEmpty || beadBodies.isNotEmpty) {
@@ -150,31 +156,44 @@ class ParticleOtedama extends BodyComponent {
 
   /// 衝突検出（外殻粒子の速度変化を監視）
   void _detectImpact() {
-    if (_previousVelocities.isEmpty || shellBodies.isEmpty) return;
+    if (!_velocityBufferInitialized || shellBodies.isEmpty) return;
 
     double maxImpact = 0;
     for (int i = 0; i < shellBodies.length && i < _previousVelocities.length; i++) {
       final prevVel = _previousVelocities[i];
       final currVel = shellBodies[i].linearVelocity;
-      final velocityChange = (currVel - prevVel).length;
-      if (velocityChange > maxImpact) {
-        maxImpact = velocityChange;
+      // Vector2生成を避け、成分ごとに計算
+      final dx = currVel.x - prevVel.x;
+      final dy = currVel.y - prevVel.y;
+      final velocityChangeSq = dx * dx + dy * dy;
+      if (velocityChangeSq > maxImpact) {
+        maxImpact = velocityChangeSq;
       }
     }
 
-    // 閾値を超える速度変化があれば衝突音を再生
-    if (maxImpact > _impactThreshold) {
-      final intensity = ((maxImpact - _impactThreshold) / _maxImpactIntensity).clamp(0.0, 1.0);
+    // 閾値を超える速度変化があれば衝突音を再生（2乗で比較）
+    final thresholdSq = _impactThreshold * _impactThreshold;
+    if (maxImpact > thresholdSq) {
+      final velocityChange = math.sqrt(maxImpact);
+      final intensity = ((velocityChange - _impactThreshold) / _maxImpactIntensity).clamp(0.0, 1.0);
       AudioService.instance.playHit(intensity: intensity);
     }
   }
 
-  /// 現在の速度を保存
+  /// 現在の速度を保存（バッファを再利用）
   void _storePreviousVelocities() {
-    _previousVelocities.clear();
-    for (final body in shellBodies) {
-      _previousVelocities.add(body.linearVelocity.clone());
+    // バッファサイズが合わない場合のみ再作成
+    if (_previousVelocities.length != shellBodies.length) {
+      _previousVelocities = List.generate(
+        shellBodies.length,
+        (_) => Vector2.zero(),
+      );
     }
+    // setFrom()で既存のVector2を上書き（メモリ割り当てなし）
+    for (int i = 0; i < shellBodies.length; i++) {
+      _previousVelocities[i].setFrom(shellBodies[i].linearVelocity);
+    }
+    _velocityBufferInitialized = true;
   }
 
   /// 接地状態の更新と発射カウントのリセット
@@ -499,6 +518,7 @@ class ParticleOtedama extends BodyComponent {
     _createParticleBodies();
     _launchCount = 0;
     _isGrounded = true;
+    _velocityBufferInitialized = false;
   }
 
   /// 指定位置にリセット（オプションで速度を維持）

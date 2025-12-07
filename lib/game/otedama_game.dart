@@ -13,6 +13,7 @@ import '../models/stage_data.dart';
 import '../models/transition_info.dart';
 import '../services/audio_service.dart';
 import '../services/logger_service.dart';
+import '../services/performance_monitor.dart';
 import 'camera_controller.dart';
 import 'mixins/drag_handler_mixin.dart';
 import 'mixins/edit_mode_mixin.dart';
@@ -105,6 +106,9 @@ class OtedamaGame extends Forge2DGame
   double _maxHeight = 0;
   double get maxHeight => _maxHeight;
 
+  /// 前回の重力スケール（条件付き更新用）
+  double _lastGravityScale = -1;
+
   // --- ライフサイクル ---
 
   @override
@@ -156,13 +160,21 @@ class OtedamaGame extends Forge2DGame
 
   @override
   void update(double dt) {
+    // パフォーマンスモニター: フレーム記録
+    PerformanceMonitor.instance.recordFrame(dt);
+
+    PerformanceMonitor.instance.startSection('physics');
     super.update(dt);
+    PerformanceMonitor.instance.endSection('physics');
 
     // 音声サービスの更新（クールダウン管理）
     AudioService.instance.update(dt);
 
-    // 重力スケールを適用
-    world.gravity = Vector2(0, PhysicsConfig.gravityY * ParticleOtedama.gravityScale);
+    // 重力スケールを適用（変更時のみ更新）
+    if (_lastGravityScale != ParticleOtedama.gravityScale) {
+      world.gravity = Vector2(0, PhysicsConfig.gravityY * ParticleOtedama.gravityScale);
+      _lastGravityScale = ParticleOtedama.gravityScale;
+    }
 
     if (otedama != null) {
       // カメラ追従

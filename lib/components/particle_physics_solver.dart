@@ -21,6 +21,10 @@ class ParticlePhysicsSolver {
   /// 外殻粒子の半径（接触判定に使用）
   final double shellRadius;
 
+  /// キャッシュ用バッファ（毎フレームの再割り当てを防ぐ）
+  List<Vector2> _shellPositionCache = [];
+  final Vector2 _centroidCache = Vector2.zero();
+
   ParticlePhysicsSolver({
     required this.constraintIterations,
     required this.constraintStiffness,
@@ -129,19 +133,33 @@ class ParticlePhysicsSolver {
     if (!beadContainmentEnabled) return;
     if (shellBodies.length < 3 || beadBodies.isEmpty) return;
 
-    // 外殻の頂点リスト（位置のみ）
-    final shellPositions = shellBodies.map((b) => b.position).toList();
+    // 外殻の頂点リストをキャッシュに更新（再割り当てを避ける）
+    _updateShellPositionCache(shellBodies);
+
+    // 重心を事前計算（_pushBeadInside内で毎回計算していたものをキャッシュ）
+    _calculateCentroidInto(_shellPositionCache, _centroidCache);
 
     for (final bead in beadBodies) {
       final beadPos = bead.position;
 
       // ビーズが多角形の内側にあるかチェック
-      if (_isPointInsidePolygon(beadPos, shellPositions)) {
+      if (_isPointInsidePolygon(beadPos, _shellPositionCache)) {
         continue; // 内側にいるので何もしない
       }
 
       // 外側にいる場合、最も近い外殻エッジに押し戻す
-      _pushBeadInside(bead, shellPositions);
+      _pushBeadInsideWithCentroid(bead, _shellPositionCache, _centroidCache);
+    }
+  }
+
+  /// shellPositionCacheを更新（メモリ割り当てを最小化）
+  void _updateShellPositionCache(List<Body> shellBodies) {
+    if (_shellPositionCache.length != shellBodies.length) {
+      _shellPositionCache = shellBodies.map((b) => b.position).toList();
+    } else {
+      for (int i = 0; i < shellBodies.length; i++) {
+        _shellPositionCache[i] = shellBodies[i].position;
+      }
     }
   }
 
@@ -166,13 +184,13 @@ class ParticlePhysicsSolver {
     return intersections % 2 == 1; // 奇数回交差なら内側
   }
 
-  /// ビーズを最も近い外殻エッジの内側に押し戻す
-  void _pushBeadInside(Body bead, List<Vector2> shellPositions) {
+  /// ビーズを最も近い外殻エッジの内側に押し戻す（重心をキャッシュから使用）
+  void _pushBeadInsideWithCentroid(Body bead, List<Vector2> shellPositions, Vector2 centroid) {
     final beadPos = bead.position;
     final n = shellPositions.length;
 
     // 最も近いエッジを見つける
-    double minDist = double.infinity;
+    double minDistSq = double.infinity;
     Vector2? closestPoint;
     Vector2? edgeNormal;
 
@@ -189,17 +207,19 @@ class ParticlePhysicsSolver {
       t = t.clamp(0.0, 1.0);
 
       final closest = p1 + edge * t;
-      final dist = (beadPos - closest).length;
+      // 距離の2乗で比較（sqrtを避ける）
+      final dx = beadPos.x - closest.x;
+      final dy = beadPos.y - closest.y;
+      final distSq = dx * dx + dy * dy;
 
-      if (dist < minDist) {
-        minDist = dist;
+      if (distSq < minDistSq) {
+        minDistSq = distSq;
         closestPoint = closest;
 
         // エッジの内向き法線を計算
         final perpendicular = Vector2(-edge.y, edge.x).normalized();
-        // 多角形の重心方向が内側
-        final center = _calculateCentroid(shellPositions);
-        final toCenter = center - closest;
+        // 多角形の重心方向が内側（キャッシュされた重心を使用）
+        final toCenter = centroid - closest;
         if (perpendicular.dot(toCenter) < 0) {
           edgeNormal = -perpendicular;
         } else {
@@ -222,13 +242,24 @@ class ParticlePhysicsSolver {
     }
   }
 
-  /// 多角形の重心を計算
+  /// 多角形の重心を計算（新規Vector2を返す）
   Vector2 _calculateCentroid(List<Vector2> polygon) {
     var sum = Vector2.zero();
     for (final p in polygon) {
       sum += p;
     }
     return sum / polygon.length.toDouble();
+  }
+
+  /// 多角形の重心を計算（既存のVector2に格納）
+  void _calculateCentroidInto(List<Vector2> polygon, Vector2 result) {
+    result.setValues(0, 0);
+    for (final p in polygon) {
+      result.x += p.x;
+      result.y += p.y;
+    }
+    result.x /= polygon.length;
+    result.y /= polygon.length;
   }
 
   /// 外殻の反転（クロス）を検出して補正する

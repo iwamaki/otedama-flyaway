@@ -59,12 +59,10 @@ class AudioService {
 
   /// フレーム更新（クールダウン管理）
   void update(double dt) {
-    if (_hitCooldown > 0) {
-      _hitCooldown -= dt;
-    }
-    if (_launchImmunity > 0) {
-      _launchImmunity -= dt;
-    }
+    // クールダウンがない場合は早期リターン
+    if (_hitCooldown <= 0 && _launchImmunity <= 0) return;
+    if (_hitCooldown > 0) _hitCooldown -= dt;
+    if (_launchImmunity > 0) _launchImmunity -= dt;
   }
 
   /// 発射音を再生

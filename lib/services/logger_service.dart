@@ -22,7 +22,10 @@ enum LogCategory {
   input('INPUT'),
 
   /// システム関連
-  system('SYSTEM');
+  system('SYSTEM'),
+
+  /// パフォーマンス関連
+  performance('PERF');
 
   final String label;
   const LogCategory(this.label);
