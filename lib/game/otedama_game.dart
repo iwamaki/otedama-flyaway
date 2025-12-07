@@ -126,6 +126,7 @@ class OtedamaGame extends Forge2DGame
     // ステージマネージャーを初期化
     _stageManager = StageManager(this, backgroundImage: _initialBackgroundImage);
     _stageManager.onChanged = () => onEditModeChanged?.call();
+    _stageManager.onAmbientSoundChanged = _onAmbientSoundChanged;
 
     // 背景を追加
     await _stageManager.initBackground(camera, size);
@@ -328,6 +329,21 @@ class OtedamaGame extends Forge2DGame
   /// 背景を変更
   Future<void> changeBackground(String? newBackground) async {
     await _stageManager.changeBackground(newBackground, camera, size);
+  }
+
+  /// 環境音変更時のコールバック
+  void _onAmbientSoundChanged(String? soundFile, double volume) {
+    logger.info(LogCategory.audio, 'Ambient sound changed: $soundFile (volume: $volume)');
+
+    if (soundFile == null || soundFile.isEmpty) {
+      // 環境音なしの場合はフェードアウト
+      AudioService.instance.stopBgm();
+      return;
+    }
+
+    // 環境音を再生（フルパスに変換）
+    final assetPath = 'audio/environmental_sounds/$soundFile';
+    AudioService.instance.playBgm(assetPath, volume: volume);
   }
 
   // --- オブジェクト追加（委譲） ---

@@ -2,6 +2,8 @@
   "level": 2,
   "name": "ステージ2",
   "background": "tatami.jpg",
+  "ambientSound": "summer_countryside_night.mp3",
+  "ambientSoundVolume": 0.5,
   "spawnX": 0.0,
   "spawnY": 5.0,
   "boundaries": {

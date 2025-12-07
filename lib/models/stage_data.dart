@@ -96,6 +96,13 @@ class StageData {
   /// 背景画像パス（nullならデフォルト背景）
   final String? background;
 
+  /// 環境音/BGMのファイル名（nullなら環境音なし）
+  /// 例: 'morning_sparrows.mp3'
+  final String? ambientSound;
+
+  /// 環境音の音量（0.0〜1.0）
+  final double ambientSoundVolume;
+
   /// お手玉スポーン位置X
   final double spawnX;
 
@@ -112,6 +119,8 @@ class StageData {
     required this.level,
     required this.name,
     this.background,
+    this.ambientSound,
+    this.ambientSoundVolume = 0.5,
     required this.spawnX,
     required this.spawnY,
     required this.objects,
@@ -124,6 +133,9 @@ class StageData {
       level: (json['level'] as num?)?.toInt() ?? 0,
       name: json['name'] as String? ?? 'Unnamed Stage',
       background: json['background'] as String?,
+      ambientSound: json['ambientSound'] as String?,
+      ambientSoundVolume:
+          (json['ambientSoundVolume'] as num?)?.toDouble() ?? 0.5,
       spawnX: (json['spawnX'] as num?)?.toDouble() ?? 0.0,
       spawnY: (json['spawnY'] as num?)?.toDouble() ?? 5.0,
       objects: (json['objects'] as List<dynamic>?)
@@ -141,6 +153,8 @@ class StageData {
       'level': level,
       'name': name,
       'background': background,
+      'ambientSound': ambientSound,
+      'ambientSoundVolume': ambientSoundVolume,
       'spawnX': spawnX,
       'spawnY': spawnY,
       'objects': objects,
@@ -178,6 +192,8 @@ class StageData {
     int? level,
     String? name,
     String? background,
+    String? ambientSound,
+    double? ambientSoundVolume,
     double? spawnX,
     double? spawnY,
     List<Map<String, dynamic>>? objects,
@@ -187,6 +203,8 @@ class StageData {
       level: level ?? this.level,
       name: name ?? this.name,
       background: background ?? this.background,
+      ambientSound: ambientSound ?? this.ambientSound,
+      ambientSoundVolume: ambientSoundVolume ?? this.ambientSoundVolume,
       spawnX: spawnX ?? this.spawnX,
       spawnY: spawnY ?? this.spawnY,
       objects: objects ?? this.objects,

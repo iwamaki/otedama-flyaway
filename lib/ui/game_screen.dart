@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../game/otedama_game.dart' show OtedamaGame, TransitionInfo;
 import '../models/stage_data.dart';
+import '../services/audio_service.dart';
 import '../services/logger_service.dart';
 import '../services/settings_service.dart';
 import 'clear_screen.dart';
@@ -34,7 +35,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   late OtedamaGame _game;
   bool _isLoading = true;
   bool _showClearScreen = false;
@@ -45,7 +46,26 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initGame();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    // 画面を離れるときにBGMを停止
+    AudioService.instance.stopBgmImmediate();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // アプリがバックグラウンドに移行したときにBGMを一時停止
+    if (state == AppLifecycleState.paused) {
+      AudioService.instance.pauseBgm();
+    } else if (state == AppLifecycleState.resumed) {
+      AudioService.instance.resumeBgm();
+    }
   }
 
   Future<void> _initGame() async {

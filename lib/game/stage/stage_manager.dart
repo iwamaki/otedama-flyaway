@@ -42,6 +42,17 @@ class StageManager {
   String? _backgroundImage;
   String? get backgroundImage => _backgroundImage;
 
+  /// 現在の環境音パス
+  String? _ambientSound;
+  String? get ambientSound => _ambientSound;
+
+  /// 現在の環境音音量
+  double _ambientSoundVolume = 0.5;
+  double get ambientSoundVolume => _ambientSoundVolume;
+
+  /// 環境音変更時コールバック
+  void Function(String?, double)? onAmbientSoundChanged;
+
   /// 一時保存されたステージデータ（assetPath -> StageData）
   final Map<String, StageData> _unsavedStages = {};
 
@@ -70,6 +81,8 @@ class StageManager {
       level: currentStageLevel,
       name: currentStageName,
       background: _backgroundImage,
+      ambientSound: _ambientSound,
+      ambientSoundVolume: _ambientSoundVolume,
       spawnX: spawnX,
       spawnY: spawnY,
       boundaries: _boundaries,
@@ -178,6 +191,16 @@ class StageManager {
     if (stageData.background != _backgroundImage) {
       _backgroundImage = stageData.background;
       await changeBackground(stageData.background);
+    }
+
+    // 環境音を変更
+    final newAmbientSound = stageData.ambientSound;
+    final newAmbientVolume = stageData.ambientSoundVolume;
+    if (newAmbientSound != _ambientSound ||
+        newAmbientVolume != _ambientSoundVolume) {
+      _ambientSound = newAmbientSound;
+      _ambientSoundVolume = newAmbientVolume;
+      onAmbientSoundChanged?.call(_ambientSound, _ambientSoundVolume);
     }
 
     // オブジェクトを配置（ファクトリパターン）
