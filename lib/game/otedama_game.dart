@@ -21,6 +21,32 @@ import '../config/physics_config.dart';
 import '../models/stage_data.dart';
 import 'camera_controller.dart';
 
+/// ステージ遷移時の情報
+class TransitionInfo {
+  /// 次ステージのアセットパス
+  final String nextStage;
+
+  /// 遷移時の速度
+  final Vector2 velocity;
+
+  /// 遷移先でのスポーン位置（nullの場合はステージのデフォルト）
+  final Vector2? spawnPosition;
+
+  /// 元ステージのアセットパス（戻り遷移ゾーン生成用）
+  final String? fromStage;
+
+  /// 元の遷移ゾーンの位置（戻り遷移ゾーンのスポーン位置として使用）
+  final Vector2? fromZonePosition;
+
+  const TransitionInfo({
+    required this.nextStage,
+    required this.velocity,
+    this.spawnPosition,
+    this.fromStage,
+    this.fromZonePosition,
+  });
+}
+
 /// メインゲームクラス
 class OtedamaGame extends Forge2DGame with DragCallbacks {
   ParticleOtedama? otedama;
@@ -63,7 +89,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   VoidCallback? onGoalReachedCallback;
 
   /// ステージ遷移コールバック（外部通知用）
-  void Function(String nextStageAsset)? onStageTransition;
+  void Function(TransitionInfo info)? onStageTransition;
 
   /// 現在のステージ境界設定
   StageBoundaries _boundaries = const StageBoundaries();
@@ -75,6 +101,10 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
 
   /// 遷移中フラグ（二重遷移防止）
   bool _isTransitioning = false;
+
+  /// 遷移クールダウン（遷移直後の再遷移を防止）
+  double _transitionCooldown = 0.0;
+  static const double _transitionCooldownDuration = 1.0; // 1秒
 
   /// お手玉をつかめる距離（お手玉半径の倍率）
   static const double grabRadiusMultiplier = 1.8;
@@ -235,8 +265,13 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
         _checkGoalReached();
       }
 
-      // 遷移ゾーン判定
-      if (!_isTransitioning) {
+      // 遷移クールダウンを更新
+      if (_transitionCooldown > 0) {
+        _transitionCooldown -= dt;
+      }
+
+      // 遷移ゾーン判定（クールダウン中はスキップ）
+      if (!_isTransitioning && _transitionCooldown <= 0) {
         _checkTransitionZones();
       }
     }
@@ -288,9 +323,10 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     if (otedama == null) return;
 
     final pos = otedama!.centerPosition;
+    final transitionZones = _stageObjects.whereType<TransitionZone>().toList();
 
-    for (final obj in _stageObjects) {
-      if (obj is TransitionZone && obj.nextStage.isNotEmpty) {
+    for (final obj in transitionZones) {
+      if (obj.nextStage.isNotEmpty) {
         final zonePos = obj.position;
         final halfW = obj.width / 2;
         final halfH = obj.height / 2;
@@ -300,7 +336,9 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
             pos.x <= zonePos.x + halfW &&
             pos.y >= zonePos.y - halfH &&
             pos.y <= zonePos.y + halfH) {
-          triggerZoneTransition(obj.nextStage);
+          logger.debug(LogCategory.game,
+              '_checkTransitionZones: otedama at (${pos.x.toStringAsFixed(1)}, ${pos.y.toStringAsFixed(1)}) inside zone at (${zonePos.x.toStringAsFixed(1)}, ${zonePos.y.toStringAsFixed(1)})');
+          triggerZoneTransition(obj);
           return;
         }
       }
@@ -325,17 +363,60 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   void _triggerTransition(TransitionBoundary transition) {
     if (_isTransitioning) return;
     _isTransitioning = true;
+
+    final velocity = otedama?.getVelocity() ?? Vector2.zero();
     logger.info(
-        LogCategory.game, 'Stage transition: ${transition.edge} -> ${transition.nextStage}');
-    onStageTransition?.call(transition.nextStage);
+        LogCategory.game, 'Stage transition: ${transition.edge} -> ${transition.nextStage}, velocity: ${velocity.length.toStringAsFixed(2)}');
+
+    final info = TransitionInfo(
+      nextStage: transition.nextStage,
+      velocity: velocity,
+    );
+    onStageTransition?.call(info);
   }
 
   /// 遷移ゾーンからの遷移をトリガー
-  void triggerZoneTransition(String nextStageAsset) {
-    if (_isTransitioning) return;
+  void triggerZoneTransition(TransitionZone zone) {
+    logger.debug(LogCategory.game,
+        'triggerZoneTransition called: nextStage=${zone.nextStage}, _isTransitioning=$_isTransitioning');
+
+    if (_isTransitioning) {
+      logger.debug(LogCategory.game, 'triggerZoneTransition: already transitioning, skipped');
+      return;
+    }
     _isTransitioning = true;
-    logger.info(LogCategory.game, 'Zone transition -> $nextStageAsset');
-    onStageTransition?.call(nextStageAsset);
+
+    final velocity = otedama?.getVelocity() ?? Vector2.zero();
+    logger.info(LogCategory.game,
+        'Zone transition -> ${zone.nextStage}, velocity: ${velocity.length.toStringAsFixed(2)}, fromStage: $_currentStageAsset');
+
+    // スポーン位置が指定されている場合はそれを使う
+    Vector2? spawnPos;
+    if (zone.spawnX != null || zone.spawnY != null) {
+      spawnPos = Vector2(
+        zone.spawnX ?? _spawnX,
+        zone.spawnY ?? _spawnY,
+      );
+      logger.debug(LogCategory.game,
+          'Custom spawn position: (${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)})');
+    }
+
+    final info = TransitionInfo(
+      nextStage: zone.nextStage,
+      velocity: velocity,
+      spawnPosition: spawnPos,
+      fromStage: _currentStageAsset, // 元ステージ
+      fromZonePosition: zone.position.clone(), // 元ゾーンの位置
+    );
+
+    logger.debug(LogCategory.game,
+        'TransitionInfo: nextStage=${info.nextStage}, fromStage=${info.fromStage}, fromZonePos=(${info.fromZonePosition?.x.toStringAsFixed(1)}, ${info.fromZonePosition?.y.toStringAsFixed(1)})');
+
+    if (onStageTransition != null) {
+      onStageTransition!.call(info);
+    } else {
+      logger.warning(LogCategory.game, 'onStageTransition callback is null!');
+    }
   }
 
   /// 遷移状態をリセット（遷移完了後に呼び出す）
@@ -722,7 +803,12 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   }
 
   /// StageDataからステージを読み込み
-  Future<void> loadStage(StageData stageData, {String? assetPath}) async {
+  /// [transitionInfo] が指定された場合、遷移先スポーン位置と速度を維持
+  Future<void> loadStage(
+    StageData stageData, {
+    String? assetPath,
+    TransitionInfo? transitionInfo,
+  }) async {
     // 現在のステージを一時保存（アセットパスがある場合のみ）
     if (_currentStageAsset != null && _stageObjects.isNotEmpty) {
       saveCurrentStageTemporarily();
@@ -757,10 +843,63 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       await _addStageObject(obj as BodyComponent);
     }
 
-    // お手玉を新しいスポーン位置に移動
-    otedama?.resetToPosition(Vector2(_spawnX, _spawnY));
+    // お手玉を新しいスポーン位置に移動（遷移情報があれば速度も維持）
+    if (transitionInfo != null) {
+      final spawnPos = transitionInfo.spawnPosition ?? Vector2(_spawnX, _spawnY);
+      otedama?.resetToPosition(spawnPos, velocity: transitionInfo.velocity);
+      logger.debug(LogCategory.game,
+          'Otedama positioned at ${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)} with velocity ${transitionInfo.velocity.length.toStringAsFixed(2)}');
+
+      // 戻り遷移ゾーンを自動生成（元ステージがある場合）
+      if (transitionInfo.fromStage != null) {
+        await _createReturnTransitionZone(transitionInfo, spawnPos);
+      }
+
+      // 遷移クールダウンを設定（即座に再遷移を防止）
+      _transitionCooldown = _transitionCooldownDuration;
+      logger.debug(LogCategory.game, 'Transition cooldown set: ${_transitionCooldownDuration}s');
+    } else {
+      otedama?.resetToPosition(Vector2(_spawnX, _spawnY));
+    }
 
     onEditModeChanged?.call();
+  }
+
+  /// 戻り遷移ゾーンを自動生成
+  Future<void> _createReturnTransitionZone(
+    TransitionInfo transitionInfo,
+    Vector2 spawnPos,
+  ) async {
+    logger.debug(LogCategory.game,
+        '_createReturnTransitionZone: fromStage=${transitionInfo.fromStage}, spawnPos=(${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)})');
+
+    // スポーン位置の下に固定配置（位置が毎回変動しないように）
+    final zoneOffset = Vector2(0, 5.0); // 下方向に5単位
+    final zonePos = spawnPos + zoneOffset;
+    logger.debug(LogCategory.game,
+        'Return zone offset: fixed (0, 5.0) below spawn');
+
+    final returnZone = TransitionZone(
+      position: zonePos,
+      width: 5.0,
+      height: 5.0,
+      nextStage: transitionInfo.fromStage!,
+      // 戻り先のスポーン位置は元ゾーンの位置
+      spawnX: transitionInfo.fromZonePosition?.x,
+      spawnY: transitionInfo.fromZonePosition?.y,
+      color: const Color(0xFFFF9800), // オレンジ色で区別
+    );
+
+    logger.debug(LogCategory.game,
+        'Return zone config: nextStage=${returnZone.nextStage}, spawnX=${returnZone.spawnX}, spawnY=${returnZone.spawnY}');
+
+    await _addStageObject(returnZone);
+    logger.info(LogCategory.game,
+        'Return transition zone created at (${zonePos.x.toStringAsFixed(1)}, ${zonePos.y.toStringAsFixed(1)}) -> ${transitionInfo.fromStage}');
+
+    // 現在のステージオブジェクト数をログ
+    final zoneCount = _stageObjects.whereType<TransitionZone>().length;
+    logger.debug(LogCategory.game, 'Total TransitionZones in stage: $zoneCount');
   }
 
   /// 背景を変更

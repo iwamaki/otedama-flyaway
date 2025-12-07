@@ -151,7 +151,7 @@ class ParticleOtedama extends BodyComponent {
     }
   }
 
-  /// 外殻粒子の平均速度を取得
+  /// 外殻粒子の平均速度を取得（スカラー値）
   double _getAverageVelocity() {
     if (shellBodies.isEmpty) return 0;
 
@@ -160,6 +160,35 @@ class ParticleOtedama extends BodyComponent {
       totalSpeed += body.linearVelocity.length;
     }
     return totalSpeed / shellBodies.length;
+  }
+
+  /// お手玉全体の平均速度ベクトルを取得
+  Vector2 getVelocity() {
+    if (shellBodies.isEmpty && beadBodies.isEmpty) return Vector2.zero();
+
+    var sum = Vector2.zero();
+    var count = 0;
+
+    for (final body in shellBodies) {
+      sum += body.linearVelocity;
+      count++;
+    }
+    for (final body in beadBodies) {
+      sum += body.linearVelocity;
+      count++;
+    }
+
+    return count > 0 ? sum / count.toDouble() : Vector2.zero();
+  }
+
+  /// お手玉全体に速度を設定
+  void setVelocity(Vector2 velocity) {
+    for (final body in shellBodies) {
+      body.linearVelocity = velocity.clone();
+    }
+    for (final body in beadBodies) {
+      body.linearVelocity = velocity.clone();
+    }
   }
 
   @override
@@ -431,26 +460,32 @@ class ParticleOtedama extends BodyComponent {
     _isGrounded = true;
   }
 
-  /// 指定位置にリセット
-  void resetToPosition(Vector2 newPosition) {
+  /// 指定位置にリセット（オプションで速度を維持）
+  void resetToPosition(Vector2 newPosition, {Vector2? velocity}) {
     // 現在位置との差分を計算
     final diff = newPosition - centerPosition;
+    final newVelocity = velocity ?? Vector2.zero();
 
     // 全ボディを移動
     for (final body in shellBodies) {
       body.setTransform(body.position + diff, body.angle);
-      body.linearVelocity = Vector2.zero();
+      body.linearVelocity = newVelocity.clone();
       body.angularVelocity = 0;
     }
     for (final body in beadBodies) {
       body.setTransform(body.position + diff, body.angle);
-      body.linearVelocity = Vector2.zero();
+      body.linearVelocity = newVelocity.clone();
       body.angularVelocity = 0;
     }
 
-    // 発射カウントもリセット
-    _launchCount = 0;
-    _isGrounded = true;
+    // 速度がある場合は発射済み扱い、それ以外はリセット
+    if (velocity != null && velocity.length > _groundedVelocityThreshold) {
+      _launchCount = 1; // 空中発射1回分として扱う
+      _isGrounded = false;
+    } else {
+      _launchCount = 0;
+      _isGrounded = true;
+    }
   }
 
   /// 物理を一時停止（編集モード用）

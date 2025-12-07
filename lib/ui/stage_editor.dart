@@ -609,7 +609,7 @@ class _StageEditorState extends State<StageEditor> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: StageRegistry.entries.any((e) => e.assetPath == zone.nextStage)
+            initialValue: StageRegistry.entries.any((e) => e.assetPath == zone.nextStage)
                 ? zone.nextStage
                 : '',
             items: stageOptions,
@@ -636,8 +636,72 @@ class _StageEditorState extends State<StageEditor> {
                 ),
               ),
             ),
+          // スポーン位置設定
+          if (zone.nextStage.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text(
+              '出現位置（空欄でデフォルト）',
+              style: TextStyle(color: Colors.teal, fontSize: 10),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSpawnInput(
+                    'X',
+                    zone.spawnX,
+                    (value) {
+                      zone.applyProperties({'spawnX': value});
+                      setState(() {});
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildSpawnInput(
+                    'Y',
+                    zone.spawnY,
+                    (value) {
+                      zone.applyProperties({'spawnY': value});
+                      setState(() {});
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  /// スポーン位置入力フィールド
+  Widget _buildSpawnInput(
+    String label,
+    double? value,
+    ValueChanged<double?> onChanged,
+  ) {
+    return TextFormField(
+      initialValue: value?.toStringAsFixed(1) ?? '',
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white54, fontSize: 10),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        border: const OutlineInputBorder(),
+      ),
+      style: const TextStyle(color: Colors.white, fontSize: 11),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+      onChanged: (text) {
+        if (text.isEmpty) {
+          onChanged(null);
+        } else {
+          final parsed = double.tryParse(text);
+          if (parsed != null) {
+            onChanged(parsed);
+          }
+        }
+      },
     );
   }
 }

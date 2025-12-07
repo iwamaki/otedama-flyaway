@@ -1,7 +1,8 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
-import '../game/otedama_game.dart';
+import '../game/otedama_game.dart' show OtedamaGame, TransitionInfo;
 import '../models/stage_data.dart';
 import '../services/logger_service.dart';
 import '../services/settings_service.dart';
@@ -38,8 +39,8 @@ class _GameScreenState extends State<GameScreen> {
   bool _isLoading = true;
   bool _showClearScreen = false;
 
-  /// 遷移中の次ステージパス
-  String? _pendingTransitionStage;
+  /// 遷移中の情報
+  TransitionInfo? _pendingTransition;
 
   @override
   void initState() {
@@ -74,24 +75,44 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  void _onStageTransition(String nextStageAsset) {
-    logger.info(LogCategory.game, 'Stage transition requested: $nextStageAsset');
-    setState(() {
-      _pendingTransitionStage = nextStageAsset;
+  void _onStageTransition(TransitionInfo info) {
+    logger.info(LogCategory.game, 'Stage transition requested: ${info.nextStage}, velocity: ${info.velocity.length.toStringAsFixed(2)}');
+    // ビルド中にsetStateが呼ばれる可能性があるため、次フレームに遅延
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _pendingTransition = info;
+        });
+      }
     });
   }
 
   Future<void> _loadNextStage() async {
-    if (_pendingTransitionStage == null) return;
+    if (_pendingTransition == null) {
+      logger.warning(LogCategory.game, '_loadNextStage: _pendingTransition is null');
+      return;
+    }
+
+    final info = _pendingTransition!;
+    logger.info(LogCategory.game,
+        '_loadNextStage: nextStage=${info.nextStage}, fromStage=${info.fromStage}, velocity=${info.velocity.length.toStringAsFixed(2)}');
 
     try {
-      final stageData = await StageData.loadFromAsset(_pendingTransitionStage!);
-      await _game.loadStage(stageData);
+      logger.debug(LogCategory.stage, 'Loading stage from asset: ${info.nextStage}');
+      final stageData = await StageData.loadFromAsset(info.nextStage);
+      logger.debug(LogCategory.stage, 'Stage data loaded: ${stageData.name}, objects: ${stageData.objects.length}');
+
+      await _game.loadStage(
+        stageData,
+        assetPath: info.nextStage,
+        transitionInfo: info,
+      );
       _game.resetTransitionState();
-      logger.info(LogCategory.game, 'Stage loaded: ${stageData.name}');
-    } catch (e) {
-      logger.error(LogCategory.stage, 'Failed to load stage: $_pendingTransitionStage',
+      logger.info(LogCategory.game, 'Stage loaded successfully: ${stageData.name}');
+    } catch (e, stackTrace) {
+      logger.error(LogCategory.stage, 'Failed to load stage: ${info.nextStage}',
           error: e);
+      logger.debug(LogCategory.stage, 'Stack trace: $stackTrace');
       _game.resetTransitionState();
       widget.onBackToStart();
     }
@@ -99,7 +120,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _onTransitionComplete() {
     setState(() {
-      _pendingTransitionStage = null;
+      _pendingTransition = null;
     });
   }
 
@@ -182,7 +203,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
 
           // ステージ遷移オーバーレイ
-          if (_pendingTransitionStage != null)
+          if (_pendingTransition != null)
             StageTransitionOverlay(
               onFadeOutComplete: _loadNextStage,
               onTransitionComplete: _onTransitionComplete,

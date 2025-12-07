@@ -2,6 +2,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 
 import '../../game/otedama_game.dart';
+import '../../services/logger_service.dart';
 import '../../utils/json_helpers.dart';
 import '../../utils/selection_highlight.dart';
 import 'stage_object.dart';
@@ -31,6 +32,10 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
   /// 次ステージのアセットパス
   String nextStage;
 
+  /// 遷移先でのスポーン位置（nullの場合はステージのデフォルトを使用）
+  double? spawnX;
+  double? spawnY;
+
   /// ゾーンの色
   final Color color;
 
@@ -44,6 +49,8 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     double height = 5.0,
     double angle = 0.0,
     this.nextStage = '',
+    this.spawnX,
+    this.spawnY,
     this.color = const Color(0xFF00BCD4), // シアン
   })  : initialPosition = position.clone(),
         _width = width,
@@ -58,6 +65,8 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       height: json.getDouble('height', 5.0),
       angle: json.getDouble('angle'),
       nextStage: json['nextStage'] as String? ?? '',
+      spawnX: (json['spawnX'] as num?)?.toDouble(),
+      spawnY: (json['spawnY'] as num?)?.toDouble(),
       color: json.getColor('color', const Color(0xFF00BCD4)),
     );
   }
@@ -94,6 +103,8 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       'height': _height,
       'angle': angle,
       'nextStage': nextStage,
+      if (spawnX != null) 'spawnX': spawnX,
+      if (spawnY != null) 'spawnY': spawnY,
       // ignore: deprecated_member_use
       'color': color.value,
     };
@@ -120,6 +131,12 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     }
     if (props.containsKey('nextStage')) {
       nextStage = props['nextStage'] as String? ?? '';
+    }
+    if (props.containsKey('spawnX')) {
+      spawnX = (props['spawnX'] as num?)?.toDouble();
+    }
+    if (props.containsKey('spawnY')) {
+      spawnY = (props['spawnY'] as num?)?.toDouble();
     }
   }
 
@@ -163,12 +180,20 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     final fixtureA = contact.fixtureA;
     final fixtureB = contact.fixtureB;
 
+    logger.debug(LogCategory.game,
+        'TransitionZone.beginContact: fixtureA=${fixtureA.userData}, fixtureB=${fixtureB.userData}, nextStage=$nextStage');
+
     final isTransitionZone = fixtureA.userData == 'transition_zone' ||
         fixtureB.userData == 'transition_zone';
 
     if (isTransitionZone && nextStage.isNotEmpty) {
-      // 遷移を発動
-      otedamaGame.triggerZoneTransition(nextStage);
+      logger.info(LogCategory.game,
+          'TransitionZone triggering: nextStage=$nextStage, spawnX=$spawnX, spawnY=$spawnY');
+      // 遷移を発動（自分自身を渡して、スポーン位置や速度情報を取得できるようにする）
+      otedamaGame.triggerZoneTransition(this);
+    } else {
+      logger.debug(LogCategory.game,
+          'TransitionZone NOT triggering: isTransitionZone=$isTransitionZone, nextStage.isEmpty=${nextStage.isEmpty}');
     }
   }
 
