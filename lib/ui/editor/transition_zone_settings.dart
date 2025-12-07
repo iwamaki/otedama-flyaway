@@ -154,11 +154,18 @@ class _TransitionZoneSettingsState extends State<TransitionZoneSettings> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  final success = await widget.game.addReturnTransitionZoneToTargetStage(
+                  final (success, returnZonePosition) = await widget.game.addReturnTransitionZoneToTargetStage(
                     targetStageAsset: widget.zone.nextStage,
                     currentZonePosition: widget.zone.position.clone(),
                     linkId: widget.zone.linkId,
                   );
+                  if (success && returnZonePosition != null) {
+                    // 元ゾーンのspawnX/Yを戻りゾーンの位置に更新
+                    widget.zone.applyProperties({
+                      'spawnX': returnZonePosition.x,
+                      'spawnY': returnZonePosition.y,
+                    });
+                  }
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
