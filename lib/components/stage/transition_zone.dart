@@ -136,10 +136,13 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
 
   @override
   void applyProperties(Map<String, dynamic> props) {
+    bool positionChanged = false;
+
     if (props.containsKey('x') || props.containsKey('y')) {
       final newX = (props['x'] as num?)?.toDouble() ?? position.x;
       final newY = (props['y'] as num?)?.toDouble() ?? position.y;
       body.setTransform(Vector2(newX, newY), body.angle);
+      positionChanged = true;
     }
     if (props.containsKey('angle')) {
       final newAngle = (props['angle'] as num?)?.toDouble() ?? 0.0;
@@ -164,6 +167,11 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     }
     if (props.containsKey('linkId')) {
       linkId = props['linkId'] as String? ?? linkId;
+    }
+
+    // 位置が変更された場合、ペアゾーンの spawnX/Y を自動同期
+    if (positionChanged && isMounted && linkId.isNotEmpty) {
+      otedamaGame.syncTransitionZonePair(this);
     }
   }
 

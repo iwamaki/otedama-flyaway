@@ -300,6 +300,10 @@ class OtedamaGame extends Forge2DGame
         linkId: linkId,
       );
 
+  /// TransitionZone の位置変更時にペアのゾーンの spawnX/Y を自動同期
+  void syncTransitionZonePair(TransitionZone zone) =>
+      _stageManager.syncTransitionZonePair(zone);
+
   /// StageDataからステージを読み込み
   Future<void> loadStage(
     StageData stageData, {

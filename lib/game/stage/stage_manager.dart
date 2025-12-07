@@ -6,6 +6,7 @@ import '../../components/background.dart';
 import '../../components/particle_otedama.dart';
 import '../../components/stage/goal.dart';
 import '../../components/stage/stage_object.dart';
+import '../../components/stage/transition_zone.dart';
 import '../../models/stage_data.dart';
 import '../../models/transition_info.dart';
 import '../../services/logger_service.dart';
@@ -310,6 +311,66 @@ class StageManager {
     } catch (e) {
       logger.error(LogCategory.stage, 'Failed to add/update return zone to $targetStageAsset', error: e);
       return (false, null);
+    }
+  }
+
+  /// TransitionZone の位置変更時にペアのゾーンの spawnX/Y を自動同期
+  /// 同じステージ内のペアゾーン、および一時保存されたクロスステージのペアゾーンを更新
+  void syncTransitionZonePair(TransitionZone movedZone) {
+    final newPosition = movedZone.position;
+    final linkId = movedZone.linkId;
+    final nextStage = movedZone.nextStage;
+
+    if (linkId.isEmpty) return;
+
+    // 1. 同じステージ内のペアゾーンを更新
+    for (final obj in _stageObjects) {
+      if (obj is TransitionZone &&
+          obj.linkId == linkId &&
+          obj != movedZone) {
+        // ペアゾーンの spawnX/Y を移動したゾーンの位置に更新
+        obj.spawnX = newPosition.x;
+        obj.spawnY = newPosition.y;
+        logger.debug(LogCategory.stage,
+            'Synced same-stage pair: updated spawnX/Y to (${newPosition.x.toStringAsFixed(1)}, ${newPosition.y.toStringAsFixed(1)})');
+      }
+    }
+
+    // 2. クロスステージのペアゾーンを更新（一時保存データ内）
+    if (nextStage.isNotEmpty && nextStage != _currentStageAsset) {
+      _syncCrossStageZone(nextStage, linkId, newPosition);
+    }
+
+    // 3. 現在のステージが一時保存の対象になっている他ステージからの参照を更新
+    if (_currentStageAsset != null) {
+      for (final entry in _unsavedStages.entries) {
+        if (entry.key == _currentStageAsset) continue;
+        _syncCrossStageZone(entry.key, linkId, newPosition);
+      }
+    }
+  }
+
+  /// クロスステージのゾーンの spawnX/Y を更新（一時保存データ内）
+  void _syncCrossStageZone(String stageAsset, String linkId, Vector2 newPosition) {
+    final stageData = _unsavedStages[stageAsset];
+    if (stageData == null) return;
+
+    bool updated = false;
+    final newObjects = stageData.objects.map((obj) {
+      if (obj['type'] == 'transitionZone' && obj['linkId'] == linkId) {
+        final updatedObj = Map<String, dynamic>.from(obj);
+        updatedObj['spawnX'] = newPosition.x;
+        updatedObj['spawnY'] = newPosition.y;
+        updated = true;
+        return updatedObj;
+      }
+      return obj;
+    }).toList();
+
+    if (updated) {
+      _unsavedStages[stageAsset] = stageData.copyWith(objects: newObjects);
+      logger.debug(LogCategory.stage,
+          'Synced cross-stage pair in $stageAsset: updated spawnX/Y to (${newPosition.x.toStringAsFixed(1)}, ${newPosition.y.toStringAsFixed(1)})');
     }
   }
 
