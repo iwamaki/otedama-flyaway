@@ -3,7 +3,6 @@ import 'package:flame/events.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../components/drag_line.dart';
-import '../components/ground.dart';
 import '../components/particle_otedama.dart';
 import '../components/stage/goal.dart';
 import '../components/stage/stage_object.dart';
@@ -44,9 +43,6 @@ class OtedamaGame extends Forge2DGame
 
   /// オブジェクトビルダー
   late StageObjectBuilder _objectBuilder;
-
-  /// 地面オブジェクト
-  Ground? _ground;
 
   /// お手玉のスキン設定
   OtedamaSkin _otedamaSkin;
@@ -135,9 +131,6 @@ class OtedamaGame extends Forge2DGame
     // ドラッグ線（最前面に表示するためviewportに追加）
     dragLine = DragLine();
     camera.viewport.add(dragLine!);
-
-    // ステージを構築（地面のみ）
-    await _buildStage();
 
     // お手玉を配置（粒子ベース）
     otedama = ParticleOtedama(
@@ -239,17 +232,6 @@ class OtedamaGame extends Forge2DGame
   Future<void> setOtedamaSkin(OtedamaSkin skin) async {
     _otedamaSkin = skin;
     await otedama?.setSkin(skin);
-  }
-
-  // --- ステージ構築 ---
-
-  /// ステージの構築（地面のみ）
-  Future<void> _buildStage() async {
-    _ground = Ground(
-      position: Vector2(0, StageConfig.groundY),
-      size: Vector2(StageConfig.groundWidth, 1),
-    );
-    await world.add(_ground!);
   }
 
   // --- お手玉操作 ---

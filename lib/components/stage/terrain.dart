@@ -25,8 +25,8 @@ class Terrain extends BodyComponent with StageObject {
   /// 輪郭色
   final Color strokeColor;
 
-  /// 輪郭の太さ
-  final double strokeWidth;
+  /// 輪郭の太さ（システム固定値）
+  static const double strokeWidth = 0.1;
 
   Terrain({
     required Vector2 position,
@@ -34,7 +34,6 @@ class Terrain extends BodyComponent with StageObject {
     this.isLoop = true,
     this.fillColor = const Color(0xFF5D4037), // ブラウン
     this.strokeColor = const Color(0xFF3E2723), // ダークブラウン
-    this.strokeWidth = 0.1,
   })  : initialPosition = position.clone(),
         _vertices = vertices.map((v) => v.clone()).toList();
 
@@ -68,7 +67,6 @@ class Terrain extends BodyComponent with StageObject {
       isLoop: json.getBool('isLoop', true),
       fillColor: json.getColor('fillColor', const Color(0xFF5D4037)),
       strokeColor: json.getColor('strokeColor', const Color(0xFF3E2723)),
-      strokeWidth: json.getDouble('strokeWidth', 0.1),
     );
   }
 
@@ -194,7 +192,6 @@ class Terrain extends BodyComponent with StageObject {
       'fillColor': fillColor.value,
       // ignore: deprecated_member_use
       'strokeColor': strokeColor.value,
-      'strokeWidth': strokeWidth,
     };
   }
 
