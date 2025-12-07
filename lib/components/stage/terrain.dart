@@ -5,39 +5,63 @@ import '../../config/physics_config.dart';
 import '../../utils/json_helpers.dart';
 import '../../utils/selection_highlight.dart';
 import 'stage_object.dart';
+import 'terrain/terrain_type.dart';
+import 'terrain/patterns/terrain_pattern.dart';
+import 'terrain/patterns/grass_pattern.dart';
+import 'terrain/patterns/dirt_pattern.dart';
+import 'terrain/patterns/rock_pattern.dart';
+import 'terrain/patterns/ice_pattern.dart';
+import 'terrain/patterns/wood_pattern.dart';
+import 'terrain/patterns/metal_pattern.dart';
+
+export 'terrain/terrain_type.dart';
 
 /// 地形コンポーネント（ChainShape使用）
-/// 地面、壁、天井などの大きな地形を表現
-/// 頂点リストで自由な形状を定義可能
 class Terrain extends BodyComponent with StageObject {
-  /// 初期位置（頂点のオフセット基準点）
   final Vector2 initialPosition;
-
-  /// 頂点リスト（ローカル座標）
   List<Vector2> _vertices;
-
-  /// ループするかどうか（閉じた形状 vs 開いた線）
   final bool isLoop;
-
-  /// 塗りつぶし色
+  final TerrainType terrainType;
   final Color fillColor;
-
-  /// 輪郭色
   final Color strokeColor;
 
-  /// 輪郭の太さ（システム固定値）
   static const double strokeWidth = 0.1;
+
+  late final int _patternSeed;
+  late final TerrainPattern _pattern;
 
   Terrain({
     required Vector2 position,
     required List<Vector2> vertices,
     this.isLoop = true,
-    this.fillColor = const Color(0xFF5D4037), // ブラウン
-    this.strokeColor = const Color(0xFF3E2723), // ダークブラウン
+    this.terrainType = TerrainType.dirt,
+    Color? fillColor,
+    Color? strokeColor,
   })  : initialPosition = position.clone(),
-        _vertices = vertices.map((v) => v.clone()).toList();
+        _vertices = vertices.map((v) => v.clone()).toList(),
+        fillColor = fillColor ?? terrainType.defaultFillColor,
+        strokeColor = strokeColor ?? terrainType.defaultStrokeColor {
+    _patternSeed = position.hashCode ^ vertices.length;
+    _pattern = _createPattern(terrainType);
+  }
 
-  /// JSONから生成
+  static TerrainPattern _createPattern(TerrainType type) {
+    switch (type) {
+      case TerrainType.grass:
+        return GrassPattern();
+      case TerrainType.dirt:
+        return DirtPattern();
+      case TerrainType.rock:
+        return RockPattern();
+      case TerrainType.ice:
+        return IcePattern();
+      case TerrainType.wood:
+        return WoodPattern();
+      case TerrainType.metal:
+        return MetalPattern();
+    }
+  }
+
   factory Terrain.fromJson(Map<String, dynamic> json) {
     final verticesList = json['vertices'] as List<dynamic>? ?? [];
     final vertices = <Vector2>[];
@@ -51,7 +75,6 @@ class Terrain extends BodyComponent with StageObject {
       }
     }
 
-    // 頂点がない場合はデフォルトの四角形
     if (vertices.isEmpty) {
       vertices.addAll([
         Vector2(-10, -1),
@@ -61,67 +84,74 @@ class Terrain extends BodyComponent with StageObject {
       ]);
     }
 
+    final terrainType = TerrainTypeExtension.fromString(
+      json['terrainType'] as String? ?? 'dirt',
+    );
+
     return Terrain(
       position: json.getVector2(),
       vertices: vertices,
       isLoop: json.getBool('isLoop', true),
-      fillColor: json.getColor('fillColor', const Color(0xFF5D4037)),
-      strokeColor: json.getColor('strokeColor', const Color(0xFF3E2723)),
+      terrainType: terrainType,
+      fillColor: json.containsKey('fillColor')
+          ? json.getColor('fillColor', terrainType.defaultFillColor)
+          : null,
+      strokeColor: json.containsKey('strokeColor')
+          ? json.getColor('strokeColor', terrainType.defaultStrokeColor)
+          : null,
     );
   }
 
-  /// 矩形の地形を簡単に作成
   factory Terrain.rectangle({
     required Vector2 position,
     required double width,
     required double height,
-    Color fillColor = const Color(0xFF5D4037),
-    Color strokeColor = const Color(0xFF3E2723),
+    TerrainType terrainType = TerrainType.dirt,
+    Color? fillColor,
+    Color? strokeColor,
   }) {
     final halfW = width / 2;
     final halfH = height / 2;
     return Terrain(
       position: position,
       vertices: [
-        Vector2(-halfW, -halfH), // 左上
-        Vector2(halfW, -halfH), // 右上
-        Vector2(halfW, halfH), // 右下
-        Vector2(-halfW, halfH), // 左下
+        Vector2(-halfW, -halfH),
+        Vector2(halfW, -halfH),
+        Vector2(halfW, halfH),
+        Vector2(-halfW, halfH),
       ],
       isLoop: true,
+      terrainType: terrainType,
       fillColor: fillColor,
       strokeColor: strokeColor,
     );
   }
 
-  /// 地面（横長）を簡単に作成
   factory Terrain.ground({
     required Vector2 position,
     double width = 50.0,
     double height = 5.0,
-    Color fillColor = const Color(0xFF5D4037),
+    TerrainType terrainType = TerrainType.grass,
   }) {
     return Terrain.rectangle(
       position: position,
       width: width,
       height: height,
-      fillColor: fillColor,
+      terrainType: terrainType,
     );
   }
 
-  /// 壁（縦長）を簡単に作成
   factory Terrain.wall({
     required Vector2 position,
     double width = 2.0,
     double height = 20.0,
-    Color fillColor = const Color(0xFF757575),
+    TerrainType terrainType = TerrainType.rock,
   }) {
     return Terrain.rectangle(
       position: position,
       width: width,
       height: height,
-      fillColor: fillColor,
-      strokeColor: const Color(0xFF424242),
+      terrainType: terrainType,
     );
   }
 
@@ -143,12 +173,11 @@ class Terrain extends BodyComponent with StageObject {
   double? get height => _calculateBoundsSize().y;
 
   @override
-  bool get canResize => false; // 頂点編集で対応
+  bool get canResize => false;
 
   @override
   bool get canFlip => false;
 
-  /// 頂点リストを取得
   List<Vector2> get vertices => _vertices;
 
   @override
@@ -188,6 +217,7 @@ class Terrain extends BodyComponent with StageObject {
       'y': position.y,
       'vertices': _vertices.map((v) => {'x': v.x, 'y': v.y}).toList(),
       'isLoop': isLoop,
+      'terrainType': terrainType.name,
       // ignore: deprecated_member_use
       'fillColor': fillColor.value,
       // ignore: deprecated_member_use
@@ -221,13 +251,11 @@ class Terrain extends BodyComponent with StageObject {
     }
   }
 
-  /// 頂点を追加
   void addVertex(Vector2 vertex) {
     _vertices.add(vertex.clone());
     _rebuildFixtures();
   }
 
-  /// 頂点を更新
   void updateVertex(int index, Vector2 newPosition) {
     if (index >= 0 && index < _vertices.length) {
       _vertices[index] = newPosition.clone();
@@ -235,7 +263,6 @@ class Terrain extends BodyComponent with StageObject {
     }
   }
 
-  /// 頂点を削除
   void removeVertex(int index) {
     if (index >= 0 && index < _vertices.length && _vertices.length > 3) {
       _vertices.removeAt(index);
@@ -243,19 +270,15 @@ class Terrain extends BodyComponent with StageObject {
     }
   }
 
-  /// 物理フィクスチャを再構築
   void _rebuildFixtures() {
     if (!isMounted) return;
 
-    // 既存フィクスチャを削除
     while (body.fixtures.isNotEmpty) {
       body.destroyFixture(body.fixtures.first);
     }
-    // 新しいフィクスチャを作成
     _createFixture();
   }
 
-  /// フィクスチャを作成
   void _createFixture() {
     if (_vertices.length < 2) return;
 
@@ -303,7 +326,7 @@ class Terrain extends BodyComponent with StageObject {
   void render(Canvas canvas) {
     if (_vertices.isEmpty) return;
 
-    // 塗りつぶし（ループの場合のみ）
+    // 塗りつぶし
     if (isLoop && _vertices.length >= 3) {
       final fillPath = Path();
       fillPath.moveTo(_vertices[0].x, _vertices[0].y);
@@ -312,26 +335,22 @@ class Terrain extends BodyComponent with StageObject {
       }
       fillPath.close();
 
-      // グラデーション塗りつぶし
-      final bounds = fillPath.getBounds();
-      final gradient = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          fillColor,
-          Color.lerp(fillColor, Colors.black, 0.3)!,
-        ],
-      );
-
+      // ベース塗りつぶし
       canvas.drawPath(
         fillPath,
         Paint()
-          ..shader = gradient.createShader(bounds)
+          ..color = fillColor
           ..style = PaintingStyle.fill,
       );
 
-      // テクスチャパターン（土・岩風）
-      _drawTerrainTexture(canvas, fillPath);
+      // 質感パターン
+      final edges = _getAllEdges();
+      _pattern.draw(
+        canvas: canvas,
+        clipPath: fillPath,
+        edges: edges,
+        seed: _patternSeed,
+      );
     }
 
     // 輪郭線
@@ -354,11 +373,6 @@ class Terrain extends BodyComponent with StageObject {
         ..strokeJoin = StrokeJoin.round,
     );
 
-    // 上面のハイライト（地面っぽく見せる）
-    if (isLoop && _vertices.length >= 2) {
-      _drawTopHighlight(canvas);
-    }
-
     // 選択中ならハイライト
     if (isSelected) {
       final size = _calculateBoundsSize();
@@ -370,58 +384,38 @@ class Terrain extends BodyComponent with StageObject {
     }
   }
 
-  void _drawTerrainTexture(Canvas canvas, Path clipPath) {
-    canvas.save();
-    canvas.clipPath(clipPath);
+  /// 全エッジを取得（内向き法線付き）
+  List<(Vector2 start, Vector2 end, Vector2 normal)> _getAllEdges() {
+    final edges = <(Vector2, Vector2, Vector2)>[];
 
-    final texturePaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.1)
-      ..style = PaintingStyle.fill;
-
-    // ランダムな点々でテクスチャ表現
-    final bounds = clipPath.getBounds();
-    final random = 12345; // 固定シードで再現性確保
-    var seed = random;
-
-    for (int i = 0; i < 50; i++) {
-      seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF;
-      final x = bounds.left + (seed % 1000) / 1000 * bounds.width;
-      seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF;
-      final y = bounds.top + (seed % 1000) / 1000 * bounds.height;
-      seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF;
-      final radius = 0.05 + (seed % 100) / 1000;
-
-      canvas.drawCircle(Offset(x, y), radius, texturePaint);
+    // ポリゴンの重心を計算（法線の向きを決定するため）
+    var centroid = Vector2.zero();
+    for (final v in _vertices) {
+      centroid += v;
     }
-
-    canvas.restore();
-  }
-
-  void _drawTopHighlight(Canvas canvas) {
-    // 上向きのエッジを探してハイライト
-    final highlightPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.2)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth * 2
-      ..strokeCap = StrokeCap.round;
+    centroid /= _vertices.length.toDouble();
 
     for (int i = 0; i < _vertices.length; i++) {
       final current = _vertices[i];
       final next = _vertices[(i + 1) % _vertices.length];
 
-      // 上向きのエッジ（Y座標が小さい方向）をハイライト
-      // 法線が上を向いている（Y成分が負）エッジを検出
       final edge = next - current;
-      final normal = Vector2(-edge.y, edge.x); // 90度回転
+      // 法線の候補（右回転）
+      var normal = Vector2(-edge.y, edge.x)..normalize();
 
-      if (normal.y < 0) {
-        canvas.drawLine(
-          Offset(current.x, current.y),
-          Offset(next.x, next.y),
-          highlightPaint,
-        );
+      // エッジの中点から重心への方向をチェック
+      final edgeMidpoint = (current + next) / 2;
+      final toCenter = centroid - edgeMidpoint;
+
+      // 法線が内向きでなければ反転
+      if (normal.dot(toCenter) < 0) {
+        normal = -normal;
       }
+
+      edges.add((current, next, normal));
     }
+
+    return edges;
   }
 }
 

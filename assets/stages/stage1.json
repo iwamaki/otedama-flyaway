@@ -22,8 +22,72 @@
         {"x": -25.0, "y": 100.0}
       ],
       "isLoop": true,
-      "fillColor": 4284243036,
-      "strokeColor": 4281348144
+      "terrainType": "grass"
+    },
+    {
+      "type": "terrain",
+      "x": -15.0,
+      "y": 0.0,
+      "vertices": [
+        {"x": -4.0, "y": 4.0},
+        {"x": 4.0, "y": 4.0},
+        {"x": 4.0, "y": 8.0},
+        {"x": -4.0, "y": 8.0}
+      ],
+      "isLoop": true,
+      "terrainType": "dirt"
+    },
+    {
+      "type": "terrain",
+      "x": 0.0,
+      "y": 0.0,
+      "vertices": [
+        {"x": -4.0, "y": -2.0},
+        {"x": 4.0, "y": -2.0},
+        {"x": 4.0, "y": -8.0},
+        {"x": -4.0, "y": -8.0}
+      ],
+      "isLoop": true,
+      "terrainType": "rock"
+    },
+    {
+      "type": "terrain",
+      "x": 15.0,
+      "y": 0.0,
+      "vertices": [
+        {"x": -4.0, "y": 4.0},
+        {"x": 4.0, "y": 4.0},
+        {"x": 4.0, "y": 8.0},
+        {"x": -4.0, "y": 8.0}
+      ],
+      "isLoop": true,
+      "terrainType": "ice"
+    },
+    {
+      "type": "terrain",
+      "x": -15.0,
+      "y": 0.0,
+      "vertices": [
+        {"x": -3.0, "y": -2.0},
+        {"x": 3.0, "y": -2.0},
+        {"x": 3.0, "y": 2.0},
+        {"x": -3.0, "y": 2.0}
+      ],
+      "isLoop": true,
+      "terrainType": "wood"
+    },
+    {
+      "type": "terrain",
+      "x": 15.0,
+      "y": 0.0,
+      "vertices": [
+        {"x": -3.0, "y": -12.0},
+        {"x": 3.0, "y": -12.0},
+        {"x": 3.0, "y": -2.0},
+        {"x": -3.0, "y": -2.0}
+      ],
+      "isLoop": true,
+      "terrainType": "metal"
     }
   ]
 }
