@@ -1,14 +1,11 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../components/stage/image_object.dart';
-import '../components/stage/transition_zone.dart';
 import '../game/otedama_game.dart';
 import '../models/stage_data.dart';
 import '../services/logger_service.dart';
 import 'background_picker.dart';
+import 'editor/object_panel.dart';
 import 'object_picker.dart';
 import 'stage_picker.dart';
 
@@ -35,7 +32,13 @@ class _StageEditorState extends State<StageEditor> {
         Positioned(
           top: 40,
           left: 10,
-          child: _buildEditModeToggle(),
+          child: _EditModeToggle(
+            isEditMode: widget.game.isEditMode,
+            onToggle: () {
+              widget.game.toggleEditMode();
+              setState(() {});
+            },
+          ),
         ),
 
         // 編集モード時のみ操作UIを表示
@@ -44,7 +47,10 @@ class _StageEditorState extends State<StageEditor> {
           Positioned(
             top: 100,
             left: 10,
-            child: _buildToolbar(),
+            child: _EditorToolbar(
+              game: widget.game,
+              onStateChanged: () => setState(() {}),
+            ),
           ),
 
           // 選択オブジェクトの操作パネル（下部）
@@ -53,20 +59,31 @@ class _StageEditorState extends State<StageEditor> {
               bottom: 20,
               left: 20,
               right: 20,
-              child: _buildObjectPanel(),
+              child: ObjectPanel(
+                object: widget.game.selectedObject!,
+                game: widget.game,
+              ),
             ),
         ],
       ],
     );
   }
+}
 
-  Widget _buildEditModeToggle() {
-    final isEditMode = widget.game.isEditMode;
+/// 編集モード切り替えボタン
+class _EditModeToggle extends StatelessWidget {
+  final bool isEditMode;
+  final VoidCallback onToggle;
+
+  const _EditModeToggle({
+    required this.isEditMode,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return FloatingActionButton(
-      onPressed: () {
-        widget.game.toggleEditMode();
-        setState(() {});
-      },
+      onPressed: onToggle,
       backgroundColor: isEditMode ? Colors.orange : Colors.black54,
       child: Icon(
         isEditMode ? Icons.play_arrow : Icons.edit,
@@ -74,8 +91,20 @@ class _StageEditorState extends State<StageEditor> {
       ),
     );
   }
+}
 
-  Widget _buildToolbar() {
+/// エディタツールバー
+class _EditorToolbar extends StatelessWidget {
+  final OtedamaGame game;
+  final VoidCallback onStateChanged;
+
+  const _EditorToolbar({
+    required this.game,
+    required this.onStateChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -112,12 +141,12 @@ class _StageEditorState extends State<StageEditor> {
         ),
         const SizedBox(height: 8),
         // 選択解除ボタン
-        if (widget.game.selectedObject != null)
+        if (game.selectedObject != null)
           FloatingActionButton.small(
             heroTag: 'deselect',
             onPressed: () {
-              widget.game.deselectObject();
-              setState(() {});
+              game.deselectObject();
+              onStateChanged();
             },
             backgroundColor: Colors.grey,
             child: const Icon(Icons.deselect, color: Colors.white),
@@ -129,28 +158,24 @@ class _StageEditorState extends State<StageEditor> {
   Future<void> _showBackgroundPicker(BuildContext context) async {
     final selected = await BackgroundPicker.show(
       context,
-      currentBackground: widget.game.currentBackground,
+      currentBackground: game.currentBackground,
     );
-    // nullの場合はデフォルト背景、それ以外は選択された背景
-    // キャンセル時は何も返されないのでそのまま
-    if (selected != widget.game.currentBackground) {
-      await widget.game.changeBackground(selected);
-      setState(() {});
+    if (selected != game.currentBackground) {
+      await game.changeBackground(selected);
+      onStateChanged();
     }
   }
 
-  /// ステージ管理ピッカーを表示
   Future<void> _showStagePicker(BuildContext context) async {
     final result = await StagePicker.show(
       context,
-      unsavedStageAssets: widget.game.unsavedStageAssets,
+      unsavedStageAssets: game.unsavedStageAssets,
     );
     if (result == null) return;
 
     if (result.isNewStage) {
-      // 新規作成
-      widget.game.clearStage();
-      setState(() {});
+      game.clearStage();
+      onStateChanged();
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -159,12 +184,9 @@ class _StageEditorState extends State<StageEditor> {
         ),
       );
     } else if (result.selectedEntry != null) {
-      // 既存ステージを読み込み
       try {
         final assetPath = result.selectedEntry!.assetPath;
-
-        // 一時保存データがあればそれを使用、なければアセットから読み込み
-        final unsavedData = widget.game.getUnsavedStage(assetPath);
+        final unsavedData = game.getUnsavedStage(assetPath);
         final StageData stageData;
         final bool isUnsaved;
 
@@ -176,15 +198,15 @@ class _StageEditorState extends State<StageEditor> {
           isUnsaved = false;
         }
 
-        await widget.game.loadStage(stageData, assetPath: assetPath);
-        setState(() {});
+        await game.loadStage(stageData, assetPath: assetPath);
+        onStateChanged();
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               isUnsaved
-                ? '${result.selectedEntry!.name} を読み込みました（未保存の変更あり）'
-                : '${result.selectedEntry!.name} を読み込みました',
+                  ? '${result.selectedEntry!.name} を読み込みました（未保存の変更あり）'
+                  : '${result.selectedEntry!.name} を読み込みました',
             ),
             duration: const Duration(seconds: 2),
           ),
@@ -201,13 +223,12 @@ class _StageEditorState extends State<StageEditor> {
     }
   }
 
-  /// エクスポートダイアログを表示
   Future<void> _showExportDialog(BuildContext context) async {
     final levelController = TextEditingController(
-      text: widget.game.currentStageLevel.toString(),
+      text: game.currentStageLevel.toString(),
     );
     final nameController = TextEditingController(
-      text: widget.game.currentStageName,
+      text: game.currentStageName,
     );
 
     final confirmed = await showDialog<bool>(
@@ -249,35 +270,28 @@ class _StageEditorState extends State<StageEditor> {
     );
 
     if (confirmed == true) {
-      // 入力値をゲームに反映
-      widget.game.currentStageLevel = int.tryParse(levelController.text) ?? 0;
-      widget.game.currentStageName = nameController.text.isNotEmpty
+      game.currentStageLevel = int.tryParse(levelController.text) ?? 0;
+      game.currentStageName = nameController.text.isNotEmpty
           ? nameController.text
           : 'New Stage';
 
-      // エクスポート実行
-      _exportStage();
+      _exportStage(context);
     }
 
     levelController.dispose();
     nameController.dispose();
   }
 
-  /// ステージをエクスポート
-  void _exportStage() {
-    final stageData = widget.game.exportStage();
+  void _exportStage(BuildContext context) {
+    final stageData = game.exportStage();
     final jsonString = stageData.toJsonString();
 
-    // クリップボードにコピー
     Clipboard.setData(ClipboardData(text: jsonString));
-
-    // コンソールにも出力
     logger.debug(LogCategory.stage, 'Stage exported: $jsonString');
 
-    // フィードバック
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('ステージ「${widget.game.currentStageName}」をクリップボードにコピーしました'),
+        content: Text('ステージ「${game.currentStageName}」をクリップボードにコピーしました'),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -287,457 +301,28 @@ class _StageEditorState extends State<StageEditor> {
     final selected = await ObjectPicker.show(context);
     if (selected == null) return;
 
-    // 選択されたオブジェクトを追加
     switch (selected.type) {
       case ObjectType.primitive:
         if (selected.id == 'platform') {
-          await widget.game.addPlatform();
+          await game.addPlatform();
         } else if (selected.id == 'trampoline') {
-          await widget.game.addTrampoline();
+          await game.addTrampoline();
         } else if (selected.id == 'iceFloor') {
-          await widget.game.addIceFloor();
+          await game.addIceFloor();
         } else if (selected.id == 'goal') {
-          await widget.game.addGoal();
+          await game.addGoal();
         } else if (selected.id == 'terrain') {
-          await widget.game.addTerrain();
+          await game.addTerrain();
         } else if (selected.id == 'transitionZone') {
-          await widget.game.addTransitionZone();
+          await game.addTransitionZone();
         }
         break;
       case ObjectType.image:
         if (selected.imagePath != null) {
-          await widget.game.addImageObject(selected.imagePath!);
+          await game.addImageObject(selected.imagePath!);
         }
         break;
     }
-    setState(() {});
-  }
-
-  Widget _buildObjectPanel() {
-    final obj = widget.game.selectedObject;
-    if (obj == null) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black87,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // オブジェクトタイプ
-          Text(
-            obj.type.toUpperCase(),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // 位置調整（微調整ボタン）
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildMoveButton(Icons.arrow_back, -1, 0),
-              Column(
-                children: [
-                  _buildMoveButton(Icons.arrow_upward, 0, -1),
-                  const SizedBox(height: 4),
-                  _buildMoveButton(Icons.arrow_downward, 0, 1),
-                ],
-              ),
-              _buildMoveButton(Icons.arrow_forward, 1, 0),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // 回転スライダー（1度刻み）
-          _buildAngleSlider(obj),
-
-          // サイズ変更スライダー（対応オブジェクトのみ）
-          if (obj.canResize && obj.width != null) ...[
-            _buildSizeSlider('幅', obj.width!, 1.0, 15.0, (value) {
-              obj.applyProperties({'width': value});
-              setState(() {});
-            }),
-          ],
-          if (obj.canResize && obj.height != null) ...[
-            _buildSizeSlider('高さ', obj.height!, 0.2, 3.0, (value) {
-              obj.applyProperties({'height': value});
-              setState(() {});
-            }),
-          ],
-
-          // スケールスライダー（ImageObjectのみ）
-          if (obj is ImageObject) ...[
-            Row(
-              children: [
-                const Icon(Icons.zoom_out, color: Colors.white70, size: 20),
-                Expanded(
-                  child: Slider(
-                    value: obj.scale.clamp(0.02, 0.2),
-                    min: 0.02,
-                    max: 0.2,
-                    onChanged: (value) {
-                      obj.applyProperties({'scale': value});
-                      setState(() {});
-                    },
-                    activeColor: Colors.green,
-                  ),
-                ),
-                const Icon(Icons.zoom_in, color: Colors.white70, size: 20),
-              ],
-            ),
-          ],
-
-          // 遷移ゾーン設定（TransitionZoneのみ）
-          if (obj is TransitionZone) ...[
-            const SizedBox(height: 8),
-            _buildTransitionZoneSettings(obj),
-          ],
-
-          const SizedBox(height: 8),
-
-          // アクションボタン
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              // 水平反転（対応オブジェクト）
-              if (obj.canFlip || obj is ImageObject)
-                _buildActionButton(
-                  Icons.flip,
-                  'H反転',
-                  () {
-                    if (obj is ImageObject) {
-                      obj.toggleFlipX();
-                    } else {
-                      obj.applyProperties({'flipX': !obj.flipX});
-                    }
-                    setState(() {});
-                  },
-                  isActive: obj.flipX,
-                ),
-              // 垂直反転（対応オブジェクト）
-              if (obj.canFlip || obj is ImageObject)
-                _buildActionButton(
-                  Icons.flip,
-                  'V反転',
-                  () {
-                    if (obj is ImageObject) {
-                      obj.toggleFlipY();
-                    } else {
-                      obj.applyProperties({'flipY': !obj.flipY});
-                    }
-                    setState(() {});
-                  },
-                  rotated: true,
-                  isActive: obj.flipY,
-                ),
-              // 削除
-              _buildActionButton(
-                Icons.delete,
-                '削除',
-                () {
-                  widget.game.deleteSelectedObject();
-                  setState(() {});
-                },
-                color: Colors.red,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMoveButton(IconData icon, int dx, int dy) {
-    return IconButton(
-      icon: Icon(icon, color: Colors.white),
-      onPressed: () {
-        final obj = widget.game.selectedObject;
-        if (obj != null) {
-          final moveAmount = 0.5;
-          obj.applyProperties({
-            'x': obj.position.x + dx * moveAmount,
-            'y': obj.position.y + dy * moveAmount,
-          });
-          setState(() {});
-        }
-      },
-      iconSize: 32,
-      padding: const EdgeInsets.all(4),
-    );
-  }
-
-  Widget _buildActionButton(
-    IconData icon,
-    String label,
-    VoidCallback onPressed, {
-    Color color = Colors.blue,
-    bool rotated = false,
-    bool isActive = false,
-  }) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isActive ? Colors.green : color,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-      icon: Transform.rotate(
-        angle: rotated ? math.pi / 2 : 0,
-        child: Icon(icon, size: 18),
-      ),
-      label: Text(label, style: const TextStyle(fontSize: 12)),
-    );
-  }
-
-  /// 回転スライダー（1度刻み）
-  Widget _buildAngleSlider(dynamic obj) {
-    final angleDegrees = (obj.angle * 180 / math.pi).round();
-    return Row(
-      children: [
-        const Icon(Icons.rotate_left, color: Colors.white70, size: 20),
-        Expanded(
-          child: Slider(
-            value: angleDegrees.toDouble(),
-            min: -180,
-            max: 180,
-            divisions: 360,
-            onChanged: (value) {
-              final angleRadians = value * math.pi / 180;
-              obj.applyProperties({'angle': angleRadians});
-              setState(() {});
-            },
-            activeColor: Colors.amber,
-          ),
-        ),
-        SizedBox(
-          width: 40,
-          child: Text(
-            '$angleDegrees°',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// サイズ変更スライダー
-  Widget _buildSizeSlider(
-    String label,
-    double value,
-    double min,
-    double max,
-    ValueChanged<double> onChanged,
-  ) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 32,
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 11),
-          ),
-        ),
-        Expanded(
-          child: Slider(
-            value: value.clamp(min, max),
-            min: min,
-            max: max,
-            onChanged: onChanged,
-            activeColor: Colors.cyan,
-          ),
-        ),
-        SizedBox(
-          width: 36,
-          child: Text(
-            value.toStringAsFixed(1),
-            style: const TextStyle(color: Colors.white70, fontSize: 11),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 遷移ゾーン設定UI
-  Widget _buildTransitionZoneSettings(TransitionZone zone) {
-    // 選択肢を構築（未選択 + 登録済みステージ）
-    final stageOptions = [
-      const DropdownMenuItem<String>(
-        value: '',
-        child: Text('未選択', style: TextStyle(color: Colors.white38)),
-      ),
-      ...StageRegistry.entries.map((entry) => DropdownMenuItem<String>(
-            value: entry.assetPath,
-            child: Text(
-              entry.name,
-              style: const TextStyle(color: Colors.white),
-            ),
-          )),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.teal.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.teal.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.swap_horiz, color: Colors.teal, size: 16),
-              SizedBox(width: 4),
-              Text(
-                '遷移先',
-                style: TextStyle(
-                  color: Colors.teal,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            initialValue: StageRegistry.entries.any((e) => e.assetPath == zone.nextStage)
-                ? zone.nextStage
-                : '',
-            items: stageOptions,
-            onChanged: (value) {
-              zone.applyProperties({'nextStage': value ?? ''});
-              setState(() {});
-            },
-            decoration: const InputDecoration(
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              border: OutlineInputBorder(),
-            ),
-            dropdownColor: Colors.grey[850],
-            style: const TextStyle(fontSize: 12),
-          ),
-          if (zone.nextStage.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Text(
-                '遷移先が未設定です',
-                style: TextStyle(
-                  color: Colors.orange,
-                  fontSize: 10,
-                ),
-              ),
-            ),
-          // スポーン位置設定
-          if (zone.nextStage.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            const Text(
-              '出現位置（空欄でデフォルト）',
-              style: TextStyle(color: Colors.teal, fontSize: 10),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildSpawnInput(
-                    'X',
-                    zone.spawnX,
-                    (value) {
-                      zone.applyProperties({'spawnX': value});
-                      setState(() {});
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildSpawnInput(
-                    'Y',
-                    zone.spawnY,
-                    (value) {
-                      zone.applyProperties({'spawnY': value});
-                      setState(() {});
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // 戻りゾーン追加ボタン
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  // 遷移先ステージに戻り用ゾーンを追加
-                  final success = await widget.game.addReturnTransitionZoneToTargetStage(
-                    targetStageAsset: zone.nextStage,
-                    currentZonePosition: zone.position.clone(),
-                  );
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(success
-                            ? '遷移先に戻りゾーンを追加しました'
-                            : '戻りゾーンの追加に失敗しました'),
-                        backgroundColor: success ? Colors.green : Colors.red,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                    setState(() {});
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.withValues(alpha: 0.8),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                ),
-                icon: const Icon(Icons.add_link, size: 16),
-                label: const Text(
-                  '遷移先に戻りゾーンを追加',
-                  style: TextStyle(fontSize: 11),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  /// スポーン位置入力フィールド
-  Widget _buildSpawnInput(
-    String label,
-    double? value,
-    ValueChanged<double?> onChanged,
-  ) {
-    return TextFormField(
-      initialValue: value?.toStringAsFixed(1) ?? '',
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white54, fontSize: 10),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        border: const OutlineInputBorder(),
-      ),
-      style: const TextStyle(color: Colors.white, fontSize: 11),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-      onChanged: (text) {
-        if (text.isEmpty) {
-          onChanged(null);
-        } else {
-          final parsed = double.tryParse(text);
-          if (parsed != null) {
-            onChanged(parsed);
-          }
-        }
-      },
-    );
+    onStateChanged();
   }
 }

@@ -19,25 +19,10 @@ import '../components/stage/transition_zone.dart';
 import '../config/otedama_skin_config.dart';
 import '../config/physics_config.dart';
 import '../models/stage_data.dart';
+import '../models/transition_info.dart';
 import 'camera_controller.dart';
 
-/// ステージ遷移時の情報
-class TransitionInfo {
-  /// 次ステージのアセットパス
-  final String nextStage;
-
-  /// 遷移時の速度
-  final Vector2 velocity;
-
-  /// 遷移先でのスポーン位置（nullの場合はステージのデフォルト）
-  final Vector2? spawnPosition;
-
-  const TransitionInfo({
-    required this.nextStage,
-    required this.velocity,
-    this.spawnPosition,
-  });
-}
+export '../models/transition_info.dart' show TransitionInfo;
 
 /// メインゲームクラス
 class OtedamaGame extends Forge2DGame with DragCallbacks {
