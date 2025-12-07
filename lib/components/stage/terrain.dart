@@ -7,14 +7,9 @@ import '../../utils/selection_highlight.dart';
 import 'stage_object.dart';
 import 'terrain/terrain_type.dart';
 import 'terrain/patterns/terrain_pattern.dart';
-import 'terrain/patterns/grass_pattern.dart';
-import 'terrain/patterns/dirt_pattern.dart';
-import 'terrain/patterns/rock_pattern.dart';
-import 'terrain/patterns/ice_pattern.dart';
-import 'terrain/patterns/wood_pattern.dart';
-import 'terrain/patterns/metal_pattern.dart';
 
 export 'terrain/terrain_type.dart';
+export 'terrain/terrain_texture_cache.dart';
 
 /// 地形コンポーネント（ChainShape使用）
 class Terrain extends BodyComponent with StageObject {
@@ -46,20 +41,7 @@ class Terrain extends BodyComponent with StageObject {
   }
 
   static TerrainPattern _createPattern(TerrainType type) {
-    switch (type) {
-      case TerrainType.grass:
-        return GrassPattern();
-      case TerrainType.dirt:
-        return DirtPattern();
-      case TerrainType.rock:
-        return RockPattern();
-      case TerrainType.ice:
-        return IcePattern();
-      case TerrainType.wood:
-        return WoodPattern();
-      case TerrainType.metal:
-        return MetalPattern();
-    }
+    return TerrainPattern(type);
   }
 
   factory Terrain.fromJson(Map<String, dynamic> json) {
