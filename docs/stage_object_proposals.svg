@@ -1,0 +1,606 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="900" height="1400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- グラデーション -->
+    <linearGradient id="woodGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#D2691E"/>
+      <stop offset="100%" style="stop-color:#8B4513"/>
+    </linearGradient>
+    <linearGradient id="bambooGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#228B22"/>
+      <stop offset="50%" style="stop-color:#32CD32"/>
+      <stop offset="100%" style="stop-color:#228B22"/>
+    </linearGradient>
+    <linearGradient id="trampolineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B6B"/>
+      <stop offset="100%" style="stop-color:#EE4B4B"/>
+    </linearGradient>
+    <linearGradient id="iceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E0FFFF"/>
+      <stop offset="100%" style="stop-color:#87CEEB"/>
+    </linearGradient>
+    <linearGradient id="portalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9400D3"/>
+      <stop offset="50%" style="stop-color:#FF00FF"/>
+      <stop offset="100%" style="stop-color:#9400D3"/>
+    </linearGradient>
+    <radialGradient id="lanternGlow" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#FFFF00;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#FF4500;stop-opacity:0.9"/>
+    </radialGradient>
+    <linearGradient id="stickyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700"/>
+      <stop offset="100%" style="stop-color:#FFA500"/>
+    </linearGradient>
+    <linearGradient id="conveyorGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#444"/>
+      <stop offset="25%" style="stop-color:#666"/>
+      <stop offset="50%" style="stop-color:#444"/>
+      <stop offset="75%" style="stop-color:#666"/>
+      <stop offset="100%" style="stop-color:#444"/>
+    </linearGradient>
+    <!-- 矢印パターン -->
+    <pattern id="arrowPattern" patternUnits="userSpaceOnUse" width="20" height="10">
+      <polygon points="0,5 10,0 10,10" fill="#FFD700"/>
+    </pattern>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="900" height="1400" fill="#FFF8DC"/>
+
+  <!-- タイトル -->
+  <text x="450" y="45" font-family="sans-serif" font-size="28" font-weight="bold" fill="#333" text-anchor="middle">ステージオブジェクト提案</text>
+  <text x="450" y="70" font-family="sans-serif" font-size="14" fill="#666" text-anchor="middle">お手玉 Flyaway - バリエーション案</text>
+
+  <!-- ========== 1. トランポリン ========== -->
+  <g transform="translate(50, 100)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#E74C3C" text-anchor="middle">1. トランポリン</text>
+
+    <!-- トランポリン本体 -->
+    <g transform="translate(70, 45)">
+      <!-- 脚 -->
+      <rect x="5" y="50" width="8" height="30" fill="#666"/>
+      <rect x="87" y="50" width="8" height="30" fill="#666"/>
+      <!-- バネ -->
+      <path d="M15,55 Q20,45 25,55 Q30,65 35,55 Q40,45 45,55 Q50,65 55,55 Q60,45 65,55 Q70,65 75,55 Q80,45 85,55" stroke="#AAA" stroke-width="3" fill="none"/>
+      <!-- 弾む面 -->
+      <ellipse cx="50" cy="45" rx="50" ry="10" fill="url(#trampolineGrad)"/>
+      <!-- お手玉（跳ねてる） -->
+      <circle cx="50" cy="10" r="12" fill="#DC143C"/>
+      <path d="M42,8 Q50,5 58,8 M44,12 Q50,15 56,12" stroke="#FFD700" stroke-width="2" fill="none"/>
+      <!-- 跳ね矢印 -->
+      <path d="M50,25 L50,35" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+      <polygon points="45,25 55,25 50,15" fill="#333" opacity="0.5"/>
+    </g>
+
+    <text x="120" y="130" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">高反発で大ジャンプ！</text>
+    <text x="120" y="143" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">restitution: 1.5~2.0</text>
+  </g>
+
+  <!-- ========== 2. 回転風車 ========== -->
+  <g transform="translate(330, 100)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#3498DB" text-anchor="middle">2. 回転風車</text>
+
+    <g transform="translate(120, 80)">
+      <!-- 支柱 -->
+      <rect x="-5" y="20" width="10" height="40" fill="#8B4513"/>
+      <!-- 風車の羽 -->
+      <g>
+        <rect x="-40" y="-5" width="80" height="10" rx="2" fill="#E74C3C" transform="rotate(0)"/>
+        <rect x="-40" y="-5" width="80" height="10" rx="2" fill="#3498DB" transform="rotate(60)"/>
+        <rect x="-40" y="-5" width="80" height="10" rx="2" fill="#F1C40F" transform="rotate(120)"/>
+      </g>
+      <!-- 中心 -->
+      <circle cx="0" cy="0" r="8" fill="#333"/>
+      <!-- 回転矢印 -->
+      <path d="M-50,0 A50,50 0 0,1 0,-50" stroke="#27AE60" stroke-width="2" fill="none" stroke-dasharray="5,3"/>
+      <polygon points="-5,-50 5,-50 0,-58" fill="#27AE60"/>
+    </g>
+
+    <text x="120" y="130" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">当たると弾き飛ばされる</text>
+    <text x="120" y="143" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">BodyType.kinematic</text>
+  </g>
+
+  <!-- ========== 3. 揺れる振り子 ========== -->
+  <g transform="translate(610, 100)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#9B59B6" text-anchor="middle">3. 揺れる振り子</text>
+
+    <g transform="translate(120, 40)">
+      <!-- 支点 -->
+      <rect x="-30" y="0" width="60" height="8" fill="#555"/>
+      <!-- 紐 -->
+      <line x1="0" y1="8" x2="40" y2="70" stroke="#8B4513" stroke-width="3"/>
+      <!-- おもり -->
+      <circle cx="40" cy="75" r="18" fill="url(#woodGrad)"/>
+      <!-- 揺れ軌道 -->
+      <path d="M-45,75 Q0,90 45,75" stroke="#AAA" stroke-width="1" fill="none" stroke-dasharray="4,4"/>
+      <!-- 矢印 -->
+      <path d="M-40,75 L-30,75" stroke="#666" stroke-width="2"/>
+      <polygon points="-30,72 -30,78 -22,75" fill="#666"/>
+    </g>
+
+    <text x="120" y="130" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">タイミングを見て渡る</text>
+    <text x="120" y="143" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">RevoluteJoint使用</text>
+  </g>
+
+  <!-- ========== 4. 移動足場 ========== -->
+  <g transform="translate(50, 270)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#27AE60" text-anchor="middle">4. 移動足場</text>
+
+    <g transform="translate(30, 50)">
+      <!-- 移動経路 -->
+      <line x1="20" y1="40" x2="160" y2="40" stroke="#AAA" stroke-width="2" stroke-dasharray="8,4"/>
+      <!-- 始点と終点 -->
+      <circle cx="20" cy="40" r="5" fill="#AAA"/>
+      <circle cx="160" cy="40" r="5" fill="#AAA"/>
+      <!-- 足場 -->
+      <rect x="60" y="30" width="60" height="15" rx="3" fill="url(#woodGrad)"/>
+      <!-- 矢印 -->
+      <path d="M70,55 L110,55" stroke="#27AE60" stroke-width="2"/>
+      <polygon points="110,52 110,58 118,55" fill="#27AE60"/>
+      <path d="M110,65 L70,65" stroke="#27AE60" stroke-width="2"/>
+      <polygon points="70,62 70,68 62,65" fill="#27AE60"/>
+    </g>
+
+    <text x="120" y="130" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">左右or上下に往復移動</text>
+    <text x="120" y="143" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">乗って移動できる</text>
+  </g>
+
+  <!-- ========== 5. 滑る氷床 ========== -->
+  <g transform="translate(330, 270)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#5DADE2" text-anchor="middle">5. 滑る氷床</text>
+
+    <g transform="translate(40, 50)">
+      <!-- 氷の床 -->
+      <rect x="0" y="30" width="160" height="20" rx="3" fill="url(#iceGrad)" stroke="#87CEEB" stroke-width="2"/>
+      <!-- キラキラ -->
+      <text x="20" y="42" font-size="12" fill="#FFF">✦</text>
+      <text x="60" y="38" font-size="10" fill="#FFF">✦</text>
+      <text x="100" y="44" font-size="14" fill="#FFF">✦</text>
+      <text x="140" y="40" font-size="11" fill="#FFF">✦</text>
+      <!-- お手玉が滑る -->
+      <ellipse cx="40" cy="22" rx="12" ry="10" fill="#DC143C"/>
+      <!-- 滑り線 -->
+      <path d="M55,22 L90,22" stroke="#5DADE2" stroke-width="2" stroke-dasharray="4,2"/>
+      <polygon points="90,19 90,25 98,22" fill="#5DADE2"/>
+    </g>
+
+    <text x="120" y="130" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">摩擦がほぼゼロ</text>
+    <text x="120" y="143" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">friction: 0.01</text>
+  </g>
+
+  <!-- ========== 6. 粘着床 ========== -->
+  <g transform="translate(610, 270)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#F39C12" text-anchor="middle">6. 粘着床（蜂蜜）</text>
+
+    <g transform="translate(40, 45)">
+      <!-- 床 -->
+      <rect x="0" y="35" width="160" height="20" rx="3" fill="url(#stickyGrad)"/>
+      <!-- 粘着表現 -->
+      <ellipse cx="30" cy="35" rx="15" ry="5" fill="#FFD700" opacity="0.7"/>
+      <ellipse cx="80" cy="33" rx="20" ry="6" fill="#FFD700" opacity="0.7"/>
+      <ellipse cx="130" cy="35" rx="15" ry="5" fill="#FFD700" opacity="0.7"/>
+      <!-- 垂れてる蜜 -->
+      <path d="M25,55 Q25,65 20,70" stroke="#FFA500" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M135,55 Q138,62 135,68" stroke="#FFA500" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <!-- お手玉（くっついてる） -->
+      <ellipse cx="80" cy="25" rx="12" ry="10" fill="#DC143C"/>
+      <!-- 粘着線 -->
+      <path d="M75,33 Q72,38 75,43" stroke="#FFD700" stroke-width="2" fill="none"/>
+      <path d="M85,33 Q88,38 85,43" stroke="#FFD700" stroke-width="2" fill="none"/>
+    </g>
+
+    <text x="120" y="130" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">動きが鈍くなる</text>
+    <text x="120" y="143" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">friction: 5.0+ / linearDamping</text>
+  </g>
+
+  <!-- ========== 7. ワープポータル ========== -->
+  <g transform="translate(50, 440)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#8E44AD" text-anchor="middle">7. ワープポータル</text>
+
+    <g transform="translate(30, 40)">
+      <!-- ポータルA -->
+      <ellipse cx="40" cy="50" rx="25" ry="35" fill="none" stroke="url(#portalGrad)" stroke-width="5"/>
+      <ellipse cx="40" cy="50" rx="18" ry="28" fill="#1a0a2e" opacity="0.8"/>
+      <text x="40" y="90" font-family="sans-serif" font-size="12" fill="#9400D3" text-anchor="middle">A</text>
+      <!-- 渦巻き -->
+      <path d="M40,35 Q50,45 40,50 Q30,55 40,65" stroke="#FF00FF" stroke-width="2" fill="none" opacity="0.6"/>
+
+      <!-- 矢印 -->
+      <path d="M70,50 L110,50" stroke="#8E44AD" stroke-width="2" stroke-dasharray="5,3"/>
+      <polygon points="110,47 110,53 118,50" fill="#8E44AD"/>
+
+      <!-- ポータルB -->
+      <ellipse cx="140" cy="50" rx="25" ry="35" fill="none" stroke="url(#portalGrad)" stroke-width="5"/>
+      <ellipse cx="140" cy="50" rx="18" ry="28" fill="#1a0a2e" opacity="0.8"/>
+      <text x="140" y="90" font-family="sans-serif" font-size="12" fill="#9400D3" text-anchor="middle">B</text>
+      <path d="M140,35 Q150,45 140,50 Q130,55 140,65" stroke="#FF00FF" stroke-width="2" fill="none" opacity="0.6"/>
+    </g>
+
+    <text x="120" y="133" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">入ると別の場所に瞬間移動</text>
+    <text x="120" y="146" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">ペアで設置</text>
+  </g>
+
+  <!-- ========== 8. 送風機 ========== -->
+  <g transform="translate(330, 440)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1ABC9C" text-anchor="middle">8. 送風機（扇風機）</text>
+
+    <g transform="translate(30, 35)">
+      <!-- 扇風機本体 -->
+      <rect x="0" y="30" width="40" height="50" rx="5" fill="#555"/>
+      <!-- グリル -->
+      <circle cx="20" cy="55" r="18" fill="#333" stroke="#777" stroke-width="2"/>
+      <line x1="20" y1="37" x2="20" y2="73" stroke="#555" stroke-width="2"/>
+      <line x1="2" y1="55" x2="38" y2="55" stroke="#555" stroke-width="2"/>
+      <line x1="7" y1="42" x2="33" y2="68" stroke="#555" stroke-width="2"/>
+      <line x1="33" y1="42" x2="7" y2="68" stroke="#555" stroke-width="2"/>
+
+      <!-- 風 -->
+      <path d="M50,45 Q80,45 100,40" stroke="#87CEEB" stroke-width="3" fill="none" opacity="0.6"/>
+      <path d="M50,55 Q90,55 120,55" stroke="#87CEEB" stroke-width="4" fill="none" opacity="0.7"/>
+      <path d="M50,65 Q80,65 100,70" stroke="#87CEEB" stroke-width="3" fill="none" opacity="0.6"/>
+
+      <!-- お手玉が飛ばされてる -->
+      <ellipse cx="140" cy="50" rx="12" ry="10" fill="#DC143C"/>
+      <path d="M152,50 L165,50" stroke="#1ABC9C" stroke-width="2"/>
+      <polygon points="165,47 165,53 173,50" fill="#1ABC9C"/>
+    </g>
+
+    <text x="120" y="130" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">風でお手玉を押す</text>
+    <text x="120" y="143" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">エリア内でforce適用</text>
+  </g>
+
+  <!-- ========== 9. 和風提灯 ========== -->
+  <g transform="translate(610, 440)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#E74C3C" text-anchor="middle">9. 和風提灯</text>
+
+    <g transform="translate(90, 35)">
+      <!-- 紐 -->
+      <line x1="30" y1="0" x2="30" y2="15" stroke="#333" stroke-width="2"/>
+      <!-- 提灯上部 -->
+      <ellipse cx="30" cy="20" rx="8" ry="5" fill="#222"/>
+      <!-- 提灯本体 -->
+      <ellipse cx="30" cy="50" rx="28" ry="35" fill="url(#lanternGlow)"/>
+      <!-- 骨組み -->
+      <ellipse cx="30" cy="30" rx="22" ry="5" fill="none" stroke="#8B0000" stroke-width="1.5" opacity="0.5"/>
+      <ellipse cx="30" cy="50" rx="28" ry="8" fill="none" stroke="#8B0000" stroke-width="1.5" opacity="0.5"/>
+      <ellipse cx="30" cy="70" rx="22" ry="5" fill="none" stroke="#8B0000" stroke-width="1.5" opacity="0.5"/>
+      <!-- 文字 -->
+      <text x="30" y="55" font-family="serif" font-size="16" fill="#8B0000" text-anchor="middle">祭</text>
+      <!-- 提灯下部 -->
+      <ellipse cx="30" cy="80" rx="8" ry="5" fill="#222"/>
+      <!-- 房 -->
+      <line x1="30" y1="85" x2="30" y2="95" stroke="#FFD700" stroke-width="3"/>
+    </g>
+
+    <text x="120" y="133" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">装飾 + 軽い衝突判定</text>
+    <text x="120" y="146" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">揺れるアニメーション</text>
+  </g>
+
+  <!-- ========== 10. 竹林 ========== -->
+  <g transform="translate(50, 610)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#27AE60" text-anchor="middle">10. 竹林障害物</text>
+
+    <g transform="translate(50, 35)">
+      <!-- 竹1 -->
+      <rect x="0" y="0" width="12" height="90" fill="url(#bambooGrad)"/>
+      <line x1="0" y1="20" x2="12" y2="20" stroke="#006400" stroke-width="2"/>
+      <line x1="0" y1="50" x2="12" y2="50" stroke="#006400" stroke-width="2"/>
+      <line x1="0" y1="75" x2="12" y2="75" stroke="#006400" stroke-width="2"/>
+
+      <!-- 竹2 -->
+      <rect x="35" y="10" width="12" height="80" fill="url(#bambooGrad)"/>
+      <line x1="35" y1="30" x2="47" y2="30" stroke="#006400" stroke-width="2"/>
+      <line x1="35" y1="55" x2="47" y2="55" stroke="#006400" stroke-width="2"/>
+      <line x1="35" y1="78" x2="47" y2="78" stroke="#006400" stroke-width="2"/>
+
+      <!-- 竹3 -->
+      <rect x="70" y="5" width="12" height="85" fill="url(#bambooGrad)"/>
+      <line x1="70" y1="25" x2="82" y2="25" stroke="#006400" stroke-width="2"/>
+      <line x1="70" y1="50" x2="82" y2="50" stroke="#006400" stroke-width="2"/>
+      <line x1="70" y1="72" x2="82" y2="72" stroke="#006400" stroke-width="2"/>
+
+      <!-- 竹4 -->
+      <rect x="105" y="15" width="12" height="75" fill="url(#bambooGrad)"/>
+      <line x1="105" y1="35" x2="117" y2="35" stroke="#006400" stroke-width="2"/>
+      <line x1="105" y1="60" x2="117" y2="60" stroke="#006400" stroke-width="2"/>
+
+      <!-- 葉っぱ -->
+      <path d="M12,18 Q25,10 30,18" stroke="#228B22" stroke-width="2" fill="#32CD32"/>
+      <path d="M70,23 Q55,15 50,25" stroke="#228B22" stroke-width="2" fill="#32CD32"/>
+    </g>
+
+    <text x="120" y="133" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">隙間を縫って進む</text>
+    <text x="120" y="146" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">複数の細い柱として配置</text>
+  </g>
+
+  <!-- ========== 11. シーソー ========== -->
+  <g transform="translate(330, 610)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#E67E22" text-anchor="middle">11. シーソー</text>
+
+    <g transform="translate(30, 50)">
+      <!-- 支点（三角） -->
+      <polygon points="90,60 75,85 105,85" fill="#8B4513"/>
+      <!-- 板 -->
+      <rect x="10" y="45" width="160" height="12" rx="2" fill="url(#woodGrad)" transform="rotate(-8, 90, 51)"/>
+      <!-- お手玉（重り） -->
+      <circle cx="35" cy="35" r="14" fill="#DC143C"/>
+      <!-- 矢印 -->
+      <path d="M145,70 Q155,60 155,50" stroke="#E67E22" stroke-width="2" fill="none"/>
+      <polygon points="152,50 158,50 155,42" fill="#E67E22"/>
+    </g>
+
+    <text x="120" y="133" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">重さでバランスが変わる</text>
+    <text x="120" y="146" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">RevoluteJoint + dynamic</text>
+  </g>
+
+  <!-- ========== 12. 壊れる足場 ========== -->
+  <g transform="translate(610, 610)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#95A5A6" text-anchor="middle">12. 壊れる足場</text>
+
+    <g transform="translate(30, 40)">
+      <!-- 足場（ひび入り） -->
+      <rect x="30" y="30" width="120" height="15" rx="2" fill="#A0522D"/>
+      <!-- ひび -->
+      <path d="M60,30 L65,37 L58,45" stroke="#5D3A1A" stroke-width="2" fill="none"/>
+      <path d="M100,30 L95,35 L102,40 L98,45" stroke="#5D3A1A" stroke-width="2" fill="none"/>
+      <path d="M130,32 L125,38 L128,45" stroke="#5D3A1A" stroke-width="1.5" fill="none"/>
+
+      <!-- 崩れた後（点線） -->
+      <rect x="30" y="70" width="35" height="12" rx="2" fill="none" stroke="#AAA" stroke-dasharray="4,2" transform="rotate(15, 47, 76)"/>
+      <rect x="75" y="75" width="30" height="12" rx="2" fill="none" stroke="#AAA" stroke-dasharray="4,2" transform="rotate(-10, 90, 81)"/>
+      <rect x="115" y="72" width="35" height="12" rx="2" fill="none" stroke="#AAA" stroke-dasharray="4,2" transform="rotate(20, 132, 78)"/>
+
+      <!-- 矢印 -->
+      <path d="M90,48 L90,65" stroke="#95A5A6" stroke-width="2"/>
+      <polygon points="87,65 93,65 90,73" fill="#95A5A6"/>
+
+      <!-- タイマー表示 -->
+      <text x="160" y="42" font-family="monospace" font-size="14" fill="#E74C3C">2.0s</text>
+    </g>
+
+    <text x="120" y="133" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">乗ると数秒後に崩壊</text>
+    <text x="120" y="146" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">タイマー後にremove</text>
+  </g>
+
+  <!-- ========== 13. バンパー ========== -->
+  <g transform="translate(50, 780)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#E91E63" text-anchor="middle">13. バンパー（ピンボール風）</text>
+
+    <g transform="translate(70, 45)">
+      <!-- バンパー -->
+      <circle cx="50" cy="35" r="28" fill="#E91E63" stroke="#C2185B" stroke-width="4"/>
+      <circle cx="50" cy="35" r="18" fill="#F48FB1"/>
+      <circle cx="50" cy="35" r="8" fill="#E91E63"/>
+
+      <!-- お手玉が跳ね返る -->
+      <circle cx="5" cy="15" r="10" fill="#DC143C"/>
+      <path d="M12,20 L30,30" stroke="#E91E63" stroke-width="2" stroke-dasharray="4,2"/>
+
+      <!-- 跳ね返り矢印 -->
+      <path d="M-15,35 L-5,25" stroke="#333" stroke-width="2"/>
+      <polygon points="-5,28 -2,22 -8,25" fill="#333"/>
+    </g>
+
+    <text x="120" y="130" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">当たると強く弾き返す</text>
+    <text x="120" y="143" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">restitution: 1.2 + 追加impulse</text>
+  </g>
+
+  <!-- ========== 14. コンベアベルト ========== -->
+  <g transform="translate(330, 780)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#607D8B" text-anchor="middle">14. コンベアベルト</text>
+
+    <g transform="translate(30, 45)">
+      <!-- ベルト本体 -->
+      <rect x="0" y="25" width="180" height="25" fill="url(#conveyorGrad)"/>
+      <!-- ローラー -->
+      <circle cx="12" cy="37" r="12" fill="#333" stroke="#555" stroke-width="2"/>
+      <circle cx="168" cy="37" r="12" fill="#333" stroke="#555" stroke-width="2"/>
+      <!-- 矢印模様 -->
+      <polygon points="40,32 50,37 40,42" fill="#FFD700"/>
+      <polygon points="70,32 80,37 70,42" fill="#FFD700"/>
+      <polygon points="100,32 110,37 100,42" fill="#FFD700"/>
+      <polygon points="130,32 140,37 130,42" fill="#FFD700"/>
+
+      <!-- お手玉 -->
+      <ellipse cx="60" cy="18" rx="12" ry="10" fill="#DC143C"/>
+      <!-- 移動矢印 -->
+      <path d="M75,18 L100,18" stroke="#607D8B" stroke-width="2"/>
+      <polygon points="100,15 100,21 108,18" fill="#607D8B"/>
+    </g>
+
+    <text x="120" y="130" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">乗ると自動で運ばれる</text>
+    <text x="120" y="143" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">surface velocity設定</text>
+  </g>
+
+  <!-- ========== 15. 磁石 ========== -->
+  <g transform="translate(610, 780)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#673AB7" text-anchor="middle">15. 磁石</text>
+
+    <g transform="translate(70, 40)">
+      <!-- 磁石本体 -->
+      <path d="M20,0 L20,50 Q20,70 50,70 Q80,70 80,50 L80,0 L60,0 L60,40 Q60,50 50,50 Q40,50 40,40 L40,0 Z" fill="#E53935"/>
+      <rect x="20" y="0" width="20" height="50" fill="#E53935"/>
+      <rect x="60" y="0" width="20" height="50" fill="#1E88E5"/>
+      <text x="30" y="30" font-family="sans-serif" font-size="14" font-weight="bold" fill="#FFF">N</text>
+      <text x="65" y="30" font-family="sans-serif" font-size="14" font-weight="bold" fill="#FFF">S</text>
+
+      <!-- 引力線 -->
+      <ellipse cx="50" cy="85" rx="35" ry="15" fill="none" stroke="#9C27B0" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.6"/>
+      <ellipse cx="50" cy="90" rx="45" ry="20" fill="none" stroke="#9C27B0" stroke-width="1" stroke-dasharray="4,2" opacity="0.4"/>
+
+      <!-- お手玉（引き寄せられる） -->
+      <circle cx="80" cy="90" r="10" fill="#DC143C"/>
+      <path d="M70,90 L58,82" stroke="#9C27B0" stroke-width="2" stroke-dasharray="3,2"/>
+    </g>
+
+    <text x="120" y="133" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">近づくと引き寄せられる</text>
+    <text x="120" y="146" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">距離に応じたforce適用</text>
+  </g>
+
+  <!-- ========== 16. スイッチ＆扉 ========== -->
+  <g transform="translate(50, 950)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#FF5722" text-anchor="middle">16. スイッチ＆扉</text>
+
+    <g transform="translate(25, 40)">
+      <!-- スイッチ -->
+      <rect x="0" y="60" width="50" height="10" fill="#555"/>
+      <rect x="15" y="45" width="20" height="20" rx="3" fill="#4CAF50"/>
+      <circle cx="25" cy="55" r="6" fill="#8BC34A"/>
+
+      <!-- 接続線 -->
+      <path d="M50,55 Q80,55 80,30 Q80,10 110,10" stroke="#FF5722" stroke-width="2" stroke-dasharray="5,3"/>
+
+      <!-- 扉（閉じ状態） -->
+      <rect x="110" y="10" width="15" height="60" fill="#795548" stroke="#5D4037" stroke-width="2"/>
+      <circle cx="120" cy="40" r="3" fill="#FFD700"/>
+
+      <!-- 扉（開き状態/点線） -->
+      <rect x="110" y="10" width="15" height="60" fill="none" stroke="#AAA" stroke-dasharray="4,2" transform="rotate(-80, 110, 70)"/>
+
+      <!-- お手玉 -->
+      <circle cx="25" cy="35" r="10" fill="#DC143C"/>
+    </g>
+
+    <text x="120" y="130" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">スイッチを押すと扉が開く</text>
+    <text x="120" y="143" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">センサー + アニメーション</text>
+  </g>
+
+  <!-- ========== 17. 水面 ========== -->
+  <g transform="translate(330, 950)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#2196F3" text-anchor="middle">17. 水面エリア</text>
+
+    <g transform="translate(30, 40)">
+      <!-- 水エリア -->
+      <rect x="0" y="30" width="180" height="50" fill="#2196F3" opacity="0.4"/>
+      <!-- 波 -->
+      <path d="M0,30 Q20,25 40,30 Q60,35 80,30 Q100,25 120,30 Q140,35 160,30 Q180,25 180,30" stroke="#2196F3" stroke-width="3" fill="none"/>
+      <!-- 泡 -->
+      <circle cx="30" cy="50" r="4" fill="#FFF" opacity="0.6"/>
+      <circle cx="80" cy="60" r="3" fill="#FFF" opacity="0.5"/>
+      <circle cx="130" cy="55" r="5" fill="#FFF" opacity="0.6"/>
+      <circle cx="150" cy="45" r="3" fill="#FFF" opacity="0.5"/>
+
+      <!-- お手玉（浮いてる） -->
+      <ellipse cx="100" cy="35" rx="12" ry="8" fill="#DC143C"/>
+      <!-- 浮力矢印 -->
+      <path d="M100,50 L100,65" stroke="#2196F3" stroke-width="2"/>
+      <polygon points="97,50 103,50 100,42" fill="#2196F3"/>
+    </g>
+
+    <text x="120" y="130" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">浮力で浮く・動きが遅くなる</text>
+    <text x="120" y="143" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">buoyancy + drag</text>
+  </g>
+
+  <!-- ========== 18. 落とし穴 ========== -->
+  <g transform="translate(610, 950)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#F44336" text-anchor="middle">18. 落とし穴（リセット）</text>
+
+    <g transform="translate(30, 40)">
+      <!-- 地面 -->
+      <rect x="0" y="40" width="60" height="15" fill="#8B4513"/>
+      <rect x="120" y="40" width="60" height="15" fill="#8B4513"/>
+
+      <!-- 穴 -->
+      <rect x="60" y="40" width="60" height="40" fill="#1a1a1a"/>
+      <!-- トゲ -->
+      <polygon points="65,80 70,65 75,80" fill="#555"/>
+      <polygon points="80,80 85,65 90,80" fill="#555"/>
+      <polygon points="95,80 100,65 105,80" fill="#555"/>
+      <polygon points="110,80 115,65 120,80" fill="#555"/>
+
+      <!-- 警告マーク -->
+      <text x="90" y="58" font-family="sans-serif" font-size="20" fill="#F44336" text-anchor="middle">⚠</text>
+
+      <!-- お手玉（落ちてる） -->
+      <circle cx="90" cy="35" r="10" fill="#DC143C" opacity="0.7"/>
+      <path d="M90,45 L90,55" stroke="#F44336" stroke-width="2"/>
+      <polygon points="87,55 93,55 90,63" fill="#F44336"/>
+    </g>
+
+    <text x="120" y="130" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">落ちるとスタートに戻る</text>
+    <text x="120" y="143" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">センサー → respawn</text>
+  </g>
+
+  <!-- ========== 19. 回転ドア ========== -->
+  <g transform="translate(50, 1120)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#00BCD4" text-anchor="middle">19. 回転ドア</text>
+
+    <g transform="translate(80, 50)">
+      <!-- 中心軸 -->
+      <circle cx="40" cy="40" r="8" fill="#333"/>
+      <!-- ドア羽根（十字） -->
+      <rect x="35" y="0" width="10" height="80" rx="2" fill="#00BCD4"/>
+      <rect x="0" y="35" width="80" height="10" rx="2" fill="#00BCD4"/>
+      <!-- 回転矢印 -->
+      <path d="M75,15 A35,35 0 0,1 75,65" stroke="#00ACC1" stroke-width="2" fill="none" stroke-dasharray="5,3"/>
+      <polygon points="78,65 72,65 75,73" fill="#00ACC1"/>
+    </g>
+
+    <text x="120" y="133" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">押すと回転する扉</text>
+    <text x="120" y="146" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">RevoluteJoint（自由回転）</text>
+  </g>
+
+  <!-- ========== 20. 跳ね返り壁 ========== -->
+  <g transform="translate(330, 1120)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF" stroke="#DDD" stroke-width="2"/>
+    <text x="120" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#9C27B0" text-anchor="middle">20. 斜め跳ね返り壁</text>
+
+    <g transform="translate(40, 35)">
+      <!-- 斜め壁 -->
+      <rect x="60" y="20" width="15" height="70" fill="#9C27B0" transform="rotate(30, 67, 55)"/>
+
+      <!-- お手玉（入射） -->
+      <circle cx="25" cy="35" r="10" fill="#DC143C"/>
+      <path d="M35,40 L55,55" stroke="#333" stroke-width="2"/>
+      <polygon points="52,58 58,52 60,60" fill="#333"/>
+
+      <!-- お手玉（反射/薄い） -->
+      <circle cx="110" cy="30" r="10" fill="#DC143C" opacity="0.4"/>
+      <path d="M85,55 L100,40" stroke="#9C27B0" stroke-width="2" stroke-dasharray="4,2"/>
+      <polygon points="97,43 103,37 105,45" fill="#9C27B0"/>
+    </g>
+
+    <text x="120" y="133" font-family="sans-serif" font-size="11" fill="#666" text-anchor="middle">角度をつけて跳ね返す</text>
+    <text x="120" y="146" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">restitution: 0.8~1.0</text>
+  </g>
+
+  <!-- ========== まとめ ========== -->
+  <g transform="translate(610, 1120)">
+    <rect x="0" y="0" width="240" height="150" rx="10" fill="#FFF3E0" stroke="#FF9800" stroke-width="2"/>
+    <text x="120" y="28" font-family="sans-serif" font-size="16" font-weight="bold" fill="#E65100" text-anchor="middle">実装優先度</text>
+
+    <text x="15" y="52" font-family="sans-serif" font-size="12" fill="#333">★★★ 簡単＆効果大</text>
+    <text x="25" y="68" font-family="sans-serif" font-size="11" fill="#666">トランポリン, 氷床, 粘着床</text>
+    <text x="25" y="82" font-family="sans-serif" font-size="11" fill="#666">バンパー, 跳ね返り壁</text>
+
+    <text x="15" y="102" font-family="sans-serif" font-size="12" fill="#333">★★ 中程度</text>
+    <text x="25" y="118" font-family="sans-serif" font-size="11" fill="#666">移動足場, 送風機, 壊れる床</text>
+
+    <text x="15" y="138" font-family="sans-serif" font-size="12" fill="#333">★ 複雑だが面白い</text>
+    <text x="25" y="152" font-family="sans-serif" font-size="11" fill="#666">ワープ, スイッチ, 水面</text>
+  </g>
+
+  <!-- フッター -->
+  <text x="450" y="1310" font-family="sans-serif" font-size="14" fill="#666" text-anchor="middle">お手玉 Flyaway - ステージオブジェクト提案 20種</text>
+  <text x="450" y="1330" font-family="sans-serif" font-size="12" fill="#999" text-anchor="middle">物理エンジン（Forge2D）の特性を活かしたギミック</text>
+</svg>
