@@ -141,7 +141,10 @@ class _StageEditorState extends State<StageEditor> {
 
   /// ステージ管理ピッカーを表示
   Future<void> _showStagePicker(BuildContext context) async {
-    final result = await StagePicker.show(context);
+    final result = await StagePicker.show(
+      context,
+      unsavedStageAssets: widget.game.unsavedStageAssets,
+    );
     if (result == null) return;
 
     if (result.isNewStage) {
@@ -158,13 +161,31 @@ class _StageEditorState extends State<StageEditor> {
     } else if (result.selectedEntry != null) {
       // 既存ステージを読み込み
       try {
-        final stageData = await StageData.loadFromAsset(result.selectedEntry!.assetPath);
-        await widget.game.loadStage(stageData);
+        final assetPath = result.selectedEntry!.assetPath;
+
+        // 一時保存データがあればそれを使用、なければアセットから読み込み
+        final unsavedData = widget.game.getUnsavedStage(assetPath);
+        final StageData stageData;
+        final bool isUnsaved;
+
+        if (unsavedData != null) {
+          stageData = unsavedData;
+          isUnsaved = true;
+        } else {
+          stageData = await StageData.loadFromAsset(assetPath);
+          isUnsaved = false;
+        }
+
+        await widget.game.loadStage(stageData, assetPath: assetPath);
         setState(() {});
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${result.selectedEntry!.name} を読み込みました'),
+            content: Text(
+              isUnsaved
+                ? '${result.selectedEntry!.name} を読み込みました（未保存の変更あり）'
+                : '${result.selectedEntry!.name} を読み込みました',
+            ),
             duration: const Duration(seconds: 2),
           ),
         );

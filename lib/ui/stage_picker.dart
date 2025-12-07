@@ -23,19 +23,27 @@ class StagePickerResult {
 class StagePicker extends StatelessWidget {
   final void Function(StagePickerResult result) onSelect;
 
+  /// 未保存の変更があるステージのアセットパス
+  final Set<String> unsavedStageAssets;
+
   const StagePicker({
     super.key,
     required this.onSelect,
+    this.unsavedStageAssets = const {},
   });
 
   /// ボトムシートとして表示
-  static Future<StagePickerResult?> show(BuildContext context) {
+  static Future<StagePickerResult?> show(
+    BuildContext context, {
+    Set<String> unsavedStageAssets = const {},
+  }) {
     return showModalBottomSheet<StagePickerResult>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => StagePicker(
         onSelect: (result) => Navigator.of(ctx).pop(result),
+        unsavedStageAssets: unsavedStageAssets,
       ),
     );
   }
@@ -100,7 +108,10 @@ class StagePicker extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     // ステージ一覧
-                    ...entries.map((entry) => _buildStageTile(entry)),
+                    ...entries.map((entry) => _buildStageTile(
+                      entry,
+                      hasUnsavedChanges: unsavedStageAssets.contains(entry.assetPath),
+                    )),
                   ] else
                     const Center(
                       child: Text(
@@ -146,7 +157,7 @@ class StagePicker extends StatelessWidget {
     );
   }
 
-  Widget _buildStageTile(StageEntry entry) {
+  Widget _buildStageTile(StageEntry entry, {bool hasUnsavedChanges = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -157,7 +168,10 @@ class StagePicker extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.grey[850],
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[700]!),
+            border: Border.all(
+              color: hasUnsavedChanges ? Colors.orange : Colors.grey[700]!,
+              width: hasUnsavedChanges ? 2 : 1,
+            ),
           ),
           child: Row(
             children: [
@@ -166,7 +180,7 @@ class StagePicker extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.blue,
+                  color: hasUnsavedChanges ? Colors.orange : Colors.blue,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
@@ -181,14 +195,27 @@ class StagePicker extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // ステージ名
+              // ステージ名と変更有りマーク
               Expanded(
-                child: Text(
-                  entry.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                    ),
+                    if (hasUnsavedChanges)
+                      const Text(
+                        '未保存の変更あり',
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
                 ),
               ),
               // 矢印

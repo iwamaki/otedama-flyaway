@@ -92,6 +92,16 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
   /// 現在のステージ名
   String currentStageName = 'New Stage';
 
+  /// 現在編集中のステージのアセットパス（新規の場合はnull）
+  String? _currentStageAsset;
+  String? get currentStageAsset => _currentStageAsset;
+
+  /// 一時保存されたステージデータ（assetPath -> StageData）
+  final Map<String, StageData> _unsavedStages = {};
+
+  /// 一時保存があるステージのアセットパス一覧
+  Set<String> get unsavedStageAssets => _unsavedStages.keys.toSet();
+
   /// スポーン位置
   double _spawnX = 0.0;
   double _spawnY = 5.0;
@@ -172,7 +182,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     if (_initialStageAsset != null) {
       try {
         final stageData = await StageData.loadFromAsset(_initialStageAsset);
-        await loadStage(stageData);
+        await loadStage(stageData, assetPath: _initialStageAsset);
       } catch (e) {
         logger.error(LogCategory.stage, 'Failed to load initial stage', error: e);
       }
@@ -560,9 +570,12 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     onEditModeChanged?.call();
   }
 
+  /// オブジェクト追加時のデフォルトYオフセット（上方向）
+  static const double _addObjectYOffset = -10.0;
+
   /// 画像オブジェクトを追加
   Future<void> addImageObject(String imagePath, {Vector2? position}) async {
-    final pos = position ?? camera.viewfinder.position.clone();
+    final pos = position ?? _getDefaultAddPosition();
     final obj = ImageObject(
       imagePath: imagePath,
       position: pos,
@@ -572,9 +585,15 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     selectObject(obj);
   }
 
+  /// オブジェクト追加のデフォルト位置を取得（カメラ位置の少し上）
+  Vector2 _getDefaultAddPosition() {
+    final cameraPos = camera.viewfinder.position.clone();
+    return Vector2(cameraPos.x, cameraPos.y + _addObjectYOffset);
+  }
+
   /// 足場を追加
   Future<void> addPlatform({Vector2? position}) async {
-    final pos = position ?? camera.viewfinder.position.clone();
+    final pos = position ?? _getDefaultAddPosition();
     final obj = Platform(
       position: pos,
       width: 6.0,
@@ -586,7 +605,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
 
   /// トランポリンを追加
   Future<void> addTrampoline({Vector2? position}) async {
-    final pos = position ?? camera.viewfinder.position.clone();
+    final pos = position ?? _getDefaultAddPosition();
     final obj = Trampoline(position: pos);
     await _addStageObject(obj);
     selectObject(obj);
@@ -594,7 +613,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
 
   /// 氷床を追加
   Future<void> addIceFloor({Vector2? position}) async {
-    final pos = position ?? camera.viewfinder.position.clone();
+    final pos = position ?? _getDefaultAddPosition();
     final obj = IceFloor(position: pos);
     await _addStageObject(obj);
     selectObject(obj);
@@ -602,7 +621,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
 
   /// 地形を追加
   Future<void> addTerrain({Vector2? position}) async {
-    final pos = position ?? camera.viewfinder.position.clone();
+    final pos = position ?? _getDefaultAddPosition();
     final obj = Terrain.rectangle(
       position: pos,
       width: 20.0,
@@ -614,7 +633,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
 
   /// 遷移ゾーンを追加
   Future<void> addTransitionZone({Vector2? position}) async {
-    final pos = position ?? camera.viewfinder.position.clone();
+    final pos = position ?? _getDefaultAddPosition();
     final obj = TransitionZone(
       position: pos,
       width: 5.0,
@@ -647,8 +666,17 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     );
   }
 
-  /// ステージをクリア（全オブジェクト削除）
+  /// ステージをクリア（全オブジェクト削除）- 外部用
   void clearStage() {
+    // 現在のステージを一時保存
+    if (_currentStageAsset != null && _stageObjects.isNotEmpty) {
+      saveCurrentStageTemporarily();
+    }
+    _clearStageInternal();
+  }
+
+  /// ステージをクリア（内部用、一時保存なし）
+  void _clearStageInternal() {
     deselectObject();
 
     // 全オブジェクトを削除
@@ -659,6 +687,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     goal = null;
 
     // ステージ情報をリセット
+    _currentStageAsset = null;
     currentStageLevel = 0;
     currentStageName = 'New Stage';
     _goalReached = false;
@@ -666,12 +695,44 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     onEditModeChanged?.call();
   }
 
+  /// 現在のステージを一時保存
+  void saveCurrentStageTemporarily() {
+    if (_currentStageAsset != null) {
+      final stageData = exportStage();
+      _unsavedStages[_currentStageAsset!] = stageData;
+      logger.debug(LogCategory.stage, 'Stage saved temporarily: $_currentStageAsset');
+    }
+  }
+
+  /// 指定ステージの一時保存データを取得
+  StageData? getUnsavedStage(String assetPath) {
+    return _unsavedStages[assetPath];
+  }
+
+  /// 指定ステージの一時保存データをクリア
+  void clearUnsavedStage(String assetPath) {
+    _unsavedStages.remove(assetPath);
+    onEditModeChanged?.call();
+  }
+
+  /// 全ての一時保存データをクリア
+  void clearAllUnsavedStages() {
+    _unsavedStages.clear();
+    onEditModeChanged?.call();
+  }
+
   /// StageDataからステージを読み込み
-  Future<void> loadStage(StageData stageData) async {
-    // 既存のステージをクリア
-    clearStage();
+  Future<void> loadStage(StageData stageData, {String? assetPath}) async {
+    // 現在のステージを一時保存（アセットパスがある場合のみ）
+    if (_currentStageAsset != null && _stageObjects.isNotEmpty) {
+      saveCurrentStageTemporarily();
+    }
+
+    // 既存のステージをクリア（一時保存はしない）
+    _clearStageInternal();
 
     // ステージ情報を設定
+    _currentStageAsset = assetPath;
     currentStageLevel = stageData.level;
     currentStageName = stageData.name;
     _spawnX = stageData.spawnX;
@@ -729,7 +790,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       (goal as dynamic).removeFromParent();
     }
 
-    final pos = position ?? camera.viewfinder.position.clone();
+    final pos = position ?? _getDefaultAddPosition();
     goal = Goal(
       position: pos,
       width: 5,
