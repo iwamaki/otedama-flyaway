@@ -15,6 +15,7 @@ import '../components/stage/platform.dart';
 import '../components/stage/stage_object.dart';
 import '../components/stage/terrain.dart';
 import '../components/stage/trampoline.dart';
+import '../components/stage/transition_zone.dart';
 import '../config/otedama_skin_config.dart';
 import '../config/physics_config.dart';
 import '../models/stage_data.dart';
@@ -66,6 +67,11 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
 
   /// 現在のステージ境界設定
   StageBoundaries _boundaries = const StageBoundaries();
+  StageBoundaries get boundaries => _boundaries;
+  set boundaries(StageBoundaries value) {
+    _boundaries = value;
+    onEditModeChanged?.call();
+  }
 
   /// 遷移中フラグ（二重遷移防止）
   bool _isTransitioning = false;
@@ -218,6 +224,11 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       if (!_goalReached && goal != null && _boundaries.isFinalStage) {
         _checkGoalReached();
       }
+
+      // 遷移ゾーン判定
+      if (!_isTransitioning) {
+        _checkTransitionZones();
+      }
     }
 
     // パララックス効果を更新
@@ -262,6 +273,30 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     }
   }
 
+  /// 遷移ゾーン判定チェック
+  void _checkTransitionZones() {
+    if (otedama == null) return;
+
+    final pos = otedama!.centerPosition;
+
+    for (final obj in _stageObjects) {
+      if (obj is TransitionZone && obj.nextStage.isNotEmpty) {
+        final zonePos = obj.position;
+        final halfW = obj.width / 2;
+        final halfH = obj.height / 2;
+
+        // お手玉の中心がゾーン内にあるか
+        if (pos.x >= zonePos.x - halfW &&
+            pos.x <= zonePos.x + halfW &&
+            pos.y >= zonePos.y - halfH &&
+            pos.y <= zonePos.y + halfH) {
+          triggerZoneTransition(obj.nextStage);
+          return;
+        }
+      }
+    }
+  }
+
   /// 境界条件をチェック
   bool _checkBoundary(Vector2 pos, BoundaryEdge edge, double threshold) {
     switch (edge) {
@@ -276,13 +311,21 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     }
   }
 
-  /// 遷移をトリガー
+  /// 遷移をトリガー（境界による）
   void _triggerTransition(TransitionBoundary transition) {
     if (_isTransitioning) return;
     _isTransitioning = true;
     logger.info(
         LogCategory.game, 'Stage transition: ${transition.edge} -> ${transition.nextStage}');
     onStageTransition?.call(transition.nextStage);
+  }
+
+  /// 遷移ゾーンからの遷移をトリガー
+  void triggerZoneTransition(String nextStageAsset) {
+    if (_isTransitioning) return;
+    _isTransitioning = true;
+    logger.info(LogCategory.game, 'Zone transition -> $nextStageAsset');
+    onStageTransition?.call(nextStageAsset);
   }
 
   /// 遷移状態をリセット（遷移完了後に呼び出す）
@@ -569,6 +612,18 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     selectObject(obj);
   }
 
+  /// 遷移ゾーンを追加
+  Future<void> addTransitionZone({Vector2? position}) async {
+    final pos = position ?? camera.viewfinder.position.clone();
+    final obj = TransitionZone(
+      position: pos,
+      width: 5.0,
+      height: 5.0,
+    );
+    await _addStageObject(obj);
+    selectObject(obj);
+  }
+
   /// お手玉をリセット
   void resetOtedama() {
     otedama?.reset();
@@ -587,6 +642,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       background: _backgroundImage,
       spawnX: _spawnX,
       spawnY: _spawnY,
+      boundaries: _boundaries,
       objects: objects,
     );
   }

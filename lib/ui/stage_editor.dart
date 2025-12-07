@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../components/stage/image_object.dart';
+import '../components/stage/transition_zone.dart';
 import '../game/otedama_game.dart';
 import '../models/stage_data.dart';
 import '../services/logger_service.dart';
@@ -278,6 +279,8 @@ class _StageEditorState extends State<StageEditor> {
           await widget.game.addGoal();
         } else if (selected.id == 'terrain') {
           await widget.game.addTerrain();
+        } else if (selected.id == 'transitionZone') {
+          await widget.game.addTransitionZone();
         }
         break;
       case ObjectType.image:
@@ -367,6 +370,12 @@ class _StageEditorState extends State<StageEditor> {
                 const Icon(Icons.zoom_in, color: Colors.white70, size: 20),
               ],
             ),
+          ],
+
+          // 遷移ゾーン設定（TransitionZoneのみ）
+          if (obj is TransitionZone) ...[
+            const SizedBox(height: 8),
+            _buildTransitionZoneSettings(obj),
           ],
 
           const SizedBox(height: 8),
@@ -536,4 +545,78 @@ class _StageEditorState extends State<StageEditor> {
     );
   }
 
+  /// 遷移ゾーン設定UI
+  Widget _buildTransitionZoneSettings(TransitionZone zone) {
+    // 選択肢を構築（未選択 + 登録済みステージ）
+    final stageOptions = [
+      const DropdownMenuItem<String>(
+        value: '',
+        child: Text('未選択', style: TextStyle(color: Colors.white38)),
+      ),
+      ...StageRegistry.entries.map((entry) => DropdownMenuItem<String>(
+            value: entry.assetPath,
+            child: Text(
+              entry.name,
+              style: const TextStyle(color: Colors.white),
+            ),
+          )),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.teal.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.teal.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.swap_horiz, color: Colors.teal, size: 16),
+              SizedBox(width: 4),
+              Text(
+                '遷移先',
+                style: TextStyle(
+                  color: Colors.teal,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: StageRegistry.entries.any((e) => e.assetPath == zone.nextStage)
+                ? zone.nextStage
+                : '',
+            items: stageOptions,
+            onChanged: (value) {
+              zone.applyProperties({'nextStage': value ?? ''});
+              setState(() {});
+            },
+            decoration: const InputDecoration(
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              border: OutlineInputBorder(),
+            ),
+            dropdownColor: Colors.grey[850],
+            style: const TextStyle(fontSize: 12),
+          ),
+          if (zone.nextStage.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                '遷移先が未設定です',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontSize: 10,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }

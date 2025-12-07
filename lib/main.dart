@@ -8,6 +8,7 @@ import 'components/stage/image_object.dart';
 import 'components/stage/platform.dart';
 import 'components/stage/terrain.dart';
 import 'components/stage/trampoline.dart';
+import 'components/stage/transition_zone.dart';
 import 'models/stage_data.dart';
 import 'services/logger_service.dart';
 import 'services/settings_service.dart';
@@ -36,6 +37,7 @@ void main() async {
   registerTrampolineFactory();
   registerIceFloorFactory();
   registerTerrainFactory();
+  registerTransitionZoneFactory();
 
   // 設定サービスを初期化
   await SettingsService.instance.init();

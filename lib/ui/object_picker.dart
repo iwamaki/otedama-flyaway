@@ -67,6 +67,16 @@ class ObjectRegistry {
     ),
   ];
 
+  /// 遷移管理オブジェクト
+  static const List<InsertableObject> transitions = [
+    InsertableObject(
+      id: 'transitionZone',
+      name: '遷移ゾーン',
+      type: ObjectType.primitive,
+      icon: Icons.swap_horiz,
+    ),
+  ];
+
   /// 画像オブジェクト
   /// 新しい画像を追加する場合はここにエントリを追加
   static const List<InsertableObject> images = [
@@ -86,7 +96,7 @@ class ObjectRegistry {
   ];
 
   /// 全てのオブジェクト
-  static List<InsertableObject> get all => [...primitives, ...images];
+  static List<InsertableObject> get all => [...primitives, ...transitions, ...images];
 }
 
 /// オブジェクト選択ピッカー（ボトムシート用）
@@ -157,14 +167,21 @@ class ObjectPicker extends StatelessWidget {
                   if (ObjectRegistry.primitives.isNotEmpty) ...[
                     _buildSectionHeader('基本オブジェクト'),
                     const SizedBox(height: 8),
-                    _buildPrimitiveGrid(),
+                    _buildObjectGrid(ObjectRegistry.primitives),
+                    const SizedBox(height: 16),
+                  ],
+                  // 遷移管理セクション
+                  if (ObjectRegistry.transitions.isNotEmpty) ...[
+                    _buildSectionHeader('遷移管理', color: Colors.teal),
+                    const SizedBox(height: 8),
+                    _buildObjectGrid(ObjectRegistry.transitions),
                     const SizedBox(height: 16),
                   ],
                   // 画像オブジェクトセクション
                   if (ObjectRegistry.images.isNotEmpty) ...[
                     _buildSectionHeader('画像オブジェクト'),
                     const SizedBox(height: 8),
-                    _buildImageGrid(),
+                    _buildObjectGrid(ObjectRegistry.images),
                   ],
                 ],
               ),
@@ -175,35 +192,22 @@ class ObjectPicker extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, {Color color = Colors.grey}) {
     return Text(
       title,
-      style: const TextStyle(
-        color: Colors.grey,
+      style: TextStyle(
+        color: color,
         fontSize: 14,
         fontWeight: FontWeight.w500,
       ),
     );
   }
 
-  Widget _buildPrimitiveGrid() {
+  Widget _buildObjectGrid(List<InsertableObject> objects) {
     return Wrap(
       spacing: 12,
       runSpacing: 12,
-      children: ObjectRegistry.primitives.map((obj) {
-        return _ObjectTile(
-          object: obj,
-          onTap: () => onSelect(obj),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildImageGrid() {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: ObjectRegistry.images.map((obj) {
+      children: objects.map((obj) {
         return _ObjectTile(
           object: obj,
           onTap: () => onSelect(obj),
