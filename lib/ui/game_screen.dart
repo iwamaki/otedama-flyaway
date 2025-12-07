@@ -95,11 +95,19 @@ class _GameScreenState extends State<GameScreen> {
 
     final info = _pendingTransition!;
     logger.info(LogCategory.game,
-        '_loadNextStage: nextStage=${info.nextStage}, fromStage=${info.fromStage}, velocity=${info.velocity.length.toStringAsFixed(2)}');
+        '_loadNextStage: nextStage=${info.nextStage}, velocity=${info.velocity.length.toStringAsFixed(2)}');
 
     try {
-      logger.debug(LogCategory.stage, 'Loading stage from asset: ${info.nextStage}');
-      final stageData = await StageData.loadFromAsset(info.nextStage);
+      // 一時保存データがあればそれを使用、なければアセットからロード
+      StageData stageData;
+      final unsavedData = _game.getUnsavedStage(info.nextStage);
+      if (unsavedData != null) {
+        stageData = unsavedData;
+        logger.debug(LogCategory.stage, 'Using unsaved stage data: ${info.nextStage}');
+      } else {
+        logger.debug(LogCategory.stage, 'Loading stage from asset: ${info.nextStage}');
+        stageData = await StageData.loadFromAsset(info.nextStage);
+      }
       logger.debug(LogCategory.stage, 'Stage data loaded: ${stageData.name}, objects: ${stageData.objects.length}');
 
       await _game.loadStage(

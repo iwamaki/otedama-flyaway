@@ -32,18 +32,10 @@ class TransitionInfo {
   /// 遷移先でのスポーン位置（nullの場合はステージのデフォルト）
   final Vector2? spawnPosition;
 
-  /// 元ステージのアセットパス（戻り遷移ゾーン生成用）
-  final String? fromStage;
-
-  /// 元の遷移ゾーンの位置（戻り遷移ゾーンのスポーン位置として使用）
-  final Vector2? fromZonePosition;
-
   const TransitionInfo({
     required this.nextStage,
     required this.velocity,
     this.spawnPosition,
-    this.fromStage,
-    this.fromZonePosition,
   });
 }
 
@@ -388,7 +380,7 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
 
     final velocity = otedama?.getVelocity() ?? Vector2.zero();
     logger.info(LogCategory.game,
-        'Zone transition -> ${zone.nextStage}, velocity: ${velocity.length.toStringAsFixed(2)}, fromStage: $_currentStageAsset');
+        'Zone transition -> ${zone.nextStage}, velocity: ${velocity.length.toStringAsFixed(2)}');
 
     // スポーン位置が指定されている場合はそれを使う
     Vector2? spawnPos;
@@ -405,12 +397,10 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       nextStage: zone.nextStage,
       velocity: velocity,
       spawnPosition: spawnPos,
-      fromStage: _currentStageAsset, // 元ステージ
-      fromZonePosition: zone.position.clone(), // 元ゾーンの位置
     );
 
     logger.debug(LogCategory.game,
-        'TransitionInfo: nextStage=${info.nextStage}, fromStage=${info.fromStage}, fromZonePos=(${info.fromZonePosition?.x.toStringAsFixed(1)}, ${info.fromZonePosition?.y.toStringAsFixed(1)})');
+        'TransitionInfo: nextStage=${info.nextStage}, spawnPos=(${spawnPos?.x.toStringAsFixed(1)}, ${spawnPos?.y.toStringAsFixed(1)})');
 
     if (onStageTransition != null) {
       onStageTransition!.call(info);
@@ -802,6 +792,70 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     onEditModeChanged?.call();
   }
 
+  /// 遷移先ステージに戻り用TransitionZoneを追加
+  /// [targetStageAsset] 遷移先ステージのアセットパス
+  /// [currentZonePosition] 現在のTransitionZoneの位置（戻り時のスポーン位置として使用）
+  Future<bool> addReturnTransitionZoneToTargetStage({
+    required String targetStageAsset,
+    required Vector2 currentZonePosition,
+  }) async {
+    if (_currentStageAsset == null) {
+      logger.warning(LogCategory.stage, 'Cannot add return zone: current stage asset is null');
+      return false;
+    }
+
+    try {
+      // 現在のステージも一時保存（両方に変更を反映するため）
+      saveCurrentStageTemporarily();
+      logger.debug(LogCategory.stage, 'Current stage saved before adding return zone');
+
+      // 遷移先のステージデータを取得（一時保存があればそれを使用）
+      StageData targetStage;
+      if (_unsavedStages.containsKey(targetStageAsset)) {
+        targetStage = _unsavedStages[targetStageAsset]!;
+        logger.debug(LogCategory.stage, 'Using unsaved stage data for: $targetStageAsset');
+      } else {
+        targetStage = await StageData.loadFromAsset(targetStageAsset);
+        logger.debug(LogCategory.stage, 'Loaded stage from asset: $targetStageAsset');
+      }
+
+      // 遷移先ステージのスポーン位置の下に戻りゾーンを配置
+      final returnZoneX = targetStage.spawnX;
+      final returnZoneY = targetStage.spawnY + 5.0;
+
+      // 戻り用TransitionZoneのJSONを作成
+      final returnZoneJson = {
+        'type': 'transitionZone',
+        'x': returnZoneX,
+        'y': returnZoneY,
+        'width': 5.0,
+        'height': 5.0,
+        'angle': 0.0,
+        'nextStage': _currentStageAsset!,
+        'spawnX': currentZonePosition.x,
+        'spawnY': currentZonePosition.y,
+        'color': 0xFFFF9800, // オレンジ色
+      };
+
+      // 新しいオブジェクトリストを作成
+      final newObjects = [...targetStage.objects, returnZoneJson];
+
+      // 更新したステージデータを作成
+      final updatedStage = targetStage.copyWith(objects: newObjects);
+
+      // 一時保存に保存
+      _unsavedStages[targetStageAsset] = updatedStage;
+      logger.info(LogCategory.stage,
+          'Added return TransitionZone to $targetStageAsset at (${returnZoneX.toStringAsFixed(1)}, ${returnZoneY.toStringAsFixed(1)}) -> $_currentStageAsset');
+
+      onEditModeChanged?.call();
+      return true;
+    } catch (e) {
+      logger.error(LogCategory.stage, 'Failed to add return zone to $targetStageAsset', error: e);
+      return false;
+    }
+  }
+
   /// StageDataからステージを読み込み
   /// [transitionInfo] が指定された場合、遷移先スポーン位置と速度を維持
   Future<void> loadStage(
@@ -850,11 +904,6 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
       logger.debug(LogCategory.game,
           'Otedama positioned at ${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)} with velocity ${transitionInfo.velocity.length.toStringAsFixed(2)}');
 
-      // 戻り遷移ゾーンを自動生成（元ステージがある場合）
-      if (transitionInfo.fromStage != null) {
-        await _createReturnTransitionZone(transitionInfo, spawnPos);
-      }
-
       // 遷移クールダウンを設定（即座に再遷移を防止）
       _transitionCooldown = _transitionCooldownDuration;
       logger.debug(LogCategory.game, 'Transition cooldown set: ${_transitionCooldownDuration}s');
@@ -863,43 +912,6 @@ class OtedamaGame extends Forge2DGame with DragCallbacks {
     }
 
     onEditModeChanged?.call();
-  }
-
-  /// 戻り遷移ゾーンを自動生成
-  Future<void> _createReturnTransitionZone(
-    TransitionInfo transitionInfo,
-    Vector2 spawnPos,
-  ) async {
-    logger.debug(LogCategory.game,
-        '_createReturnTransitionZone: fromStage=${transitionInfo.fromStage}, spawnPos=(${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)})');
-
-    // スポーン位置の下に固定配置（位置が毎回変動しないように）
-    final zoneOffset = Vector2(0, 5.0); // 下方向に5単位
-    final zonePos = spawnPos + zoneOffset;
-    logger.debug(LogCategory.game,
-        'Return zone offset: fixed (0, 5.0) below spawn');
-
-    final returnZone = TransitionZone(
-      position: zonePos,
-      width: 5.0,
-      height: 5.0,
-      nextStage: transitionInfo.fromStage!,
-      // 戻り先のスポーン位置は元ゾーンの位置
-      spawnX: transitionInfo.fromZonePosition?.x,
-      spawnY: transitionInfo.fromZonePosition?.y,
-      color: const Color(0xFFFF9800), // オレンジ色で区別
-    );
-
-    logger.debug(LogCategory.game,
-        'Return zone config: nextStage=${returnZone.nextStage}, spawnX=${returnZone.spawnX}, spawnY=${returnZone.spawnY}');
-
-    await _addStageObject(returnZone);
-    logger.info(LogCategory.game,
-        'Return transition zone created at (${zonePos.x.toStringAsFixed(1)}, ${zonePos.y.toStringAsFixed(1)}) -> ${transitionInfo.fromStage}');
-
-    // 現在のステージオブジェクト数をログ
-    final zoneCount = _stageObjects.whereType<TransitionZone>().length;
-    logger.debug(LogCategory.game, 'Total TransitionZones in stage: $zoneCount');
   }
 
   /// 背景を変更

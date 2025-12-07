@@ -669,6 +669,42 @@ class _StageEditorState extends State<StageEditor> {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            // 戻りゾーン追加ボタン
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  // 遷移先ステージに戻り用ゾーンを追加
+                  final success = await widget.game.addReturnTransitionZoneToTargetStage(
+                    targetStageAsset: zone.nextStage,
+                    currentZonePosition: zone.position.clone(),
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(success
+                            ? '遷移先に戻りゾーンを追加しました'
+                            : '戻りゾーンの追加に失敗しました'),
+                        backgroundColor: success ? Colors.green : Colors.red,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                    setState(() {});
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.withValues(alpha: 0.8),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                ),
+                icon: const Icon(Icons.add_link, size: 16),
+                label: const Text(
+                  '遷移先に戻りゾーンを追加',
+                  style: TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
           ],
         ],
       ),
