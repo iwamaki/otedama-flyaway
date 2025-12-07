@@ -36,20 +36,20 @@ class ParticleOtedama extends BodyComponent {
 
   // 設定可能なパラメータ（調整済みデフォルト値）
   static int shellCount = 20;
-  static int beadCount = 14;
-  static double shellRadius = 0.25;
-  static double beadRadius = 0.38;
-  static double overallRadius = 2.50;
-  static double shellDensity = 5.0;
-  static double beadDensity = 5.0;
-  static double shellFriction = 1.0;
+  static int beadCount = 15;
+  static double shellRadius = 0.27;
+  static double beadRadius = 0.29;
+  static double overallRadius = 1.99;
+  static double shellDensity = 3.0;
+  static double beadDensity = 3.0;
+  static double shellFriction = 0.25;
   static double beadFriction = 1.0;
   static double shellRestitution = 0.05;
   static double beadRestitution = 0.0;
-  static double jointFrequency = 0.0; // 0=硬い接続（伸びない）、>0=バネ
-  static double jointDamping = 1.0;
+  static double jointFrequency = 39.94; // 0=硬い接続（伸びない）、>0=バネ
+  static double jointDamping = 0.0;
   static double shellRelativeDamping = 0.0; // 節同士の相対運動の減衰（重力に影響しない）
-  static double gravityScale = 2.0; // 重力スケール（1.0 = 通常）
+  static double gravityScale = 2.50; // 重力スケール（1.0 = 通常）
 
   // 距離制約の補正（PBDアプローチ）
   static int distanceConstraintIterations = 10; // 補正の反復回数
@@ -57,14 +57,14 @@ class ParticleOtedama extends BodyComponent {
 
   // ビーズ封じ込め制約
   static bool beadContainmentEnabled = true; // 封じ込め有効
-  static double beadContainmentMargin = 0.25; // 外殻境界からのマージン
+  static double beadContainmentMargin = 0.10; // 外殻境界からのマージン
 
   // ビーズサイズのバリエーション（0.0〜1.0、大きいほどバラつく）
   static double beadSizeVariation = 0.26;
 
   // 外殻の内側突起（ビーズとの接触を確保）
   static bool shellSpikeEnabled = true; // 突起を有効化
-  static double shellSpikeLength = 0.39; // 突起の長さ（内側方向へのオフセット）
+  static double shellSpikeLength = 0.41; // 突起の長さ（内側方向へのオフセット）
   static double shellSpikeRadius = 0.11; // 突起の半径
 
   // 初期ジョイント長を記録
@@ -76,7 +76,7 @@ class ParticleOtedama extends BodyComponent {
   static const double _groundedVelocityThreshold = 1.5; // 接地判定の速度閾値
 
   /// 発射力の倍率（スワイプ→力の変換係数）
-  static double launchMultiplier = 3.5;
+  static double launchMultiplier = 2.75;
 
   /// 空中発射の力の倍率（初回の何倍か）
   static double airLaunchMultiplier = 0.5;

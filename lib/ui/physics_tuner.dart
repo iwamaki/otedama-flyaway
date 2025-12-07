@@ -227,7 +227,7 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
             'Frequency',
             ParticleOtedama.jointFrequency,
             0.0,
-            20.0,
+            50.0,
             (v) {
               ParticleOtedama.jointFrequency = v;
               _rebuild();
@@ -500,29 +500,29 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
   void _resetToDefaults() {
     setState(() {
       ParticleOtedama.shellCount = 20;
-      ParticleOtedama.beadCount = 14;
-      ParticleOtedama.shellRadius = 0.25;
-      ParticleOtedama.beadRadius = 0.38;
+      ParticleOtedama.beadCount = 15;
+      ParticleOtedama.shellRadius = 0.27;
+      ParticleOtedama.beadRadius = 0.29;
       ParticleOtedama.beadSizeVariation = 0.26;
-      ParticleOtedama.overallRadius = 2.50;
-      ParticleOtedama.shellDensity = 5.0;
-      ParticleOtedama.beadDensity = 5.0;
-      ParticleOtedama.shellFriction = 1.0;
+      ParticleOtedama.overallRadius = 1.99;
+      ParticleOtedama.shellDensity = 3.0;
+      ParticleOtedama.beadDensity = 3.0;
+      ParticleOtedama.shellFriction = 0.25;
       ParticleOtedama.beadFriction = 1.0;
       ParticleOtedama.shellRestitution = 0.05;
       ParticleOtedama.shellSpikeEnabled = true;
-      ParticleOtedama.shellSpikeLength = 0.39;
+      ParticleOtedama.shellSpikeLength = 0.41;
       ParticleOtedama.shellSpikeRadius = 0.11;
       ParticleOtedama.beadRestitution = 0.0;
-      ParticleOtedama.jointFrequency = 0.0;
-      ParticleOtedama.jointDamping = 1.0;
+      ParticleOtedama.jointFrequency = 39.94;
+      ParticleOtedama.jointDamping = 0.0;
       ParticleOtedama.distanceConstraintIterations = 10;
       ParticleOtedama.distanceConstraintStiffness = 1.0;
       ParticleOtedama.shellRelativeDamping = 0.0;
-      ParticleOtedama.gravityScale = 2.0;
+      ParticleOtedama.gravityScale = 2.50;
       ParticleOtedama.beadContainmentEnabled = true;
-      ParticleOtedama.beadContainmentMargin = 0.25;
-      ParticleOtedama.launchMultiplier = 3.5;
+      ParticleOtedama.beadContainmentMargin = 0.10;
+      ParticleOtedama.launchMultiplier = 2.75;
       ParticleOtedama.airLaunchMultiplier = 0.5;
       ParticleOtedama.touchEffectRadius = 1.0;
     });
