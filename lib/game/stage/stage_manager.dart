@@ -278,9 +278,9 @@ class StageManager {
         );
         logMessage = 'Updated return TransitionZone (linkId=$linkId) spawn position in $targetStageAsset to (${currentZonePosition.x.toStringAsFixed(1)}, ${currentZonePosition.y.toStringAsFixed(1)})';
       } else {
-        // 新規に戻りゾーンを追加（元ゾーンの位置を基準に配置）
+        // 新規に戻りゾーンを追加（元ゾーンと同じ絶対座標に配置）
         final returnZoneX = currentZonePosition.x;
-        final returnZoneY = currentZonePosition.y - 10.0; // 元ゾーンより少し上に配置
+        final returnZoneY = currentZonePosition.y;
         returnZonePosition = Vector2(returnZoneX, returnZoneY);
 
         final returnZoneJson = {
