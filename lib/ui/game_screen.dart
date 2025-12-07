@@ -2,12 +2,13 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import '../game/otedama_game.dart';
-import '../models/stage_data.dart' show StageEntry;
+import '../models/stage_data.dart';
 import '../services/logger_service.dart';
 import '../services/settings_service.dart';
 import 'clear_screen.dart';
 import 'physics_tuner.dart';
 import 'stage_editor.dart';
+import 'stage_transition_overlay.dart';
 
 /// ゲーム画面
 /// 通常モードと開発者モードをサポート
@@ -37,6 +38,9 @@ class _GameScreenState extends State<GameScreen> {
   bool _isLoading = true;
   bool _showClearScreen = false;
 
+  /// 遷移中の次ステージパス
+  String? _pendingTransitionStage;
+
   @override
   void initState() {
     super.initState();
@@ -59,12 +63,43 @@ class _GameScreenState extends State<GameScreen> {
     };
     // ゴール到達時のコールバック
     _game.onGoalReachedCallback = _onGoalReached;
+    // ステージ遷移コールバック
+    _game.onStageTransition = _onStageTransition;
 
     logger.debug(LogCategory.game, 'Stage: ${widget.initialStage?.name ?? "default"}');
     logger.debug(LogCategory.game, 'Developer mode: ${widget.developerMode}');
 
     setState(() {
       _isLoading = false;
+    });
+  }
+
+  void _onStageTransition(String nextStageAsset) {
+    logger.info(LogCategory.game, 'Stage transition requested: $nextStageAsset');
+    setState(() {
+      _pendingTransitionStage = nextStageAsset;
+    });
+  }
+
+  Future<void> _loadNextStage() async {
+    if (_pendingTransitionStage == null) return;
+
+    try {
+      final stageData = await StageData.loadFromAsset(_pendingTransitionStage!);
+      await _game.loadStage(stageData);
+      _game.resetTransitionState();
+      logger.info(LogCategory.game, 'Stage loaded: ${stageData.name}');
+    } catch (e) {
+      logger.error(LogCategory.stage, 'Failed to load stage: $_pendingTransitionStage',
+          error: e);
+      _game.resetTransitionState();
+      widget.onBackToStart();
+    }
+  }
+
+  void _onTransitionComplete() {
+    setState(() {
+      _pendingTransitionStage = null;
     });
   }
 
@@ -144,6 +179,13 @@ class _GameScreenState extends State<GameScreen> {
               clearTime: _game.clearTime!,
               onRetry: _onRetry,
               onBackToStart: widget.onBackToStart,
+            ),
+
+          // ステージ遷移オーバーレイ
+          if (_pendingTransitionStage != null)
+            StageTransitionOverlay(
+              onFadeOutComplete: _loadNextStage,
+              onTransitionComplete: _onTransitionComplete,
             ),
         ],
       ),

@@ -2,6 +2,88 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
+/// 境界の辺
+enum BoundaryEdge {
+  top, // Y座標が threshold 未満で発動
+  bottom, // Y座標が threshold 超過で発動
+  left, // X座標が threshold 未満で発動
+  right, // X座標が threshold 超過で発動
+}
+
+/// 遷移境界の定義
+class TransitionBoundary {
+  /// どの辺か
+  final BoundaryEdge edge;
+
+  /// 座標のしきい値
+  final double threshold;
+
+  /// 次ステージのassetPath
+  final String nextStage;
+
+  const TransitionBoundary({
+    required this.edge,
+    required this.threshold,
+    required this.nextStage,
+  });
+
+  factory TransitionBoundary.fromJson(Map<String, dynamic> json) {
+    return TransitionBoundary(
+      edge: BoundaryEdge.values.firstWhere(
+        (e) => e.name == json['edge'],
+        orElse: () => BoundaryEdge.top,
+      ),
+      threshold: (json['threshold'] as num?)?.toDouble() ?? 0.0,
+      nextStage: json['nextStage'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'edge': edge.name,
+      'threshold': threshold,
+      'nextStage': nextStage,
+    };
+  }
+}
+
+/// ステージ境界設定
+class StageBoundaries {
+  /// 落下リセット境界（Y座標がこの値を超えたらリセット）
+  final double fallThreshold;
+
+  /// 遷移境界のリスト
+  final List<TransitionBoundary> transitions;
+
+  const StageBoundaries({
+    this.fallThreshold = 50.0,
+    this.transitions = const [],
+  });
+
+  factory StageBoundaries.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return const StageBoundaries();
+    }
+    return StageBoundaries(
+      fallThreshold: (json['fallThreshold'] as num?)?.toDouble() ?? 50.0,
+      transitions: (json['transitions'] as List<dynamic>?)
+              ?.map((e) => TransitionBoundary.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'fallThreshold': fallThreshold,
+      'transitions': transitions.map((e) => e.toJson()).toList(),
+    };
+  }
+
+  /// 遷移先がないか（最終ステージか）
+  bool get isFinalStage => transitions.isEmpty;
+}
+
 /// ステージデータモデル
 /// JSONファイルからステージ情報を読み込み・保存する
 class StageData {
@@ -23,6 +105,9 @@ class StageData {
   /// ステージオブジェクトのJSON配列
   final List<Map<String, dynamic>> objects;
 
+  /// ステージ境界設定
+  final StageBoundaries boundaries;
+
   const StageData({
     required this.level,
     required this.name,
@@ -30,6 +115,7 @@ class StageData {
     required this.spawnX,
     required this.spawnY,
     required this.objects,
+    this.boundaries = const StageBoundaries(),
   });
 
   /// JSONからStageDataを生成
@@ -44,6 +130,8 @@ class StageData {
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
           [],
+      boundaries:
+          StageBoundaries.fromJson(json['boundaries'] as Map<String, dynamic>?),
     );
   }
 
@@ -56,6 +144,7 @@ class StageData {
       'spawnX': spawnX,
       'spawnY': spawnY,
       'objects': objects,
+      'boundaries': boundaries.toJson(),
     };
   }
 
@@ -92,6 +181,7 @@ class StageData {
     double? spawnX,
     double? spawnY,
     List<Map<String, dynamic>>? objects,
+    StageBoundaries? boundaries,
   }) {
     return StageData(
       level: level ?? this.level,
@@ -100,6 +190,7 @@ class StageData {
       spawnX: spawnX ?? this.spawnX,
       spawnY: spawnY ?? this.spawnY,
       objects: objects ?? this.objects,
+      boundaries: boundaries ?? this.boundaries,
     );
   }
 }

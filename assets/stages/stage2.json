@@ -4,6 +4,10 @@
   "background": "tatami.jpg",
   "spawnX": 0,
   "spawnY": 5,
+  "boundaries": {
+    "fallThreshold": 50.0,
+    "transitions": []
+  },
   "objects": [
     {
       "type": "platform",

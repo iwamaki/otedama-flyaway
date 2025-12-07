@@ -4,6 +4,16 @@
   "background": "tatami.jpg",
   "spawnX": 0,
   "spawnY": 5,
+  "boundaries": {
+    "fallThreshold": 50.0,
+    "transitions": [
+      {
+        "edge": "top",
+        "threshold": -95.0,
+        "nextStage": "assets/stages/stage2.json"
+      }
+    ]
+  },
   "objects": [
     {
       "type": "platform",
@@ -159,15 +169,6 @@
       "angle": 0,
       "bounceForce": 120,
       "color": 4293467747
-    },
-    {
-      "type": "goal",
-      "x": 10,
-      "y": -90,
-      "width": 6,
-      "height": 5,
-      "angle": 0,
-      "color": 4287317267
     }
   ]
 }
