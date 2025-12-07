@@ -41,8 +41,8 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
   /// リンクID（ペアの遷移ゾーンを識別するための一意のID）
   String linkId;
 
-  /// ゾーンの色
-  final Color color;
+  /// ゾーンの色（linkIdから自動生成）
+  Color get color => _colorFromLinkId(linkId);
 
   /// サイズ変更可能
   @override
@@ -55,6 +55,18 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     return '${now.toRadixString(36)}_${random.toRadixString(36)}';
   }
 
+  /// linkIdから一貫した色を生成
+  static Color _colorFromLinkId(String linkId) {
+    // linkIdのハッシュ値を計算
+    int hash = 0;
+    for (int i = 0; i < linkId.length; i++) {
+      hash = linkId.codeUnitAt(i) + ((hash << 5) - hash);
+    }
+    // HSLで鮮やかな色を生成（色相のみ変更、彩度と輝度は固定）
+    final hue = (hash % 360).abs().toDouble();
+    return HSLColor.fromAHSL(1.0, hue, 0.7, 0.5).toColor();
+  }
+
   TransitionZone({
     required Vector2 position,
     double width = 5.0,
@@ -64,7 +76,6 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     this.spawnX,
     this.spawnY,
     String? linkId,
-    this.color = const Color(0xFF00BCD4), // シアン
   })  : initialPosition = position.clone(),
         _width = width,
         _height = height,
@@ -82,7 +93,6 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       spawnX: (json['spawnX'] as num?)?.toDouble(),
       spawnY: (json['spawnY'] as num?)?.toDouble(),
       linkId: json['linkId'] as String?,
-      color: json.getColor('color', const Color(0xFF00BCD4)),
     );
   }
 
@@ -121,8 +131,6 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       if (spawnX != null) 'spawnX': spawnX,
       if (spawnY != null) 'spawnY': spawnY,
       'linkId': linkId,
-      // ignore: deprecated_member_use
-      'color': color.value,
     };
   }
 

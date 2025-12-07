@@ -266,7 +266,6 @@ class StageManager {
           'spawnX': currentZonePosition.x,
           'spawnY': currentZonePosition.y,
           'linkId': linkId,
-          'color': 0xFFFF9800,
         };
         newObjects = [...targetStage.objects, returnZoneJson];
         logMessage = 'Added return TransitionZone (linkId=$linkId) to $targetStageAsset at (${returnZoneX.toStringAsFixed(1)}, ${returnZoneY.toStringAsFixed(1)}) -> $_currentStageAsset';
