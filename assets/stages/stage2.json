@@ -2,8 +2,8 @@
   "level": 2,
   "name": "ステージ2",
   "background": "tatami.jpg",
-  "spawnX": 0,
-  "spawnY": 5,
+  "spawnX": 0.0,
+  "spawnY": 5.0,
   "boundaries": {
     "fallThreshold": 50.0,
     "transitions": []
@@ -13,16 +13,16 @@
       "type": "platform",
       "x": 10.00902271270752,
       "y": -0.33286070823669434,
-      "width": 6,
+      "width": 6.0,
       "height": 0.5,
-      "angle": 0,
+      "angle": 0.0,
       "color": 4285238819
     },
     {
       "type": "platform",
       "x": 23.08175277709961,
       "y": -3.973773717880249,
-      "width": 6,
+      "width": 6.0,
       "height": 0.5,
       "angle": 1.5939314755072758,
       "color": 4285238819
@@ -31,18 +31,31 @@
       "type": "platform",
       "x": 8.278718948364258,
       "y": -10.448015213012695,
-      "width": 6,
+      "width": 6.0,
       "height": 0.5,
-      "angle": 0,
+      "angle": 0.0,
       "color": 4285238819
     },
     {
       "type": "goal",
       "x": 8.352965354919434,
       "y": -12.901044845581055,
-      "width": 5,
-      "height": 4,
+      "width": 5.0,
+      "height": 4.0,
+      "angle": 0.0,
       "color": 4287317267
+    },
+    {
+      "type": "transitionZone",
+      "x": 18.036418914794922,
+      "y": -4.436585426330566,
+      "width": 5.0,
+      "height": 5.0,
+      "angle": 0.0,
+      "nextStage": "assets/stages/stage1.json",
+      "spawnX": 10.750054359436035,
+      "spawnY": 3.5952320098876953,
+      "linkId": "mivgqqzh_lno"
     }
   ]
 }
