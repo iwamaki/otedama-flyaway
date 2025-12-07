@@ -325,6 +325,9 @@ class Terrain extends BodyComponent with StageObject {
           ..style = PaintingStyle.fill,
       );
 
+      // ビューポート範囲を計算（ローカル座標系）
+      final viewportBounds = _calculateViewportBounds();
+
       // 質感パターン
       final edges = _getAllEdges();
       _pattern.draw(
@@ -332,6 +335,7 @@ class Terrain extends BodyComponent with StageObject {
         clipPath: fillPath,
         edges: edges,
         seed: _patternSeed,
+        viewportBounds: viewportBounds,
       );
     }
 
@@ -363,6 +367,39 @@ class Terrain extends BodyComponent with StageObject {
         halfWidth: size.x / 2,
         halfHeight: size.y / 2,
       );
+    }
+  }
+
+  /// ビューポート範囲をローカル座標系で計算
+  Rect? _calculateViewportBounds() {
+    if (!isMounted) return null;
+
+    try {
+      final camera = game.camera;
+      final cameraPos = camera.viewfinder.position;
+      final zoom = camera.viewfinder.zoom;
+      final viewportSize = camera.viewport.size;
+
+      // ビューポートの半分のサイズ（ワールド座標）
+      final halfWidth = viewportSize.x / zoom / 2;
+      final halfHeight = viewportSize.y / zoom / 2;
+
+      // ワールド座標でのビューポート範囲
+      final worldLeft = cameraPos.x - halfWidth;
+      final worldTop = cameraPos.y - halfHeight;
+      final worldRight = cameraPos.x + halfWidth;
+      final worldBottom = cameraPos.y + halfHeight;
+
+      // ローカル座標に変換（body.positionを引く）
+      final bodyPos = body.position;
+      return Rect.fromLTRB(
+        worldLeft - bodyPos.x,
+        worldTop - bodyPos.y,
+        worldRight - bodyPos.x,
+        worldBottom - bodyPos.y,
+      );
+    } catch (_) {
+      return null;
     }
   }
 

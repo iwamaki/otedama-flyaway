@@ -6,7 +6,6 @@ import '../components/drag_line.dart';
 import '../components/particle_otedama.dart';
 import '../components/stage/goal.dart';
 import '../components/stage/stage_object.dart';
-import '../components/stage/terrain.dart';
 import '../components/stage/transition_zone.dart';
 import '../config/otedama_skin_config.dart';
 import '../config/physics_config.dart';
@@ -118,9 +117,6 @@ class OtedamaGame extends Forge2DGame
 
     // 音声サービスを初期化
     await AudioService.instance.initialize();
-
-    // 地形テクスチャをロード
-    await TerrainTextureCache.instance.loadAll();
 
     // カメラ設定
     camera.viewfinder.anchor = Anchor.center;

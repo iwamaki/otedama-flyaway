@@ -43,6 +43,10 @@ void main() async {
   await SettingsService.instance.init();
   logger.info(LogCategory.system, 'Settings service initialized');
 
+  // 地形テクスチャをプリロード
+  await TerrainTextureCache.instance.loadAll();
+  logger.info(LogCategory.system, 'Terrain textures preloaded');
+
   runApp(const OtedamaApp());
 }
 

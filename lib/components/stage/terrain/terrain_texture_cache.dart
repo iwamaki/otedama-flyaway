@@ -46,8 +46,8 @@ class TerrainTextureCache {
   }
 
   /// テクスチャサイズ（ワールド座標単位）
-  /// 128pxのテクスチャを8ワールド単位で表示
-  static const double textureSizeInWorld = 8.0;
+  /// 128pxのテクスチャを2ワールド単位で表示
+  static const double textureSizeInWorld = 2.0;
 
   /// キャッシュをクリア
   void clear() {
