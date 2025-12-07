@@ -190,7 +190,7 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       logger.info(LogCategory.game,
           'TransitionZone triggering: nextStage=$nextStage, spawnX=$spawnX, spawnY=$spawnY');
       // 遷移を発動（自分自身を渡して、スポーン位置や速度情報を取得できるようにする）
-      otedamaGame.triggerZoneTransition(this);
+      otedamaGame.triggerZoneTransitionCompat(this);
     } else {
       logger.debug(LogCategory.game,
           'TransitionZone NOT triggering: isTransitionZone=$isTransitionZone, nextStage.isEmpty=${nextStage.isEmpty}');
