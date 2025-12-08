@@ -1,7 +1,6 @@
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 
-import '../../config/physics_config.dart';
 import '../../utils/json_helpers.dart';
 import '../../utils/selection_highlight.dart';
 import 'stage_object.dart';
@@ -18,9 +17,6 @@ class Terrain extends BodyComponent with StageObject {
   final bool isLoop;
   final TerrainType terrainType;
   final Color fillColor;
-  final Color strokeColor;
-
-  static const double strokeWidth = 0.1;
 
   late final int _patternSeed;
   late final TerrainPattern _pattern;
@@ -31,11 +27,9 @@ class Terrain extends BodyComponent with StageObject {
     this.isLoop = true,
     this.terrainType = TerrainType.dirt,
     Color? fillColor,
-    Color? strokeColor,
   })  : initialPosition = position.clone(),
         _vertices = vertices.map((v) => v.clone()).toList(),
-        fillColor = fillColor ?? terrainType.defaultFillColor,
-        strokeColor = strokeColor ?? terrainType.defaultStrokeColor {
+        fillColor = fillColor ?? terrainType.defaultFillColor {
     _patternSeed = position.hashCode ^ vertices.length;
     _pattern = _createPattern(terrainType);
   }
@@ -78,9 +72,6 @@ class Terrain extends BodyComponent with StageObject {
       fillColor: json.containsKey('fillColor')
           ? json.getColor('fillColor', terrainType.defaultFillColor)
           : null,
-      strokeColor: json.containsKey('strokeColor')
-          ? json.getColor('strokeColor', terrainType.defaultStrokeColor)
-          : null,
     );
   }
 
@@ -90,7 +81,6 @@ class Terrain extends BodyComponent with StageObject {
     required double height,
     TerrainType terrainType = TerrainType.dirt,
     Color? fillColor,
-    Color? strokeColor,
   }) {
     final halfW = width / 2;
     final halfH = height / 2;
@@ -105,7 +95,6 @@ class Terrain extends BodyComponent with StageObject {
       isLoop: true,
       terrainType: terrainType,
       fillColor: fillColor,
-      strokeColor: strokeColor,
     );
   }
 
@@ -209,8 +198,6 @@ class Terrain extends BodyComponent with StageObject {
       'terrainType': terrainType.name,
       // ignore: deprecated_member_use
       'fillColor': fillColor.value,
-      // ignore: deprecated_member_use
-      'strokeColor': strokeColor.value,
     };
   }
 
@@ -280,8 +267,8 @@ class Terrain extends BodyComponent with StageObject {
     }
 
     body.createFixture(FixtureDef(chain)
-      ..friction = PhysicsConfig.terrainFriction
-      ..restitution = PhysicsConfig.terrainRestitution);
+      ..friction = terrainType.friction
+      ..restitution = terrainType.restitution);
   }
 
   // --- BodyComponent 実装 ---
@@ -304,8 +291,8 @@ class Terrain extends BodyComponent with StageObject {
       }
 
       body.createFixture(FixtureDef(chain)
-        ..friction = PhysicsConfig.terrainFriction
-        ..restitution = PhysicsConfig.terrainRestitution);
+        ..friction = terrainType.friction
+        ..restitution = terrainType.restitution);
     }
 
     return body;
@@ -345,26 +332,6 @@ class Terrain extends BodyComponent with StageObject {
         viewportBounds: viewportBounds,
       );
     }
-
-    // 輪郭線
-    final strokePath = Path();
-    strokePath.moveTo(_vertices[0].x, _vertices[0].y);
-    for (int i = 1; i < _vertices.length; i++) {
-      strokePath.lineTo(_vertices[i].x, _vertices[i].y);
-    }
-    if (isLoop) {
-      strokePath.close();
-    }
-
-    canvas.drawPath(
-      strokePath,
-      Paint()
-        ..color = strokeColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
 
     // 選択中ならハイライト
     if (isSelected) {

@@ -14,6 +14,45 @@ enum TerrainType {
 
 /// TerrainType拡張メソッド
 extension TerrainTypeExtension on TerrainType {
+  /// 摩擦係数（素材ごとの滑りやすさ）
+  double get friction {
+    switch (this) {
+      case TerrainType.ice:
+        return 0.02; // 非常に滑りやすい
+      case TerrainType.snowIce:
+        return 0.05; // 滑りやすい
+      case TerrainType.metal:
+        return 0.3; // やや滑りやすい
+      case TerrainType.rock:
+        return 0.6; // やや摩擦が高い
+      case TerrainType.wood:
+        return 0.7; // 摩擦が高い
+      case TerrainType.grass:
+      case TerrainType.dirt:
+      case TerrainType.snow:
+        return 0.5; // 標準
+    }
+  }
+
+  /// 反発係数（素材ごとの跳ね返りやすさ）
+  double get restitution {
+    switch (this) {
+      case TerrainType.ice:
+      case TerrainType.snowIce:
+        return 0.1; // ほとんど跳ねない
+      case TerrainType.metal:
+        return 0.4; // やや跳ねる
+      case TerrainType.rock:
+        return 0.3; // 少し跳ねる
+      case TerrainType.wood:
+        return 0.25; // 少し吸収
+      case TerrainType.grass:
+      case TerrainType.dirt:
+      case TerrainType.snow:
+        return 0.2; // 標準
+    }
+  }
+
   /// デフォルトの塗りつぶし色（内側の色）
   Color get defaultFillColor {
     switch (this) {
@@ -33,28 +72,6 @@ extension TerrainTypeExtension on TerrainType {
         return const Color(0xFF8B5A2B); // 茶色（土）- 草と同様
       case TerrainType.snowIce:
         return const Color(0xFFB0E0E6); // 氷と同様
-    }
-  }
-
-  /// デフォルトの輪郭色
-  Color get defaultStrokeColor {
-    switch (this) {
-      case TerrainType.grass:
-        return const Color(0xFF5D3A1A);
-      case TerrainType.dirt:
-        return const Color(0xFF5D3A1A);
-      case TerrainType.rock:
-        return const Color(0xFF404040);
-      case TerrainType.ice:
-        return const Color(0xFF87CEEB);
-      case TerrainType.wood:
-        return const Color(0xFF5D2906);
-      case TerrainType.metal:
-        return const Color(0xFF4A5568);
-      case TerrainType.snow:
-        return const Color(0xFF5D3A1A); // 草と同様
-      case TerrainType.snowIce:
-        return const Color(0xFF87CEEB); // 氷と同様
     }
   }
 
