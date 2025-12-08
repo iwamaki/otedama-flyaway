@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../../components/stage/image_object.dart';
 import '../../components/stage/stage_object.dart';
+import '../../components/stage/terrain.dart';
 import '../../components/stage/transition_zone.dart';
 import '../../game/otedama_game.dart';
+import 'terrain_editor_panel.dart';
 import 'transition_zone_settings.dart';
 
 /// オブジェクト操作パネル
@@ -30,13 +32,15 @@ class _ObjectPanelState extends State<ObjectPanel> {
 
     return Container(
       padding: const EdgeInsets.all(12),
+      constraints: const BoxConstraints(maxHeight: 500),
       decoration: BoxDecoration(
         color: Colors.black87,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // オブジェクトタイプ
           Text(
             obj.type.toUpperCase(),
@@ -114,6 +118,17 @@ class _ObjectPanelState extends State<ObjectPanel> {
             ),
           ],
 
+          // Terrain編集パネル
+          if (obj is Terrain) ...[
+            const SizedBox(height: 8),
+            const Divider(color: Colors.white24, height: 1),
+            const SizedBox(height: 8),
+            TerrainEditorPanel(
+              terrain: obj,
+              onChanged: () => setState(() {}),
+            ),
+          ],
+
           const SizedBox(height: 8),
 
           // アクションボタン
@@ -140,6 +155,7 @@ class _ObjectPanelState extends State<ObjectPanel> {
             },
           ),
         ],
+        ),
       ),
     );
   }
@@ -444,48 +460,47 @@ class _EditableValue extends StatelessWidget {
   }
 
   Future<void> _showInputDialog(BuildContext context) async {
-    final controller = TextEditingController(
-      text: decimals == 0 ? value.round().toString() : value.toStringAsFixed(decimals),
-    );
+    final initialText = decimals == 0 ? value.round().toString() : value.toStringAsFixed(decimals);
 
     final result = await showDialog<double>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('数値入力'),
-        content: TextField(
-          controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: '${min.toStringAsFixed(decimals)} ~ ${max.toStringAsFixed(decimals)}',
-            suffixText: suffix.isNotEmpty ? suffix : null,
-          ),
-          onSubmitted: (text) {
-            final parsed = double.tryParse(text);
-            if (parsed != null) {
-              Navigator.of(ctx).pop(parsed.clamp(min, max));
-            }
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('キャンセル'),
-          ),
-          TextButton(
-            onPressed: () {
-              final parsed = double.tryParse(controller.text);
+      builder: (ctx) {
+        final controller = TextEditingController(text: initialText);
+        return AlertDialog(
+          title: const Text('数値入力'),
+          content: TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: '${min.toStringAsFixed(decimals)} ~ ${max.toStringAsFixed(decimals)}',
+              suffixText: suffix.isNotEmpty ? suffix : null,
+            ),
+            onSubmitted: (text) {
+              final parsed = double.tryParse(text);
               if (parsed != null) {
                 Navigator.of(ctx).pop(parsed.clamp(min, max));
               }
             },
-            child: const Text('OK'),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('キャンセル'),
+            ),
+            TextButton(
+              onPressed: () {
+                final parsed = double.tryParse(controller.text);
+                if (parsed != null) {
+                  Navigator.of(ctx).pop(parsed.clamp(min, max));
+                }
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
     );
-
-    controller.dispose();
 
     if (result != null) {
       onChanged(result);

@@ -15,23 +15,42 @@ class Terrain extends BodyComponent with StageObject {
   final Vector2 initialPosition;
   List<Vector2> _vertices;
   final bool isLoop;
-  final TerrainType terrainType;
-  final Color fillColor;
+  TerrainType _terrainType;
+  Color _fillColor;
 
   late final int _patternSeed;
-  late final TerrainPattern _pattern;
+  TerrainPattern _pattern;
 
   Terrain({
     required Vector2 position,
     required List<Vector2> vertices,
     this.isLoop = true,
-    this.terrainType = TerrainType.dirt,
+    TerrainType terrainType = TerrainType.dirt,
     Color? fillColor,
   })  : initialPosition = position.clone(),
         _vertices = vertices.map((v) => v.clone()).toList(),
-        fillColor = fillColor ?? terrainType.defaultFillColor {
+        _terrainType = terrainType,
+        _fillColor = fillColor ?? terrainType.defaultFillColor,
+        _pattern = _createPattern(terrainType) {
     _patternSeed = position.hashCode ^ vertices.length;
-    _pattern = _createPattern(terrainType);
+  }
+
+  /// 地形の種類
+  TerrainType get terrainType => _terrainType;
+
+  /// 塗りつぶし色
+  Color get fillColor => _fillColor;
+
+  /// 地形の種類を変更
+  void setTerrainType(TerrainType newType, {bool updateColor = true}) {
+    if (_terrainType == newType) return;
+    _terrainType = newType;
+    _pattern = _createPattern(newType);
+    if (updateColor) {
+      _fillColor = newType.defaultFillColor;
+    }
+    // 物理特性を更新
+    _rebuildFixtures();
   }
 
   static TerrainPattern _createPattern(TerrainType type) {
@@ -211,6 +230,13 @@ class Terrain extends BodyComponent with StageObject {
     if (props.containsKey('angle')) {
       final newAngle = (props['angle'] as num?)?.toDouble() ?? 0.0;
       body.setTransform(body.position, newAngle);
+    }
+    if (props.containsKey('terrainType')) {
+      final typeStr = props['terrainType'] as String?;
+      if (typeStr != null) {
+        final newType = TerrainTypeExtension.fromString(typeStr);
+        setTerrainType(newType);
+      }
     }
     if (props.containsKey('vertices')) {
       final verticesList = props['vertices'] as List<dynamic>? ?? [];
