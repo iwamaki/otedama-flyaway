@@ -6,17 +6,56 @@
   "ambientSound": "mountain_in_spring.mp3",
   "ambientSoundVolume": 0.5,
   "spawnX": -20,
-  "spawnY": 3,
+  "spawnY": 0,
   "objects": [
     {
       "type": "terrain",
       "x": 0,
       "y": 0,
       "vertices": [
-        {"x": -30, "y": 5},
-        {"x": -18, "y": 5},
-        {"x": -18, "y": 15},
-        {"x": -30, "y": 15}
+        {
+          "x": -30,
+          "y": 5
+        },
+        {
+          "x": -18,
+          "y": 5
+        },
+        {
+          "x": -18,
+          "y": 15
+        },
+        {
+          "x": -30,
+          "y": 15
+        }
+      ],
+      "isLoop": true,
+      "terrainType": "grass",
+      "fillColor": 4287322667,
+      "strokeColor": 4284299802
+    },
+    {
+      "type": "terrain",
+      "x": 0.5,
+      "y": 0,
+      "vertices": [
+        {
+          "x": -12,
+          "y": 5
+        },
+        {
+          "x": -5,
+          "y": 5
+        },
+        {
+          "x": -5,
+          "y": 15
+        },
+        {
+          "x": -12,
+          "y": 15
+        }
       ],
       "isLoop": true,
       "terrainType": "grass",
@@ -28,10 +67,22 @@
       "x": 0,
       "y": 0,
       "vertices": [
-        {"x": -12, "y": 5},
-        {"x": -5, "y": 5},
-        {"x": -5, "y": 15},
-        {"x": -12, "y": 15}
+        {
+          "x": 2,
+          "y": 5
+        },
+        {
+          "x": 9,
+          "y": 5
+        },
+        {
+          "x": 9,
+          "y": 15
+        },
+        {
+          "x": 2,
+          "y": 15
+        }
       ],
       "isLoop": true,
       "terrainType": "grass",
@@ -40,28 +91,25 @@
     },
     {
       "type": "terrain",
-      "x": 0,
-      "y": 0,
+      "x": 22.55301856994629,
+      "y": -20.057584762573242,
       "vertices": [
-        {"x": 2, "y": 5},
-        {"x": 9, "y": 5},
-        {"x": 9, "y": 15},
-        {"x": 2, "y": 15}
-      ],
-      "isLoop": true,
-      "terrainType": "grass",
-      "fillColor": 4287322667,
-      "strokeColor": 4284299802
-    },
-    {
-      "type": "terrain",
-      "x": 0,
-      "y": 0,
-      "vertices": [
-        {"x": 20, "y": 5},
-        {"x": 30, "y": 5},
-        {"x": 30, "y": 15},
-        {"x": 20, "y": 15}
+        {
+          "x": 20,
+          "y": 5
+        },
+        {
+          "x": 30,
+          "y": 5
+        },
+        {
+          "x": 30,
+          "y": 15
+        },
+        {
+          "x": 20,
+          "y": 15
+        }
       ],
       "isLoop": true,
       "terrainType": "grass",
@@ -79,6 +127,28 @@
       "spawnX": 19.48903465270996,
       "spawnY": 0.4411149024963379,
       "linkId": "miwk0ws7_ttu"
+    },
+    {
+      "type": "platform",
+      "x": 18.416637420654297,
+      "y": -4.464259147644043,
+      "width": 7,
+      "height": 1,
+      "angle": 0,
+      "flipX": false,
+      "flipY": false,
+      "color": 4285238819
+    },
+    {
+      "type": "platform",
+      "x": 30.935937881469727,
+      "y": -14.597951889038086,
+      "width": 7,
+      "height": 1,
+      "angle": 0,
+      "flipX": false,
+      "flipY": false,
+      "color": 4285238819
     }
   ],
   "boundaries": {

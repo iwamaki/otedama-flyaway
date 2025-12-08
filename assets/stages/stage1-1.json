@@ -6,7 +6,7 @@
   "ambientSound": "mountain_in_spring.mp3",
   "ambientSoundVolume": 0.5,
   "spawnX": -20,
-  "spawnY": 3,
+  "spawnY": 0,
   "objects": [
     {
       "type": "terrain",
@@ -62,6 +62,17 @@
       "spawnX": -26.21781349182129,
       "spawnY": -0.5263622999191284,
       "linkId": "miwjyinq_o74"
+    },
+    {
+      "type": "platform",
+      "x": -1.2270525693893433,
+      "y": -2.7717132568359375,
+      "width": 7,
+      "height": 1,
+      "angle": 0,
+      "flipX": false,
+      "flipY": false,
+      "color": 4285238819
     }
   ],
   "boundaries": {
