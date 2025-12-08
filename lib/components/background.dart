@@ -15,11 +15,17 @@ class Background extends PositionComponent {
   ui.Image? _image;
   Vector2 _offset = Vector2.zero();
 
+  /// 背景の暗さ（0.0〜1.0: 0=明るい、1=真っ暗）
+  double _darkness = 0.0;
+  double get darkness => _darkness;
+  set darkness(double value) => _darkness = value.clamp(0.0, 1.0);
+
   Background({
     this.imagePath,
     this.fallbackColor = const Color(0xFFE8DCC8),
     this.parallaxFactor = 0.1, // デフォルト: お手玉の10%の速さで動く
-  });
+    double darkness = 0.0,
+  }) : _darkness = darkness.clamp(0.0, 1.0);
 
   @override
   Future<void> onLoad() async {
@@ -47,6 +53,16 @@ class Background extends PositionComponent {
       _renderImageCover(canvas, screenSize);
     } else {
       _renderFallback(canvas, screenSize);
+    }
+
+    // 暗さオーバーレイを描画
+    if (_darkness > 0) {
+      final overlayPaint = Paint()
+        ..color = Color.fromRGBO(0, 0, 0, _darkness);
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, screenSize.x, screenSize.y),
+        overlayPaint,
+      );
     }
   }
 

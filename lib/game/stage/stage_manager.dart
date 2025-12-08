@@ -42,6 +42,15 @@ class StageManager {
   String? _backgroundImage;
   String? get backgroundImage => _backgroundImage;
 
+  /// 背景の暗さ（0.0〜1.0）
+  double _backgroundDarkness = 0.0;
+  double get backgroundDarkness => _backgroundDarkness;
+  set backgroundDarkness(double value) {
+    _backgroundDarkness = value.clamp(0.0, 1.0);
+    _background?.darkness = _backgroundDarkness;
+    onChanged?.call();
+  }
+
   /// 現在の環境音パス
   String? _ambientSound;
   String? get ambientSound => _ambientSound;
@@ -81,6 +90,7 @@ class StageManager {
       level: currentStageLevel,
       name: currentStageName,
       background: _backgroundImage,
+      backgroundDarkness: _backgroundDarkness,
       ambientSound: _ambientSound,
       ambientSoundVolume: _ambientSoundVolume,
       spawnX: spawnX,
@@ -192,6 +202,10 @@ class StageManager {
       _backgroundImage = stageData.background;
       await changeBackground(stageData.background);
     }
+
+    // 背景の暗さを設定
+    _backgroundDarkness = stageData.backgroundDarkness;
+    _background?.darkness = _backgroundDarkness;
 
     // 環境音を変更
     final newAmbientSound = stageData.ambientSound;
@@ -399,7 +413,7 @@ class StageManager {
 
   /// 背景を初期化
   Future<void> initBackground(CameraComponent camera, Vector2 size) async {
-    _background = Background(imagePath: _backgroundImage)
+    _background = Background(imagePath: _backgroundImage, darkness: _backgroundDarkness)
       ..size = size
       ..position = Vector2.zero()
       ..priority = -100;
@@ -416,7 +430,7 @@ class StageManager {
     }
 
     // 新しい背景を追加
-    _background = Background(imagePath: _backgroundImage)
+    _background = Background(imagePath: _backgroundImage, darkness: _backgroundDarkness)
       ..size = size
       ..position = Vector2.zero()
       ..priority = -100;

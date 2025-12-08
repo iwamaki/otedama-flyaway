@@ -96,6 +96,9 @@ class StageData {
   /// 背景画像パス（nullならデフォルト背景）
   final String? background;
 
+  /// 背景の暗さ（0.0〜1.0: 0=明るい、1=真っ暗）
+  final double backgroundDarkness;
+
   /// 環境音/BGMのファイル名（nullなら環境音なし）
   /// 例: 'morning_sparrows.mp3'
   final String? ambientSound;
@@ -119,6 +122,7 @@ class StageData {
     required this.level,
     required this.name,
     this.background,
+    this.backgroundDarkness = 0.0,
     this.ambientSound,
     this.ambientSoundVolume = 0.5,
     required this.spawnX,
@@ -133,6 +137,8 @@ class StageData {
       level: (json['level'] as num?)?.toInt() ?? 0,
       name: json['name'] as String? ?? 'Unnamed Stage',
       background: json['background'] as String?,
+      backgroundDarkness:
+          (json['backgroundDarkness'] as num?)?.toDouble() ?? 0.0,
       ambientSound: json['ambientSound'] as String?,
       ambientSoundVolume:
           (json['ambientSoundVolume'] as num?)?.toDouble() ?? 0.5,
@@ -153,6 +159,7 @@ class StageData {
       'level': level,
       'name': name,
       'background': background,
+      'backgroundDarkness': backgroundDarkness,
       'ambientSound': ambientSound,
       'ambientSoundVolume': ambientSoundVolume,
       'spawnX': spawnX,
@@ -192,6 +199,7 @@ class StageData {
     int? level,
     String? name,
     String? background,
+    double? backgroundDarkness,
     String? ambientSound,
     double? ambientSoundVolume,
     double? spawnX,
@@ -203,6 +211,7 @@ class StageData {
       level: level ?? this.level,
       name: name ?? this.name,
       background: background ?? this.background,
+      backgroundDarkness: backgroundDarkness ?? this.backgroundDarkness,
       ambientSound: ambientSound ?? this.ambientSound,
       ambientSoundVolume: ambientSoundVolume ?? this.ambientSoundVolume,
       spawnX: spawnX ?? this.spawnX,
@@ -231,8 +240,9 @@ class StageEntry {
 class StageRegistry {
   /// 登録済みステージ一覧（レベル順）
   static const List<StageEntry> entries = [
-    StageEntry(level: 1, name: 'ステージ1', assetPath: 'assets/stages/stage1.json'),
-    StageEntry(level: 2, name: 'ステージ2', assetPath: 'assets/stages/stage2.json'),
+    StageEntry(level: 1, name: 'ステージ1-1', assetPath: 'assets/stages/stage1-1.json'),
+    StageEntry(level: 2, name: 'ステージ1-2', assetPath: 'assets/stages/stage1-2.json'),
+    StageEntry(level: 3, name: 'ステージ1-3', assetPath: 'assets/stages/stage1-3.json'),
   ];
 
   /// 全ステージを読み込み（レベル順）
