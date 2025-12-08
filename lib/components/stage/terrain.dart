@@ -164,17 +164,19 @@ class Terrain extends BodyComponent with StageObject {
 
   @override
   (Vector2 min, Vector2 max) get bounds {
+    final (minV, maxV) = _getVerticesBounds();
     final pos = body.position;
-    final size = _calculateBoundsSize();
-    final halfSize = size / 2;
     return (
-      Vector2(pos.x - halfSize.x, pos.y - halfSize.y),
-      Vector2(pos.x + halfSize.x, pos.y + halfSize.y),
+      Vector2(minV.x + pos.x, minV.y + pos.y),
+      Vector2(maxV.x + pos.x, maxV.y + pos.y),
     );
   }
 
-  Vector2 _calculateBoundsSize() {
-    if (_vertices.isEmpty) return Vector2.zero();
+  /// verticesのmin/maxを取得（ローカル座標）
+  (Vector2 min, Vector2 max) _getVerticesBounds() {
+    if (_vertices.isEmpty) {
+      return (Vector2.zero(), Vector2.zero());
+    }
 
     double minX = _vertices[0].x;
     double maxX = _vertices[0].x;
@@ -188,7 +190,12 @@ class Terrain extends BodyComponent with StageObject {
       if (v.y > maxY) maxY = v.y;
     }
 
-    return Vector2(maxX - minX, maxY - minY);
+    return (Vector2(minX, minY), Vector2(maxX, maxY));
+  }
+
+  Vector2 _calculateBoundsSize() {
+    final (minV, maxV) = _getVerticesBounds();
+    return Vector2(maxV.x - minV.x, maxV.y - minV.y);
   }
 
   @override
@@ -361,12 +368,21 @@ class Terrain extends BodyComponent with StageObject {
 
     // 選択中ならハイライト
     if (isSelected) {
-      final size = _calculateBoundsSize();
+      // verticesの中心を計算
+      final (minV, maxV) = _getVerticesBounds();
+      final centerX = (minV.x + maxV.x) / 2;
+      final centerY = (minV.y + maxV.y) / 2;
+      final halfWidth = (maxV.x - minV.x) / 2;
+      final halfHeight = (maxV.y - minV.y) / 2;
+
+      canvas.save();
+      canvas.translate(centerX, centerY);
       SelectionHighlight.draw(
         canvas,
-        halfWidth: size.x / 2,
-        halfHeight: size.y / 2,
+        halfWidth: halfWidth,
+        halfHeight: halfHeight,
       );
+      canvas.restore();
     }
   }
 

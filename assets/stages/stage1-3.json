@@ -5,34 +5,84 @@
   "backgroundDarkness": 0.3,
   "ambientSound": "mountain_in_spring.mp3",
   "ambientSoundVolume": 0.5,
-  "spawnX": -20.0,
-  "spawnY": 3.0,
-  "boundaries": {
-    "fallThreshold": 50.0,
-    "transitions": []
-  },
+  "spawnX": -20,
+  "spawnY": 3,
   "objects": [
     {
       "type": "terrain",
-      "x": 0.0,
-      "y": 0.0,
+      "x": 0,
+      "y": 0,
       "vertices": [
-        {"x": -30.0, "y": 5.0},
-        {"x": -20.0, "y": 5.0},
-        {"x": -15.0, "y": 8.0},
-        {"x": -10.0, "y": 3.0},
-        {"x": -5.0, "y": 6.0},
-        {"x": 0.0, "y": 2.0},
-        {"x": 5.0, "y": 7.0},
-        {"x": 10.0, "y": 4.0},
-        {"x": 15.0, "y": 8.0},
-        {"x": 20.0, "y": 5.0},
-        {"x": 25.0, "y": 5.0},
-        {"x": 25.0, "y": 20.0},
-        {"x": -30.0, "y": 20.0}
+        {"x": -30, "y": 5},
+        {"x": -18, "y": 5},
+        {"x": -18, "y": 15},
+        {"x": -30, "y": 15}
       ],
       "isLoop": true,
-      "terrainType": "grass"
+      "terrainType": "grass",
+      "fillColor": 4287322667,
+      "strokeColor": 4284299802
+    },
+    {
+      "type": "terrain",
+      "x": 0,
+      "y": 0,
+      "vertices": [
+        {"x": -12, "y": 5},
+        {"x": -5, "y": 5},
+        {"x": -5, "y": 15},
+        {"x": -12, "y": 15}
+      ],
+      "isLoop": true,
+      "terrainType": "grass",
+      "fillColor": 4287322667,
+      "strokeColor": 4284299802
+    },
+    {
+      "type": "terrain",
+      "x": 0,
+      "y": 0,
+      "vertices": [
+        {"x": 2, "y": 5},
+        {"x": 9, "y": 5},
+        {"x": 9, "y": 15},
+        {"x": 2, "y": 15}
+      ],
+      "isLoop": true,
+      "terrainType": "grass",
+      "fillColor": 4287322667,
+      "strokeColor": 4284299802
+    },
+    {
+      "type": "terrain",
+      "x": 0,
+      "y": 0,
+      "vertices": [
+        {"x": 20, "y": 5},
+        {"x": 30, "y": 5},
+        {"x": 30, "y": 15},
+        {"x": 20, "y": 15}
+      ],
+      "isLoop": true,
+      "terrainType": "grass",
+      "fillColor": 4287322667,
+      "strokeColor": 4284299802
+    },
+    {
+      "type": "transitionZone",
+      "x": -24.704917907714844,
+      "y": -0.061918094754219055,
+      "width": 5,
+      "height": 5,
+      "angle": 0,
+      "nextStage": "assets/stages/stage1-2.json",
+      "spawnX": 19.48903465270996,
+      "spawnY": 0.4411149024963379,
+      "linkId": "miwk0ws7_ttu"
     }
-  ]
+  ],
+  "boundaries": {
+    "fallThreshold": 50,
+    "transitions": []
+  }
 }

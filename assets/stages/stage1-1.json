@@ -5,29 +5,67 @@
   "backgroundDarkness": 0.3,
   "ambientSound": "mountain_in_spring.mp3",
   "ambientSoundVolume": 0.5,
-  "spawnX": -20.0,
-  "spawnY": 3.0,
-  "boundaries": {
-    "fallThreshold": 50.0,
-    "transitions": []
-  },
+  "spawnX": -20,
+  "spawnY": 3,
   "objects": [
     {
       "type": "terrain",
-      "x": 0.0,
-      "y": 0.0,
+      "x": 0.9848461151123047,
+      "y": -0.010604381561279297,
       "vertices": [
-        {"x": -30.0, "y": 5.0},
-        {"x": -15.0, "y": 5.0},
-        {"x": -10.0, "y": 6.0},
-        {"x": 5.0, "y": 6.0},
-        {"x": 10.0, "y": 5.0},
-        {"x": 25.0, "y": 5.0},
-        {"x": 25.0, "y": 20.0},
-        {"x": -30.0, "y": 20.0}
+        {
+          "x": -30,
+          "y": 5
+        },
+        {
+          "x": -15,
+          "y": 5
+        },
+        {
+          "x": -10,
+          "y": 6
+        },
+        {
+          "x": 5,
+          "y": 6
+        },
+        {
+          "x": 10,
+          "y": 5
+        },
+        {
+          "x": 25,
+          "y": 5
+        },
+        {
+          "x": 25,
+          "y": 20
+        },
+        {
+          "x": -30,
+          "y": 20
+        }
       ],
       "isLoop": true,
-      "terrainType": "grass"
+      "terrainType": "grass",
+      "fillColor": 4287322667,
+      "strokeColor": 4284299802
+    },
+    {
+      "type": "transitionZone",
+      "x": 20.397335052490234,
+      "y": 0.16454672813415527,
+      "width": 5,
+      "height": 5,
+      "angle": 0,
+      "nextStage": "assets/stages/stage1-2.json",
+      "spawnX": -26.21781349182129,
+      "spawnY": -0.5263622999191284,
+      "linkId": "miwjyinq_o74"
     }
-  ]
+  ],
+  "boundaries": {
+    "fallThreshold": 50,
+    "transitions": []
+  }
 }
