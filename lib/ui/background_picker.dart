@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// 利用可能な背景画像の定義
 class BackgroundItem {
@@ -12,27 +13,90 @@ class BackgroundItem {
 }
 
 /// 背景画像のレジストリ
-/// 新しい背景画像を追加する場合はここに追加
+/// assets/images/backgrounds/ フォルダ内の画像を自動で読み込む
 class BackgroundRegistry {
-  static const List<BackgroundItem> backgrounds = [
-    BackgroundItem(
-      imagePath: null,
-      name: 'デフォルト',
-    ),
-    BackgroundItem(
-      imagePath: 'tatami.jpg',
-      name: '畳',
-    ),
-    // 新しい背景を追加する場合:
-    // BackgroundItem(
-    //   imagePath: 'sky.jpg',
-    //   name: '空',
-    // ),
+  static List<BackgroundItem>? _cachedBackgrounds;
+
+  /// 背景画像のパスのプレフィックス
+  static const String _backgroundsPath = 'assets/images/backgrounds/';
+
+  /// サポートする画像拡張子
+  static const List<String> _supportedExtensions = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
   ];
+
+  /// 背景画像リストを取得（非同期）
+  static Future<List<BackgroundItem>> loadBackgrounds() async {
+    if (_cachedBackgrounds != null) {
+      return _cachedBackgrounds!;
+    }
+
+    final backgrounds = <BackgroundItem>[
+      // デフォルト背景は常に先頭
+      const BackgroundItem(imagePath: null, name: 'デフォルト'),
+    ];
+
+    try {
+      // AssetManifestからアセット一覧を取得
+      final assetManifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+      final allAssets = assetManifest.listAssets();
+
+      // backgrounds フォルダ内の画像をフィルタリング
+      final backgroundAssets = allAssets.where((path) {
+        if (!path.startsWith(_backgroundsPath)) return false;
+        final lowerPath = path.toLowerCase();
+        return _supportedExtensions.any((ext) => lowerPath.endsWith(ext));
+      }).toList();
+
+      // ソート（ファイル名順）
+      backgroundAssets.sort();
+
+      // BackgroundItemに変換
+      for (final assetPath in backgroundAssets) {
+        final fileName = assetPath.split('/').last;
+        final name = _generateDisplayName(fileName);
+        // imagePath は backgrounds/ 以下の相対パス
+        final relativePath = 'backgrounds/$fileName';
+        backgrounds.add(BackgroundItem(imagePath: relativePath, name: name));
+      }
+    } catch (e) {
+      debugPrint('背景画像の読み込みに失敗: $e');
+    }
+
+    _cachedBackgrounds = backgrounds;
+    return backgrounds;
+  }
+
+  /// ファイル名から表示名を生成
+  static String _generateDisplayName(String fileName) {
+    // 拡張子を除去
+    var name = fileName;
+    for (final ext in _supportedExtensions) {
+      if (name.toLowerCase().endsWith(ext)) {
+        name = name.substring(0, name.length - ext.length);
+        break;
+      }
+    }
+    // アンダースコアとハイフンをスペースに変換
+    name = name.replaceAll('_', ' ').replaceAll('-', ' ');
+    // 先頭を大文字に
+    if (name.isNotEmpty) {
+      name = name[0].toUpperCase() + name.substring(1);
+    }
+    return name;
+  }
+
+  /// キャッシュをクリア（開発時に使用）
+  static void clearCache() {
+    _cachedBackgrounds = null;
+  }
 }
 
 /// 背景選択ピッカー（ボトムシート用）
-class BackgroundPicker extends StatelessWidget {
+class BackgroundPicker extends StatefulWidget {
   final String? currentBackground;
   final void Function(String? background) onSelect;
 
@@ -53,6 +117,19 @@ class BackgroundPicker extends StatelessWidget {
         onSelect: (bg) => Navigator.of(ctx).pop(bg),
       ),
     );
+  }
+
+  @override
+  State<BackgroundPicker> createState() => _BackgroundPickerState();
+}
+
+class _BackgroundPickerState extends State<BackgroundPicker> {
+  late Future<List<BackgroundItem>> _backgroundsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _backgroundsFuture = BackgroundRegistry.loadBackgrounds();
   }
 
   @override
@@ -93,20 +170,45 @@ class BackgroundPicker extends StatelessWidget {
           const Divider(color: Colors.grey, height: 1),
           // コンテンツ
           Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: BackgroundRegistry.backgrounds.map((bg) {
-                  final isSelected = bg.imagePath == currentBackground;
-                  return _BackgroundTile(
-                    background: bg,
-                    isSelected: isSelected,
-                    onTap: () => onSelect(bg.imagePath),
+            child: FutureBuilder<List<BackgroundItem>>(
+              future: _backgroundsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CircularProgressIndicator(color: Colors.cyan),
+                    ),
                   );
-                }).toList(),
-              ),
+                }
+
+                final backgrounds = snapshot.data ?? [];
+                if (backgrounds.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Text(
+                      '背景画像が見つかりません',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  );
+                }
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: backgrounds.map((bg) {
+                      final isSelected = bg.imagePath == widget.currentBackground;
+                      return _BackgroundTile(
+                        background: bg,
+                        isSelected: isSelected,
+                        onTap: () => widget.onSelect(bg.imagePath),
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
             ),
           ),
         ],

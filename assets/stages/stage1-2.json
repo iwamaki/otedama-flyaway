@@ -1,8 +1,8 @@
 {
   "level": 1,
   "name": "ステージ1-2",
-  "background": "Overgrown_trees.jpg",
-  "backgroundDarkness": 0.3,
+  "background": "backgrounds/Overgrown_trees.png",
+  "backgroundDarkness": 0.2,
   "ambientSound": "mountain_in_spring.mp3",
   "ambientSoundVolume": 0.5,
   "spawnX": -20,
