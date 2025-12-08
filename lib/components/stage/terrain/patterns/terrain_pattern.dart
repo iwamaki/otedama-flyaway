@@ -19,6 +19,12 @@ class TerrainPattern {
   /// テクスチャサイズ（ワールド座標単位）
   double get textureSizeInWorld => TerrainTextureCache.textureSizeInWorld;
 
+  /// エッジ装飾を持つ地形タイプとその設定のマッピング
+  static const Map<TerrainType, EdgeDecoration> _edgeDecorations = {
+    TerrainType.grass: EdgeDecoration.grass,
+    TerrainType.snow: EdgeDecoration.snow,
+  };
+
   /// パターンを描画
   /// [viewportBounds] はローカル座標系でのビューポート範囲（カリング用）
   void draw({
@@ -28,9 +34,16 @@ class TerrainPattern {
     required int seed,
     Rect? viewportBounds,
   }) {
-    // grassタイプの場合は特別処理
-    if (terrainType == TerrainType.grass) {
-      _drawGrassWithSlope(canvas, clipPath, edges, viewportBounds);
+    // エッジ装飾を持つタイプの場合は特別処理
+    final edgeDecoration = _edgeDecorations[terrainType];
+    if (edgeDecoration != null) {
+      _drawWithEdgeDecoration(
+        canvas,
+        clipPath,
+        edges,
+        viewportBounds,
+        edgeDecoration,
+      );
       return;
     }
 
@@ -44,12 +57,13 @@ class TerrainPattern {
     _drawTiledTexture(canvas, clipPath, texture, viewportBounds);
   }
 
-  /// 斜面対応の草地形を描画
-  void _drawGrassWithSlope(
+  /// エッジ装飾付き地形を描画（草・雪など）
+  void _drawWithEdgeDecoration(
     Canvas canvas,
     Path clipPath,
     List<(Vector2 start, Vector2 end, Vector2 normal)> edges,
     Rect? viewportBounds,
+    EdgeDecoration decoration,
   ) {
     // ベースはdirtテクスチャで塗りつぶす
     final dirtTexture =
@@ -63,12 +77,12 @@ class TerrainPattern {
     // 土テクスチャをベースとして描画
     _drawTiledTexture(canvas, clipPath, dirtTexture, viewportBounds);
 
-    // 上向きエッジに沿って草を描画（汎用エッジ装飾を使用）
+    // エッジに沿って装飾を描画
     _edgeRenderer.draw(
       canvas: canvas,
       clipPath: clipPath,
       edges: edges,
-      decoration: EdgeDecoration.grass,
+      decoration: decoration,
     );
   }
 

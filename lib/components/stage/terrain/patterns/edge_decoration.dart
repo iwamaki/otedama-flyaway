@@ -52,6 +52,15 @@ class EdgeDecoration {
     srcRectRatio: 0.6,
     directionThreshold: 0.3,
   );
+
+  /// 雪のデフォルト設定
+  static const snow = EdgeDecoration(
+    textureType: TerrainType.snow,
+    height: 1.2,
+    direction: EdgeDirection.top,
+    srcRectRatio: 0.6,
+    directionThreshold: 0.3,
+  );
 }
 
 /// エッジ装飾の描画ロジック（斜面対応）

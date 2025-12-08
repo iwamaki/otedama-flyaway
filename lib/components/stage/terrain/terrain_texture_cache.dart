@@ -24,6 +24,7 @@ class TerrainTextureCache {
     TerrainType.ice: 'terrain/ice_128x128.png',
     TerrainType.wood: 'terrain/wood_128x128.png',
     TerrainType.metal: 'terrain/metal_128x128.png',
+    TerrainType.snow: 'terrain/snow-dirt_128x128.png',
   };
 
   /// 全テクスチャをロード

@@ -8,6 +8,7 @@ enum TerrainType {
   ice,
   wood,
   metal,
+  snow,
 }
 
 /// TerrainType拡張メソッド
@@ -27,6 +28,8 @@ extension TerrainTypeExtension on TerrainType {
         return const Color(0xFF8B4513);
       case TerrainType.metal:
         return const Color(0xFF708090);
+      case TerrainType.snow:
+        return const Color(0xFF8B5A2B); // 茶色（土）- 草と同様
     }
   }
 
@@ -45,6 +48,8 @@ extension TerrainTypeExtension on TerrainType {
         return const Color(0xFF5D2906);
       case TerrainType.metal:
         return const Color(0xFF4A5568);
+      case TerrainType.snow:
+        return const Color(0xFF5D3A1A); // 草と同様
     }
   }
 
