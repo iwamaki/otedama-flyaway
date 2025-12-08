@@ -99,6 +99,20 @@ class OtedamaGame extends Forge2DGame
   /// 一時保存があるステージのアセットパス一覧
   Set<String> get unsavedStageAssets => _stageManager.unsavedStageAssets;
 
+  /// スポーン位置X
+  double get spawnX => _stageManager.spawnX;
+  set spawnX(double value) {
+    _stageManager.spawnX = value;
+    onEditModeChanged?.call();
+  }
+
+  /// スポーン位置Y
+  double get spawnY => _stageManager.spawnY;
+  set spawnY(double value) {
+    _stageManager.spawnY = value;
+    onEditModeChanged?.call();
+  }
+
   /// 現在の高さ（Y座標の負数、上が正）
   double get currentHeight => -(otedama?.centerPosition.y ?? 0);
 
@@ -260,7 +274,8 @@ class OtedamaGame extends Forge2DGame
 
   /// お手玉をリセット
   void resetOtedama() {
-    otedama?.reset();
+    // スポーン位置にリセット（JSONで設定した位置）
+    otedama?.resetToPosition(Vector2(spawnX, spawnY));
     resetGoalState();
     resetTimer();
   }

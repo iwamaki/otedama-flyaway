@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -24,6 +26,25 @@ class StageEditor extends StatefulWidget {
 }
 
 class _StageEditorState extends State<StageEditor> {
+  Timer? _updateTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // 編集モード時に座標表示を更新するタイマー
+    _updateTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      if (widget.game.isEditMode && mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _updateTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -43,6 +64,13 @@ class _StageEditorState extends State<StageEditor> {
 
         // 編集モード時のみ操作UIを表示
         if (widget.game.isEditMode) ...[
+          // お手玉座標デバッグ表示（右上）
+          Positioned(
+            top: 40,
+            right: 10,
+            child: _OtedamaDebugInfo(game: widget.game),
+          ),
+
           // 上部ツールバー
           Positioned(
             top: 100,
@@ -66,6 +94,58 @@ class _StageEditorState extends State<StageEditor> {
             ),
         ],
       ],
+    );
+  }
+}
+
+/// お手玉デバッグ情報表示
+class _OtedamaDebugInfo extends StatelessWidget {
+  final OtedamaGame game;
+
+  const _OtedamaDebugInfo({required this.game});
+
+  @override
+  Widget build(BuildContext context) {
+    final otedama = game.otedama;
+    if (otedama == null) return const SizedBox.shrink();
+
+    final pos = otedama.centerPosition;
+    final vel = otedama.getVelocity();
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'お手玉',
+            style: TextStyle(
+              color: Colors.amber.shade300,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '座標: (${pos.x.toStringAsFixed(1)}, ${pos.y.toStringAsFixed(1)})',
+            style: const TextStyle(color: Colors.white, fontSize: 11),
+          ),
+          Text(
+            '速度: (${vel.x.toStringAsFixed(1)}, ${vel.y.toStringAsFixed(1)})',
+            style: const TextStyle(color: Colors.white70, fontSize: 10),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Spawn: (${game.spawnX.toStringAsFixed(1)}, ${game.spawnY.toStringAsFixed(1)})',
+            style: TextStyle(color: Colors.teal.shade300, fontSize: 10),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -138,6 +218,14 @@ class _EditorToolbar extends StatelessWidget {
           onPressed: () => _showExportDialog(context),
           backgroundColor: Colors.blue,
           child: const Icon(Icons.save, color: Colors.white),
+        ),
+        const SizedBox(height: 8),
+        // スポーン位置設定ボタン
+        FloatingActionButton.small(
+          heroTag: 'spawn',
+          onPressed: () => _showSpawnEditor(context),
+          backgroundColor: Colors.teal,
+          child: const Icon(Icons.location_on, color: Colors.white),
         ),
         const SizedBox(height: 8),
         // 選択解除ボタン
@@ -324,5 +412,87 @@ class _EditorToolbar extends StatelessWidget {
         break;
     }
     onStateChanged();
+  }
+
+  Future<void> _showSpawnEditor(BuildContext context) async {
+    final spawnXController = TextEditingController(
+      text: game.spawnX.toStringAsFixed(1),
+    );
+    final spawnYController = TextEditingController(
+      text: game.spawnY.toStringAsFixed(1),
+    );
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('スポーン位置'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 現在のお手玉位置を表示
+            if (game.otedama != null) ...[
+              Text(
+                '現在のお手玉位置: (${game.otedama!.centerPosition.x.toStringAsFixed(1)}, ${game.otedama!.centerPosition.y.toStringAsFixed(1)})',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: () {
+                  spawnXController.text = game.otedama!.centerPosition.x.toStringAsFixed(1);
+                  spawnYController.text = game.otedama!.centerPosition.y.toStringAsFixed(1);
+                },
+                icon: const Icon(Icons.my_location, size: 16),
+                label: const Text('現在位置を使用'),
+              ),
+              const SizedBox(height: 16),
+            ],
+            TextField(
+              controller: spawnXController,
+              decoration: const InputDecoration(
+                labelText: 'スポーンX',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: spawnYController,
+              decoration: const InputDecoration(
+                labelText: 'スポーンY',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('設定'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      final newX = double.tryParse(spawnXController.text);
+      final newY = double.tryParse(spawnYController.text);
+      if (newX != null) game.spawnX = newX;
+      if (newY != null) game.spawnY = newY;
+      onStateChanged();
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('スポーン位置を (${game.spawnX.toStringAsFixed(1)}, ${game.spawnY.toStringAsFixed(1)}) に設定しました'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+
+    spawnXController.dispose();
+    spawnYController.dispose();
   }
 }

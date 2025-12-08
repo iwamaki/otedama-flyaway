@@ -216,13 +216,15 @@ class _AngleSlider extends StatelessWidget {
             activeColor: Colors.amber,
           ),
         ),
-        SizedBox(
-          width: 40,
-          child: Text(
-            '$angleDegrees°',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
+        _EditableValue(
+          value: angleDegrees.toDouble(),
+          suffix: '°',
+          min: -180,
+          max: 180,
+          onChanged: (value) {
+            final angleRadians = value * math.pi / 180;
+            onChanged(angleRadians);
+          },
         ),
       ],
     );
@@ -265,13 +267,12 @@ class _SizeSlider extends StatelessWidget {
             activeColor: Colors.cyan,
           ),
         ),
-        SizedBox(
-          width: 36,
-          child: Text(
-            value.toStringAsFixed(1),
-            style: const TextStyle(color: Colors.white70, fontSize: 11),
-            textAlign: TextAlign.center,
-          ),
+        _EditableValue(
+          value: value,
+          min: min,
+          max: max,
+          decimals: 1,
+          onChanged: onChanged,
         ),
       ],
     );
@@ -302,7 +303,13 @@ class _ScaleSlider extends StatelessWidget {
             activeColor: Colors.green,
           ),
         ),
-        const Icon(Icons.zoom_in, color: Colors.white70, size: 20),
+        _EditableValue(
+          value: scale,
+          min: 0.02,
+          max: 0.2,
+          decimals: 3,
+          onChanged: onChanged,
+        ),
       ],
     );
   }
@@ -389,5 +396,99 @@ class _ActionButton extends StatelessWidget {
       ),
       label: Text(label, style: const TextStyle(fontSize: 12)),
     );
+  }
+}
+
+/// 編集可能な数値表示
+/// タップするとダイアログで数値入力可能
+class _EditableValue extends StatelessWidget {
+  final double value;
+  final double min;
+  final double max;
+  final int decimals;
+  final String suffix;
+  final ValueChanged<double> onChanged;
+
+  const _EditableValue({
+    required this.value,
+    required this.min,
+    required this.max,
+    this.decimals = 0,
+    this.suffix = '',
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayValue = decimals == 0
+        ? value.round().toString()
+        : value.toStringAsFixed(decimals);
+
+    return GestureDetector(
+      onTap: () => _showInputDialog(context),
+      child: Container(
+        width: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.white10,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Text(
+          '$displayValue$suffix',
+          style: const TextStyle(color: Colors.white, fontSize: 11),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showInputDialog(BuildContext context) async {
+    final controller = TextEditingController(
+      text: decimals == 0 ? value.round().toString() : value.toStringAsFixed(decimals),
+    );
+
+    final result = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('数値入力'),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: '${min.toStringAsFixed(decimals)} ~ ${max.toStringAsFixed(decimals)}',
+            suffixText: suffix.isNotEmpty ? suffix : null,
+          ),
+          onSubmitted: (text) {
+            final parsed = double.tryParse(text);
+            if (parsed != null) {
+              Navigator.of(ctx).pop(parsed.clamp(min, max));
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () {
+              final parsed = double.tryParse(controller.text);
+              if (parsed != null) {
+                Navigator.of(ctx).pop(parsed.clamp(min, max));
+              }
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+
+    if (result != null) {
+      onChanged(result);
+    }
   }
 }
