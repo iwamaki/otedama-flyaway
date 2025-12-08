@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/stage_data.dart';
+import '../services/audio_service.dart';
 import 'settings_modal.dart';
 
 /// スタート画面の結果
@@ -38,6 +39,10 @@ class _StartScreenState extends State<StartScreen>
   int _titleTapCount = 0;
   DateTime? _lastTitleTap;
 
+  /// デフォルトのタイトルBGM
+  static const String _defaultBgm = 'audio/bgm/初茜.mp3';
+  static const double _defaultBgmVolume = 0.3;
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +59,15 @@ class _StartScreenState extends State<StartScreen>
     );
 
     _animationController.forward();
+
+    // BGMを開始
+    _initAudioAndPlayBgm();
+  }
+
+  Future<void> _initAudioAndPlayBgm() async {
+    await AudioService.instance.initialize();
+    // スタート画面ではゲームループがないのでフェードなしで即時再生
+    AudioService.instance.playBgm(_defaultBgm, volume: _defaultBgmVolume, fadeDuration: 0);
   }
 
   @override

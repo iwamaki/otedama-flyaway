@@ -99,12 +99,19 @@ class StageData {
   /// 背景の暗さ（0.0〜1.0: 0=明るい、1=真っ暗）
   final double backgroundDarkness;
 
-  /// 環境音/BGMのファイル名（nullなら環境音なし）
+  /// 環境音のファイル名（nullなら環境音なし）
   /// 例: 'morning_sparrows.mp3'
   final String? ambientSound;
 
   /// 環境音の音量（0.0〜1.0）
   final double ambientSoundVolume;
+
+  /// BGMのファイル名（nullならBGM変更なし＝前のステージから継続）
+  /// 例: '初茜.mp3'
+  final String? bgm;
+
+  /// BGMの音量（0.0〜1.0）
+  final double bgmVolume;
 
   /// お手玉スポーン位置X
   final double spawnX;
@@ -125,6 +132,8 @@ class StageData {
     this.backgroundDarkness = 0.0,
     this.ambientSound,
     this.ambientSoundVolume = 0.5,
+    this.bgm,
+    this.bgmVolume = 0.4,
     required this.spawnX,
     required this.spawnY,
     required this.objects,
@@ -142,6 +151,8 @@ class StageData {
       ambientSound: json['ambientSound'] as String?,
       ambientSoundVolume:
           (json['ambientSoundVolume'] as num?)?.toDouble() ?? 0.5,
+      bgm: json['bgm'] as String?,
+      bgmVolume: (json['bgmVolume'] as num?)?.toDouble() ?? 0.4,
       spawnX: (json['spawnX'] as num?)?.toDouble() ?? 0.0,
       spawnY: (json['spawnY'] as num?)?.toDouble() ?? 5.0,
       objects: (json['objects'] as List<dynamic>?)
@@ -162,6 +173,8 @@ class StageData {
       'backgroundDarkness': backgroundDarkness,
       'ambientSound': ambientSound,
       'ambientSoundVolume': ambientSoundVolume,
+      'bgm': bgm,
+      'bgmVolume': bgmVolume,
       'spawnX': spawnX,
       'spawnY': spawnY,
       'objects': objects,
@@ -202,6 +215,8 @@ class StageData {
     double? backgroundDarkness,
     String? ambientSound,
     double? ambientSoundVolume,
+    String? bgm,
+    double? bgmVolume,
     double? spawnX,
     double? spawnY,
     List<Map<String, dynamic>>? objects,
@@ -214,6 +229,8 @@ class StageData {
       backgroundDarkness: backgroundDarkness ?? this.backgroundDarkness,
       ambientSound: ambientSound ?? this.ambientSound,
       ambientSoundVolume: ambientSoundVolume ?? this.ambientSoundVolume,
+      bgm: bgm ?? this.bgm,
+      bgmVolume: bgmVolume ?? this.bgmVolume,
       spawnX: spawnX ?? this.spawnX,
       spawnY: spawnY ?? this.spawnY,
       objects: objects ?? this.objects,

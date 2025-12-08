@@ -59,8 +59,19 @@ class StageManager {
   double _ambientSoundVolume = 0.5;
   double get ambientSoundVolume => _ambientSoundVolume;
 
+  /// 現在のBGMパス
+  String? _bgm;
+  String? get bgm => _bgm;
+
+  /// 現在のBGM音量
+  double _bgmVolume = 0.4;
+  double get bgmVolume => _bgmVolume;
+
   /// 環境音変更時コールバック
   void Function(String?, double)? onAmbientSoundChanged;
+
+  /// BGM変更時コールバック（nullなら変更なし＝継続）
+  void Function(String?, double)? onBgmChanged;
 
   /// 一時保存されたステージデータ（assetPath -> StageData）
   final Map<String, StageData> _unsavedStages = {};
@@ -93,6 +104,8 @@ class StageManager {
       backgroundDarkness: _backgroundDarkness,
       ambientSound: _ambientSound,
       ambientSoundVolume: _ambientSoundVolume,
+      bgm: _bgm,
+      bgmVolume: _bgmVolume,
       spawnX: spawnX,
       spawnY: spawnY,
       boundaries: _boundaries,
@@ -215,6 +228,15 @@ class StageManager {
       _ambientSound = newAmbientSound;
       _ambientSoundVolume = newAmbientVolume;
       onAmbientSoundChanged?.call(_ambientSound, _ambientSoundVolume);
+    }
+
+    // BGMを変更（nullなら変更しない＝継続）
+    final newBgm = stageData.bgm;
+    final newBgmVolume = stageData.bgmVolume;
+    if (newBgm != null && (newBgm != _bgm || newBgmVolume != _bgmVolume)) {
+      _bgm = newBgm;
+      _bgmVolume = newBgmVolume;
+      onBgmChanged?.call(_bgm, _bgmVolume);
     }
 
     // オブジェクトを配置（ファクトリパターン）

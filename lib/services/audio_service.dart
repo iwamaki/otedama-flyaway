@@ -19,23 +19,41 @@ class AudioService {
   final AudioPlayer _goalPlayer = AudioPlayer();
   final AudioPlayer _fallPlayer = AudioPlayer();
 
-  /// BGM/環境音プレイヤー
+  /// BGMプレイヤー（ステージをまたいで再生）
   final AudioPlayer _bgmPlayer = AudioPlayer();
+
+  /// 環境音プレイヤー（ステージごとに切り替え）
+  final AudioPlayer _ambientPlayer = AudioPlayer();
 
   /// 現在再生中のBGMパス
   String? _currentBgmPath;
 
+  /// 現在再生中の環境音パス
+  String? _currentAmbientPath;
+
   /// BGMの目標音量
   double _bgmTargetVolume = 0.5;
 
-  /// フェード管理
+  /// 環境音の目標音量
+  double _ambientTargetVolume = 0.5;
+
+  /// BGMフェード管理
   double _bgmCurrentVolume = 0.0;
-  double _fadeStartVolume = 0.0;
-  double _fadeEndVolume = 0.0;
-  double _fadeElapsed = 0.0;
-  double _fadeDuration = 0.0;
-  bool _isFading = false;
+  double _bgmFadeStartVolume = 0.0;
+  double _bgmFadeEndVolume = 0.0;
+  double _bgmFadeElapsed = 0.0;
+  double _bgmFadeDuration = 0.0;
+  bool _bgmIsFading = false;
   String? _pendingBgmPath;
+
+  /// 環境音フェード管理
+  double _ambientCurrentVolume = 0.0;
+  double _ambientFadeStartVolume = 0.0;
+  double _ambientFadeEndVolume = 0.0;
+  double _ambientFadeElapsed = 0.0;
+  double _ambientFadeDuration = 0.0;
+  bool _ambientIsFading = false;
+  String? _pendingAmbientPath;
 
   /// 効果音の有効/無効
   bool get enabled => _enabled;
@@ -50,8 +68,14 @@ class AudioService {
     _bgmEnabled = value;
     if (!value) {
       _bgmPlayer.pause();
-    } else if (_currentBgmPath != null) {
-      _bgmPlayer.resume();
+      _ambientPlayer.pause();
+    } else {
+      if (_currentBgmPath != null) {
+        _bgmPlayer.resume();
+      }
+      if (_currentAmbientPath != null) {
+        _ambientPlayer.resume();
+      }
     }
     logger.info(LogCategory.audio, 'BGM ${value ? "enabled" : "disabled"}');
   }
@@ -85,6 +109,10 @@ class AudioService {
       await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
       await _bgmPlayer.setVolume(0.0);
 
+      // 環境音プレイヤーの設定（ループ再生）
+      await _ambientPlayer.setReleaseMode(ReleaseMode.loop);
+      await _ambientPlayer.setVolume(0.0);
+
       _initialized = true;
       logger.info(LogCategory.audio, 'Audio service initialized');
     } catch (e) {
@@ -99,31 +127,68 @@ class AudioService {
     if (_launchImmunity > 0) _launchImmunity -= dt;
 
     // BGMフェード処理
-    if (_isFading && _fadeDuration > 0) {
-      _fadeElapsed += dt;
-      final progress = (_fadeElapsed / _fadeDuration).clamp(0.0, 1.0);
+    _updateBgmFade(dt);
 
-      // イーズアウト補間
-      final easedProgress = 1.0 - (1.0 - progress) * (1.0 - progress);
-      _bgmCurrentVolume =
-          _fadeStartVolume + (_fadeEndVolume - _fadeStartVolume) * easedProgress;
-      _bgmPlayer.setVolume(_bgmCurrentVolume);
+    // 環境音フェード処理
+    _updateAmbientFade(dt);
+  }
 
-      // フェード完了時のログ
-      if (progress >= 1.0) {
-        logger.info(LogCategory.audio, 'BGM fade complete: volume=$_bgmCurrentVolume');
-        _isFading = false;
-        _bgmCurrentVolume = _fadeEndVolume;
+  /// BGMフェード処理
+  void _updateBgmFade(double dt) {
+    if (!_bgmIsFading || _bgmFadeDuration <= 0) return;
 
-        // フェードアウト完了後、次のBGMがあれば再生開始
-        if (_pendingBgmPath != null) {
-          _startBgm(_pendingBgmPath!);
-          _pendingBgmPath = null;
-        } else if (_fadeEndVolume == 0.0 && _currentBgmPath != null) {
-          // フェードアウト完了でBGM停止
-          _bgmPlayer.stop();
-          _currentBgmPath = null;
-        }
+    _bgmFadeElapsed += dt;
+    final progress = (_bgmFadeElapsed / _bgmFadeDuration).clamp(0.0, 1.0);
+
+    // イーズアウト補間
+    final easedProgress = 1.0 - (1.0 - progress) * (1.0 - progress);
+    _bgmCurrentVolume =
+        _bgmFadeStartVolume + (_bgmFadeEndVolume - _bgmFadeStartVolume) * easedProgress;
+    _bgmPlayer.setVolume(_bgmCurrentVolume);
+
+    // フェード完了
+    if (progress >= 1.0) {
+      logger.info(LogCategory.audio, 'BGM fade complete: volume=$_bgmCurrentVolume');
+      _bgmIsFading = false;
+      _bgmCurrentVolume = _bgmFadeEndVolume;
+
+      // フェードアウト完了後、次のBGMがあれば再生開始
+      if (_pendingBgmPath != null) {
+        _startBgm(_pendingBgmPath!);
+        _pendingBgmPath = null;
+      } else if (_bgmFadeEndVolume == 0.0 && _currentBgmPath != null) {
+        _bgmPlayer.stop();
+        _currentBgmPath = null;
+      }
+    }
+  }
+
+  /// 環境音フェード処理
+  void _updateAmbientFade(double dt) {
+    if (!_ambientIsFading || _ambientFadeDuration <= 0) return;
+
+    _ambientFadeElapsed += dt;
+    final progress = (_ambientFadeElapsed / _ambientFadeDuration).clamp(0.0, 1.0);
+
+    // イーズアウト補間
+    final easedProgress = 1.0 - (1.0 - progress) * (1.0 - progress);
+    _ambientCurrentVolume =
+        _ambientFadeStartVolume + (_ambientFadeEndVolume - _ambientFadeStartVolume) * easedProgress;
+    _ambientPlayer.setVolume(_ambientCurrentVolume);
+
+    // フェード完了
+    if (progress >= 1.0) {
+      logger.info(LogCategory.audio, 'Ambient fade complete: volume=$_ambientCurrentVolume');
+      _ambientIsFading = false;
+      _ambientCurrentVolume = _ambientFadeEndVolume;
+
+      // フェードアウト完了後、次の環境音があれば再生開始
+      if (_pendingAmbientPath != null) {
+        _startAmbient(_pendingAmbientPath!);
+        _pendingAmbientPath = null;
+      } else if (_ambientFadeEndVolume == 0.0 && _currentAmbientPath != null) {
+        _ambientPlayer.stop();
+        _currentAmbientPath = null;
       }
     }
   }
@@ -174,10 +239,10 @@ class AudioService {
     logger.debug(LogCategory.audio, 'Play: fall');
   }
 
-  // ========== BGM/環境音メソッド ==========
+  // ========== BGMメソッド（ステージをまたいで再生） ==========
 
-  /// BGM/環境音を再生（クロスフェード対応）
-  /// [assetPath] アセットパス（例: 'audio/environmental_sounds/morning_sparrows.mp3'）
+  /// BGMを再生（クロスフェード対応）
+  /// [assetPath] アセットパス（例: 'audio/bgm/初茜.mp3'）
   /// [volume] 音量（0.0〜1.0）
   /// [fadeDuration] フェード時間（秒）
   Future<void> playBgm(
@@ -190,7 +255,7 @@ class AudioService {
     _bgmTargetVolume = volume.clamp(0.0, 1.0);
 
     // 同じBGMが再生中なら何もしない
-    if (_currentBgmPath == assetPath && !_isFading) {
+    if (_currentBgmPath == assetPath && !_bgmIsFading) {
       return;
     }
 
@@ -199,11 +264,18 @@ class AudioService {
     // 現在BGMが再生中ならクロスフェード
     if (_currentBgmPath != null && _bgmCurrentVolume > 0) {
       _pendingBgmPath = assetPath;
-      _startFade(0.0, fadeDuration);
+      _startBgmFade(0.0, fadeDuration);
     } else {
-      // BGMがないので直接再生してフェードイン
+      // BGMがないので直接再生
       await _startBgm(assetPath);
-      _startFade(_bgmTargetVolume, fadeDuration);
+      if (fadeDuration <= 0) {
+        // 即時再生（フェードなし）
+        _bgmCurrentVolume = _bgmTargetVolume;
+        _bgmPlayer.setVolume(_bgmCurrentVolume);
+      } else {
+        // フェードイン
+        _startBgmFade(_bgmTargetVolume, fadeDuration);
+      }
     }
   }
 
@@ -213,7 +285,7 @@ class AudioService {
 
     logger.info(LogCategory.audio, 'Stop BGM with fade');
     _pendingBgmPath = null;
-    _startFade(0.0, fadeDuration);
+    _startBgmFade(0.0, fadeDuration);
   }
 
   /// BGMを即時停止
@@ -221,7 +293,7 @@ class AudioService {
     _bgmPlayer.stop();
     _currentBgmPath = null;
     _bgmCurrentVolume = 0.0;
-    _isFading = false;
+    _bgmIsFading = false;
     _pendingBgmPath = null;
     logger.info(LogCategory.audio, 'BGM stopped immediately');
   }
@@ -229,16 +301,89 @@ class AudioService {
   /// BGMを一時停止
   void pauseBgm() {
     _bgmPlayer.pause();
-    logger.debug(LogCategory.audio, 'BGM paused');
+    _ambientPlayer.pause();
+    logger.debug(LogCategory.audio, 'BGM/Ambient paused');
   }
 
   /// BGMを再開
   void resumeBgm() {
-    if (_currentBgmPath != null && _bgmEnabled) {
-      _bgmPlayer.resume();
-      logger.debug(LogCategory.audio, 'BGM resumed');
+    if (_bgmEnabled) {
+      if (_currentBgmPath != null) {
+        _bgmPlayer.resume();
+      }
+      if (_currentAmbientPath != null) {
+        _ambientPlayer.resume();
+      }
+      logger.debug(LogCategory.audio, 'BGM/Ambient resumed');
     }
   }
+
+  /// 現在再生中のBGMパスを取得
+  String? get currentBgmPath => _currentBgmPath;
+
+  // ========== 環境音メソッド（ステージごとに切り替え） ==========
+
+  /// 環境音を再生（クロスフェード対応）
+  /// [assetPath] アセットパス（例: 'audio/environmental_sounds/morning_sparrows.mp3'）
+  /// [volume] 音量（0.0〜1.0）
+  /// [fadeDuration] フェード時間（秒）
+  Future<void> playAmbient(
+    String assetPath, {
+    double volume = 0.5,
+    double fadeDuration = 1.0,
+  }) async {
+    if (!_initialized) return;
+
+    _ambientTargetVolume = volume.clamp(0.0, 1.0);
+
+    // 同じ環境音が再生中なら何もしない
+    if (_currentAmbientPath == assetPath && !_ambientIsFading) {
+      return;
+    }
+
+    logger.info(LogCategory.audio, 'Play Ambient: $assetPath (volume: $volume)');
+
+    // 現在環境音が再生中ならクロスフェード
+    if (_currentAmbientPath != null && _ambientCurrentVolume > 0) {
+      _pendingAmbientPath = assetPath;
+      _startAmbientFade(0.0, fadeDuration);
+    } else {
+      // 環境音がないので直接再生
+      await _startAmbient(assetPath);
+      if (fadeDuration <= 0) {
+        // 即時再生（フェードなし）
+        _ambientCurrentVolume = _ambientTargetVolume;
+        _ambientPlayer.setVolume(_ambientCurrentVolume);
+      } else {
+        // フェードイン
+        _startAmbientFade(_ambientTargetVolume, fadeDuration);
+      }
+    }
+  }
+
+  /// 環境音を停止（フェードアウト）
+  Future<void> stopAmbient({double fadeDuration = 1.0}) async {
+    if (_currentAmbientPath == null) return;
+
+    logger.info(LogCategory.audio, 'Stop Ambient with fade');
+    _pendingAmbientPath = null;
+    _startAmbientFade(0.0, fadeDuration);
+  }
+
+  /// 環境音を即時停止
+  void stopAmbientImmediate() {
+    _ambientPlayer.stop();
+    _currentAmbientPath = null;
+    _ambientCurrentVolume = 0.0;
+    _ambientIsFading = false;
+    _pendingAmbientPath = null;
+    logger.info(LogCategory.audio, 'Ambient stopped immediately');
+  }
+
+  /// 現在再生中の環境音パスを取得
+  String? get currentAmbientPath => _currentAmbientPath;
+
+  // ========== 内部メソッド ==========
 
   /// 内部: BGMを開始
   Future<void> _startBgm(String assetPath) async {
@@ -269,13 +414,51 @@ class AudioService {
     }
   }
 
-  /// 内部: フェードを開始
-  void _startFade(double targetVolume, double duration) {
-    _fadeStartVolume = _bgmCurrentVolume;
-    _fadeEndVolume = targetVolume;
-    _fadeDuration = duration;
-    _fadeElapsed = 0.0;
-    _isFading = true;
+  /// 内部: 環境音を開始
+  Future<void> _startAmbient(String assetPath) async {
+    try {
+      await _ambientPlayer.stop();
+      await _ambientPlayer.setReleaseMode(ReleaseMode.loop);
+      // オーディオフォーカスを要求しない（他の音と共存）
+      await _ambientPlayer.setAudioContext(AudioContext(
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: false,
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.game,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.playback,
+          options: {AVAudioSessionOptions.mixWithOthers},
+        ),
+      ));
+      await _ambientPlayer.setVolume(0.0);
+      await _ambientPlayer.play(AssetSource(assetPath));
+      _currentAmbientPath = assetPath;
+      _ambientCurrentVolume = 0.0;
+      logger.debug(LogCategory.audio, 'Ambient started: $assetPath');
+    } catch (e) {
+      logger.error(LogCategory.audio, 'Failed to start Ambient: $assetPath', error: e);
+    }
+  }
+
+  /// 内部: BGMフェードを開始
+  void _startBgmFade(double targetVolume, double duration) {
+    _bgmFadeStartVolume = _bgmCurrentVolume;
+    _bgmFadeEndVolume = targetVolume;
+    _bgmFadeDuration = duration;
+    _bgmFadeElapsed = 0.0;
+    _bgmIsFading = true;
+  }
+
+  /// 内部: 環境音フェードを開始
+  void _startAmbientFade(double targetVolume, double duration) {
+    _ambientFadeStartVolume = _ambientCurrentVolume;
+    _ambientFadeEndVolume = targetVolume;
+    _ambientFadeDuration = duration;
+    _ambientFadeElapsed = 0.0;
+    _ambientIsFading = true;
   }
 
   /// リソース解放
@@ -285,5 +468,6 @@ class AudioService {
     _goalPlayer.dispose();
     _fallPlayer.dispose();
     _bgmPlayer.dispose();
+    _ambientPlayer.dispose();
   }
 }

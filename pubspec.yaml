@@ -71,6 +71,7 @@ flutter:
     - assets/audio/
     - assets/audio/effect/
     - assets/audio/environmental_sounds/
+    - assets/audio/bgm/
     - assets/images/
     - assets/images/backgrounds/
     - assets/physics/
