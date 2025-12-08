@@ -23,6 +23,7 @@ class TerrainPattern {
   static const Map<TerrainType, EdgeDecoration> _edgeDecorations = {
     TerrainType.grass: EdgeDecoration.grass,
     TerrainType.snow: EdgeDecoration.snow,
+    TerrainType.snowIce: EdgeDecoration.snowIce,
   };
 
   /// パターンを描画
@@ -65,17 +66,17 @@ class TerrainPattern {
     Rect? viewportBounds,
     EdgeDecoration decoration,
   ) {
-    // ベースはdirtテクスチャで塗りつぶす
-    final dirtTexture =
-        TerrainTextureCache.instance.getTexture(TerrainType.dirt);
+    // ベーステクスチャで塗りつぶす
+    final baseTexture =
+        TerrainTextureCache.instance.getTexture(decoration.baseTextureType);
 
-    if (dirtTexture == null) {
+    if (baseTexture == null) {
       _drawFallback(canvas, clipPath);
       return;
     }
 
-    // 土テクスチャをベースとして描画
-    _drawTiledTexture(canvas, clipPath, dirtTexture, viewportBounds);
+    // ベーステクスチャを描画
+    _drawTiledTexture(canvas, clipPath, baseTexture, viewportBounds);
 
     // エッジに沿って装飾を描画
     _edgeRenderer.draw(

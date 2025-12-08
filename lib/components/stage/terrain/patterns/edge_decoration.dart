@@ -20,8 +20,11 @@ enum EdgeDirection {
 
 /// エッジ装飾の設定
 class EdgeDecoration {
-  /// 使用するテクスチャのタイプ
+  /// 使用するテクスチャのタイプ（エッジ装飾用）
   final TerrainType textureType;
+
+  /// ベースとなるテクスチャのタイプ（地形全体の塗りつぶし用）
+  final TerrainType baseTextureType;
 
   /// 装飾の高さ（ワールド座標単位）
   final double height;
@@ -38,6 +41,7 @@ class EdgeDecoration {
 
   const EdgeDecoration({
     required this.textureType,
+    this.baseTextureType = TerrainType.dirt,
     this.height = 1.2,
     this.direction = EdgeDirection.top,
     this.srcRectRatio = 0.6,
@@ -53,9 +57,20 @@ class EdgeDecoration {
     directionThreshold: 0.3,
   );
 
-  /// 雪のデフォルト設定
+  /// 雪のデフォルト設定（土ベース）
   static const snow = EdgeDecoration(
     textureType: TerrainType.snow,
+    baseTextureType: TerrainType.dirt,
+    height: 1.2,
+    direction: EdgeDirection.top,
+    srcRectRatio: 0.6,
+    directionThreshold: 0.3,
+  );
+
+  /// 雪のデフォルト設定（氷ベース）
+  static const snowIce = EdgeDecoration(
+    textureType: TerrainType.snowIce,
+    baseTextureType: TerrainType.ice,
     height: 1.2,
     direction: EdgeDirection.top,
     srcRectRatio: 0.6,
