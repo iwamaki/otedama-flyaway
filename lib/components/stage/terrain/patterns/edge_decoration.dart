@@ -84,11 +84,13 @@ class EdgeDecorationRenderer {
   double get textureSizeInWorld => TerrainTextureCache.textureSizeInWorld;
 
   /// エッジに沿って装飾を描画（斜面対応）
+  /// [viewportBounds] はローカル座標系でのビューポート範囲（カリング用）
   void draw({
     required Canvas canvas,
     required Path clipPath,
     required List<(Vector2 start, Vector2 end, Vector2 normal)> edges,
     required EdgeDecoration decoration,
+    Rect? viewportBounds,
   }) {
     final texture =
         TerrainTextureCache.instance.getTexture(decoration.textureType);
@@ -106,9 +108,19 @@ class EdgeDecorationRenderer {
       texture.height * decoration.srcRectRatio,
     );
 
+    // ビューポートカリング用の拡張範囲（装飾の高さ分のマージン）
+    final cullingBounds =
+        viewportBounds?.inflate(decoration.height + textureSizeInWorld);
+
     for (final (start, end, normal) in edges) {
       // 指定した方向のエッジのみ処理
       if (!_matchesDirection(normal, decoration)) continue;
+
+      // ビューポートカリング: エッジがビューポート外なら完全スキップ
+      if (cullingBounds != null &&
+          !_edgeIntersectsBounds(start, end, cullingBounds)) {
+        continue;
+      }
 
       final edgeVector = end - start;
       final edgeLength = edgeVector.length;
@@ -125,6 +137,12 @@ class EdgeDecorationRenderer {
         final t = i / (numSegments > 1 ? numSegments - 1 : 1);
         final posX = start.x + edgeVector.x * t;
         final posY = start.y + edgeVector.y * t;
+
+        // セグメント単位のビューポートカリング
+        if (cullingBounds != null &&
+            !cullingBounds.contains(Offset(posX, posY))) {
+          continue;
+        }
 
         canvas.save();
         canvas.translate(posX, posY);
@@ -144,6 +162,27 @@ class EdgeDecorationRenderer {
     }
 
     canvas.restore();
+  }
+
+  /// エッジ（線分）がバウンディングボックスと交差するかチェック
+  bool _edgeIntersectsBounds(Vector2 start, Vector2 end, Rect bounds) {
+    // まず、両端点のいずれかがバウンズ内にあるかチェック
+    if (bounds.contains(Offset(start.x, start.y)) ||
+        bounds.contains(Offset(end.x, end.y))) {
+      return true;
+    }
+
+    // エッジのバウンディングボックスとビューポートの交差チェック
+    final edgeMinX = math.min(start.x, end.x);
+    final edgeMaxX = math.max(start.x, end.x);
+    final edgeMinY = math.min(start.y, end.y);
+    final edgeMaxY = math.max(start.y, end.y);
+
+    // AABBの交差判定
+    return edgeMinX <= bounds.right &&
+        edgeMaxX >= bounds.left &&
+        edgeMinY <= bounds.bottom &&
+        edgeMaxY >= bounds.top;
   }
 
   /// 法線がエッジ方向にマッチするか判定

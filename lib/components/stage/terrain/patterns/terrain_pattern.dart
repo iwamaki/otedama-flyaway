@@ -78,12 +78,13 @@ class TerrainPattern {
     // ベーステクスチャを描画
     _drawTiledTexture(canvas, clipPath, baseTexture, viewportBounds);
 
-    // エッジに沿って装飾を描画
+    // エッジに沿って装飾を描画（ビューポートカリング適用）
     _edgeRenderer.draw(
       canvas: canvas,
       clipPath: clipPath,
       edges: edges,
       decoration: decoration,
+      viewportBounds: viewportBounds,
     );
   }
 
