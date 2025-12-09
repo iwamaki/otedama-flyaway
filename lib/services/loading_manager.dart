@@ -1,10 +1,12 @@
 import 'package:flame/flame.dart';
 
+import '../config/otedama_skin_config.dart';
 import '../models/stage_data.dart';
 import 'asset_preloader.dart';
 import 'audio_service.dart';
 import 'logger_service.dart';
 import 'settings_service.dart';
+import 'texture_manager.dart';
 import '../components/stage/terrain/terrain_texture_cache.dart';
 
 /// ローディング進捗情報
@@ -86,12 +88,22 @@ class LoadingManager {
       await AssetPreloader.instance.loadAll();
       logger.debug(LogCategory.system, 'Background images loaded');
 
-      // 4. オーディオサービス初期化 (80%)
-      _updateProgress(0.60, 'Initializing audio...');
+      // 4. オーディオサービス初期化 (60%)
+      _updateProgress(0.50, 'Initializing audio...');
       await AudioService.instance.initialize();
       logger.debug(LogCategory.system, 'Audio initialized');
 
-      // 5. 完了
+      // 5. スキン画像のプリロード (70%)
+      _updateProgress(0.60, 'Loading skin textures...');
+      await _preloadSkinTextures();
+      logger.debug(LogCategory.system, 'Skin textures preloaded');
+
+      // 6. 初期ステージのプリロード (90%)
+      _updateProgress(0.75, 'Loading initial stage...');
+      await _preloadInitialStage();
+      logger.debug(LogCategory.system, 'Initial stage preloaded');
+
+      // 7. 完了
       _updateProgress(1.0, 'Ready!');
       _appInitialized = true;
 
@@ -251,5 +263,37 @@ class LoadingManager {
       logger.warning(LogCategory.stage, 'Failed to preload image: $path');
       return false;
     }
+  }
+
+  /// スキン画像をプリロード
+  Future<void> _preloadSkinTextures() async {
+    final texturePaths = <String>[];
+
+    for (final skin in OtedamaSkinConfig.availableSkins) {
+      if (skin.type == OtedamaSkinType.texture && skin.texturePath != null) {
+        texturePaths.add(skin.texturePath!);
+      }
+    }
+
+    if (texturePaths.isEmpty) {
+      logger.debug(LogCategory.system, 'No skin textures to preload');
+      return;
+    }
+
+    await TextureManager.instance.preloadTextures(texturePaths);
+    logger.debug(LogCategory.system, 'Preloaded ${texturePaths.length} skin textures');
+  }
+
+  /// 初期ステージをプリロード
+  Future<void> _preloadInitialStage() async {
+    if (StageRegistry.entries.isEmpty) {
+      logger.debug(LogCategory.system, 'No stages to preload');
+      return;
+    }
+
+    // 最初のステージをプリロード
+    final initialStage = StageRegistry.entries.first;
+    await preloadStage(initialStage.assetPath);
+    logger.debug(LogCategory.system, 'Preloaded initial stage: ${initialStage.assetPath}');
   }
 }

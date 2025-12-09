@@ -12,6 +12,7 @@ import '../config/physics_config.dart';
 import '../models/stage_data.dart';
 import '../models/transition_info.dart';
 import '../services/audio_service.dart';
+import '../services/loading_manager.dart';
 import '../services/logger_service.dart';
 import '../services/performance_monitor.dart';
 import 'camera_controller.dart';
@@ -165,7 +166,10 @@ class OtedamaGame extends Forge2DGame
     // 初期ステージが指定されている場合は読み込む
     if (_initialStageAsset != null) {
       try {
-        final stageData = await StageData.loadFromAsset(_initialStageAsset);
+        // プリロード済みのステージデータがあれば使用
+        final preloaded = LoadingManager.instance.getPreloadedStage(_initialStageAsset);
+        final stageData = preloaded?.stageData ??
+            await StageData.loadFromAsset(_initialStageAsset);
         await loadStage(stageData, assetPath: _initialStageAsset);
       } catch (e) {
         logger.error(LogCategory.stage, 'Failed to load initial stage', error: e);
