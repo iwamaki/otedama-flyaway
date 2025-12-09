@@ -83,6 +83,9 @@ class EdgeDecorationRenderer {
   /// テクスチャサイズ（ワールド座標単位）
   double get textureSizeInWorld => TerrainTextureCache.textureSizeInWorld;
 
+  /// 再利用するPaintオブジェクト（GC負荷軽減）
+  static final Paint _paint = Paint();
+
   /// エッジに沿って装飾を描画（斜面対応）
   /// [viewportBounds] はローカル座標系でのビューポート範囲（カリング用）
   void draw({
@@ -156,7 +159,7 @@ class EdgeDecorationRenderer {
           decoration.height,
         );
 
-        canvas.drawImageRect(texture, srcRect, dstRect, Paint());
+        canvas.drawImageRect(texture, srcRect, dstRect, _paint);
         canvas.restore();
       }
     }

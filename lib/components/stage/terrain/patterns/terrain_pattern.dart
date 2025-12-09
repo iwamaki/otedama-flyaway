@@ -14,6 +14,9 @@ class TerrainPattern {
   /// エッジ装飾レンダラー
   final EdgeDecorationRenderer _edgeRenderer = EdgeDecorationRenderer();
 
+  /// 再利用するPaintオブジェクト（GC負荷軽減）
+  static final Paint _paint = Paint();
+
   TerrainPattern(this.terrainType);
 
   /// テクスチャサイズ（ワールド座標単位）
@@ -126,7 +129,7 @@ class TerrainPattern {
     for (double x = startX; x < endX; x += textureSizeInWorld) {
       for (double y = startY; y < endY; y += textureSizeInWorld) {
         final dstRect = Rect.fromLTWH(x, y, textureSizeInWorld, textureSizeInWorld);
-        canvas.drawImageRect(texture, srcRect, dstRect, Paint());
+        canvas.drawImageRect(texture, srcRect, dstRect, _paint);
       }
     }
 
