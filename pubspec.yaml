@@ -67,7 +67,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - .env
+    - config.txt
     - assets/audio/
     - assets/audio/effect/
     - assets/audio/environmental_sounds/

@@ -18,8 +18,8 @@ import 'ui/start_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // .envファイルを読み込み
-  await dotenv.load(fileName: '.env');
+  // 環境設定ファイルを読み込み（.envはNext.jsでブロックされるためリネーム）
+  await dotenv.load(fileName: 'config.txt');
 
   // ロガーを初期化
   // LOG_LEVEL で制御: debug, info, warning, error, none
