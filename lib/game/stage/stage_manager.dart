@@ -435,7 +435,14 @@ class StageManager {
 
   /// 背景を初期化
   Future<void> initBackground(CameraComponent camera, Vector2 size) async {
-    _background = Background(imagePath: _backgroundImage, darkness: _backgroundDarkness)
+    // 画像を事前に読み込む
+    final preloadedImage = await Background.preloadImage(_backgroundImage);
+
+    _background = Background(
+      imagePath: _backgroundImage,
+      preloadedImage: preloadedImage,
+      darkness: _backgroundDarkness,
+    )
       ..size = size
       ..position = Vector2.zero()
       ..priority = -100;
@@ -451,8 +458,15 @@ class StageManager {
       _background!.removeFromParent();
     }
 
+    // 画像を事前に読み込む
+    final preloadedImage = await Background.preloadImage(_backgroundImage);
+
     // 新しい背景を追加
-    _background = Background(imagePath: _backgroundImage, darkness: _backgroundDarkness)
+    _background = Background(
+      imagePath: _backgroundImage,
+      preloadedImage: preloadedImage,
+      darkness: _backgroundDarkness,
+    )
       ..size = size
       ..position = Vector2.zero()
       ..priority = -100;

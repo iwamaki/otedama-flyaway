@@ -36,8 +36,7 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
-  late OtedamaGame _game;
-  bool _isLoading = true;
+  OtedamaGame? _game;
   bool _showClearScreen = false;
 
   /// 遷移中の情報
@@ -49,6 +48,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _initGame();
   }
+
+  /// ゲームインスタンス（初期化後にアクセス）
+  OtedamaGame get game => _game!;
 
   @override
   void dispose() {
@@ -68,30 +70,30 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _initGame() async {
+  void _initGame() {
     logger.info(LogCategory.game, 'Initializing game screen');
 
     // 設定からスキンを取得
     final skin = SettingsService.instance.selectedSkin;
 
-    _game = OtedamaGame(
+    final newGame = OtedamaGame(
       backgroundImage: 'tatami.jpg',
       initialStageAsset: widget.initialStage?.assetPath,
       otedamaSkin: skin,
     );
-    _game.onEditModeChanged = () {
+    newGame.onEditModeChanged = () {
       setState(() {});
     };
     // ゴール到達時のコールバック
-    _game.onGoalReachedCallback = _onGoalReached;
+    newGame.onGoalReachedCallback = _onGoalReached;
     // ステージ遷移コールバック
-    _game.onStageTransition = _onStageTransition;
+    newGame.onStageTransition = _onStageTransition;
 
     logger.debug(LogCategory.game, 'Stage: ${widget.initialStage?.name ?? "default"}');
     logger.debug(LogCategory.game, 'Developer mode: ${widget.developerMode}');
 
     setState(() {
-      _isLoading = false;
+      _game = newGame;
     });
   }
 
@@ -120,7 +122,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     try {
       // 一時保存データがあればそれを使用、なければアセットからロード
       StageData stageData;
-      final unsavedData = _game.getUnsavedStage(info.nextStage);
+      final unsavedData = game.getUnsavedStage(info.nextStage);
       if (unsavedData != null) {
         stageData = unsavedData;
         logger.debug(LogCategory.stage, 'Using unsaved stage data: ${info.nextStage}');
@@ -130,18 +132,18 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       }
       logger.debug(LogCategory.stage, 'Stage data loaded: ${stageData.name}, objects: ${stageData.objects.length}');
 
-      await _game.loadStage(
+      await game.loadStage(
         stageData,
         assetPath: info.nextStage,
         transitionInfo: info,
       );
-      _game.resetTransitionState();
+      game.resetTransitionState();
       logger.info(LogCategory.game, 'Stage loaded successfully: ${stageData.name}');
     } catch (e, stackTrace) {
       logger.error(LogCategory.stage, 'Failed to load stage: ${info.nextStage}',
           error: e);
       logger.debug(LogCategory.stage, 'Stack trace: $stackTrace');
-      _game.resetTransitionState();
+      game.resetTransitionState();
       widget.onBackToStart();
     }
   }
@@ -164,12 +166,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     setState(() {
       _showClearScreen = false;
     });
-    _game.resetOtedama();
+    game.resetOtedama();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    // ゲームインスタンスがまだ作成されていない場合はローディング表示
+    if (_game == null) {
       return const Scaffold(
         backgroundColor: Colors.black,
         body: Center(
@@ -183,21 +186,28 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     return Scaffold(
       body: Stack(
         children: [
-          // ゲーム本体
-          GameWidget(game: _game),
+          // ゲーム本体（onLoad完了までloadingBuilderを表示）
+          GameWidget(
+            game: game,
+            loadingBuilder: (context) => const Center(
+              child: CircularProgressIndicator(
+                color: Colors.orange,
+              ),
+            ),
+          ),
 
           // 開発者モードUI
           if (widget.developerMode) ...[
             // ステージエディタUI
-            StageEditor(game: _game),
+            StageEditor(game: game),
             // パラメータ調整UI（開発用）- 編集モード中は非表示
-            if (!_game.isEditMode)
+            if (!game.isEditMode)
               PhysicsTuner(
                 onRebuild: () {
-                  _game.otedama?.rebuild();
+                  game.otedama?.rebuild();
                 },
                 onReset: () {
-                  _game.resetOtedama();
+                  game.resetOtedama();
                 },
               ),
           ],
@@ -216,16 +226,16 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
               right: 8,
               child: _ResetButton(
                 onTap: () {
-                  _game.resetOtedama();
+                  game.resetOtedama();
                 },
               ),
             ),
           ],
 
           // クリア画面
-          if (_showClearScreen && _game.clearTime != null)
+          if (_showClearScreen && game.clearTime != null)
             ClearScreen(
-              clearTime: _game.clearTime!,
+              clearTime: game.clearTime!,
               onRetry: _onRetry,
               onBackToStart: widget.onBackToStart,
             ),

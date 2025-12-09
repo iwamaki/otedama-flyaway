@@ -22,16 +22,30 @@ class Background extends PositionComponent {
 
   Background({
     this.imagePath,
+    ui.Image? preloadedImage,
     this.fallbackColor = const Color(0xFFE8DCC8),
     this.parallaxFactor = 0.1, // デフォルト: お手玉の10%の速さで動く
     double darkness = 0.0,
-  }) : _darkness = darkness.clamp(0.0, 1.0);
+  })  : _image = preloadedImage,
+        _darkness = darkness.clamp(0.0, 1.0);
+
+  /// 画像を事前に読み込む（ゲームのonLoad内で使用）
+  static Future<ui.Image?> preloadImage(String? imagePath) async {
+    if (imagePath == null) return null;
+    try {
+      return await Flame.images.load(imagePath);
+    } catch (e) {
+      logger.warning(LogCategory.stage, 'Background image not found: $imagePath');
+      return null;
+    }
+  }
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    if (imagePath != null) {
+    // 事前読み込みされていない場合のみ読み込む
+    if (_image == null && imagePath != null) {
       try {
         _image = await Flame.images.load(imagePath!);
       } catch (e) {
