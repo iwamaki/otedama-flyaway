@@ -358,14 +358,14 @@ class OtedamaGame extends Forge2DGame
     logger.info(LogCategory.audio, 'Ambient sound changed: $soundFile (volume: $volume)');
 
     if (soundFile == null || soundFile.isEmpty) {
-      // 環境音なしの場合はフェードアウト
-      AudioService.instance.stopAmbient();
+      // 環境音なしの場合は即時停止（ステージ遷移中のカクつき防止）
+      AudioService.instance.stopAmbientImmediate();
       return;
     }
 
-    // 環境音を再生（フルパスに変換）
+    // 環境音を再生（フルパスに変換、フェードなしで即時切り替え）
     final assetPath = 'audio/environmental_sounds/$soundFile';
-    AudioService.instance.playAmbient(assetPath, volume: volume);
+    AudioService.instance.playAmbient(assetPath, volume: volume, fadeDuration: 0.0);
   }
 
   /// BGM変更時のコールバック

@@ -239,7 +239,8 @@ class StageManager {
       onBgmChanged?.call(_bgm, _bgmVolume);
     }
 
-    // オブジェクトを配置（ファクトリパターン）
+    // オブジェクトを配置（ファクトリパターン）- 並列化
+    final objectsToAdd = <BodyComponent>[];
     for (final objJson in stageData.objects) {
       final obj = StageObjectFactory.fromJson(objJson);
       if (obj == null) continue;
@@ -249,8 +250,11 @@ class StageManager {
         goal = obj;
       }
 
-      await addStageObject(obj as BodyComponent);
+      objectsToAdd.add(obj as BodyComponent);
     }
+
+    // 全オブジェクトを並列で追加
+    await Future.wait(objectsToAdd.map((obj) => addStageObject(obj)));
 
     // お手玉を新しいスポーン位置に移動（遷移情報があれば速度も維持）
     if (transitionInfo != null) {

@@ -23,6 +23,15 @@ class Terrain extends BodyComponent with StageObject {
   late final int _patternSeed;
   TerrainPattern _pattern;
 
+  /// キャッシュ: エッジ計算結果
+  List<(Vector2, Vector2, Vector2)>? _cachedEdges;
+
+  /// キャッシュ: 前回のカメラ位置（ビューポート計算用）
+  Vector2? _lastCameraPosition;
+
+  /// キャッシュ: 前回のビューポートバウンド
+  Rect? _cachedViewportBounds;
+
   Terrain({
     required Vector2 position,
     required List<Vector2> vertices,
@@ -277,6 +286,9 @@ class Terrain extends BodyComponent with StageObject {
   void _rebuildFixtures() {
     if (!isMounted) return;
 
+    // エッジキャッシュを無効化
+    _cachedEdges = null;
+
     while (body.fixtures.isNotEmpty) {
       body.destroyFixture(body.fixtures.first);
     }
@@ -381,13 +393,24 @@ class Terrain extends BodyComponent with StageObject {
     }
   }
 
-  /// ビューポート範囲をローカル座標系で計算（回転を考慮）
+  /// ビューポート範囲をローカル座標系で計算（回転を考慮、キャッシュ付き）
   Rect? _calculateViewportBounds() {
     if (!isMounted) return null;
 
     try {
       final camera = game.camera;
       final cameraPos = camera.viewfinder.position;
+
+      // カメラ位置が大きく変わっていなければキャッシュを返す
+      // しきい値: 1ワールド単位以上の移動で再計算
+      if (_lastCameraPosition != null && _cachedViewportBounds != null) {
+        final dx = cameraPos.x - _lastCameraPosition!.x;
+        final dy = cameraPos.y - _lastCameraPosition!.y;
+        if (dx * dx + dy * dy < 1.0) {
+          return _cachedViewportBounds;
+        }
+      }
+
       final zoom = camera.viewfinder.zoom;
       final viewportSize = camera.viewport.size;
 
@@ -430,14 +453,23 @@ class Terrain extends BodyComponent with StageObject {
         if (localY > maxY) maxY = localY;
       }
 
-      return Rect.fromLTRB(minX, minY, maxX, maxY);
+      // キャッシュを更新
+      _lastCameraPosition = cameraPos.clone();
+      _cachedViewportBounds = Rect.fromLTRB(minX, minY, maxX, maxY);
+
+      return _cachedViewportBounds;
     } catch (_) {
       return null;
     }
   }
 
-  /// 全エッジを取得（内向き法線付き）
+  /// 全エッジを取得（内向き法線付き、キャッシュ付き）
   List<(Vector2 start, Vector2 end, Vector2 normal)> _getAllEdges() {
+    // キャッシュがあればそれを返す
+    if (_cachedEdges != null) {
+      return _cachedEdges!;
+    }
+
     final edges = <(Vector2, Vector2, Vector2)>[];
 
     // ポリゴンの重心を計算（法線の向きを決定するため）
@@ -466,6 +498,9 @@ class Terrain extends BodyComponent with StageObject {
 
       edges.add((current, next, normal));
     }
+
+    // キャッシュに保存
+    _cachedEdges = edges;
 
     return edges;
   }
