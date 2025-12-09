@@ -10,6 +10,7 @@ import 'components/stage/terrain.dart';
 import 'components/stage/trampoline.dart';
 import 'components/stage/transition_zone.dart';
 import 'models/stage_data.dart';
+import 'services/asset_preloader.dart';
 import 'services/logger_service.dart';
 import 'services/settings_service.dart';
 import 'ui/game_screen.dart';
@@ -46,6 +47,9 @@ void main() async {
   // 地形テクスチャをプリロード
   await TerrainTextureCache.instance.loadAll();
   logger.info(LogCategory.system, 'Terrain textures preloaded');
+
+  // 背景画像をプリロード
+  await AssetPreloader.instance.loadAll();
 
   runApp(const OtedamaApp());
 }
