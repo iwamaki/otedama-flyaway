@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 
@@ -379,7 +381,7 @@ class Terrain extends BodyComponent with StageObject {
     }
   }
 
-  /// ビューポート範囲をローカル座標系で計算
+  /// ビューポート範囲をローカル座標系で計算（回転を考慮）
   Rect? _calculateViewportBounds() {
     if (!isMounted) return null;
 
@@ -393,20 +395,42 @@ class Terrain extends BodyComponent with StageObject {
       final halfWidth = viewportSize.x / zoom / 2;
       final halfHeight = viewportSize.y / zoom / 2;
 
-      // ワールド座標でのビューポート範囲
-      final worldLeft = cameraPos.x - halfWidth;
-      final worldTop = cameraPos.y - halfHeight;
-      final worldRight = cameraPos.x + halfWidth;
-      final worldBottom = cameraPos.y + halfHeight;
+      // ワールド座標でのビューポート四隅
+      final worldCorners = [
+        Vector2(cameraPos.x - halfWidth, cameraPos.y - halfHeight), // 左上
+        Vector2(cameraPos.x + halfWidth, cameraPos.y - halfHeight), // 右上
+        Vector2(cameraPos.x + halfWidth, cameraPos.y + halfHeight), // 右下
+        Vector2(cameraPos.x - halfWidth, cameraPos.y + halfHeight), // 左下
+      ];
 
-      // ローカル座標に変換（body.positionを引く）
+      // ローカル座標に変換（位置オフセット + 逆回転）
       final bodyPos = body.position;
-      return Rect.fromLTRB(
-        worldLeft - bodyPos.x,
-        worldTop - bodyPos.y,
-        worldRight - bodyPos.x,
-        worldBottom - bodyPos.y,
-      );
+      final bodyAngle = body.angle;
+      final cosA = cos(-bodyAngle);
+      final sinA = sin(-bodyAngle);
+
+      double minX = double.infinity;
+      double minY = double.infinity;
+      double maxX = double.negativeInfinity;
+      double maxY = double.negativeInfinity;
+
+      for (final corner in worldCorners) {
+        // body.positionを原点とした相対座標
+        final dx = corner.x - bodyPos.x;
+        final dy = corner.y - bodyPos.y;
+
+        // 逆回転してローカル座標に変換
+        final localX = dx * cosA - dy * sinA;
+        final localY = dx * sinA + dy * cosA;
+
+        // バウンディングボックスを更新
+        if (localX < minX) minX = localX;
+        if (localX > maxX) maxX = localX;
+        if (localY < minY) minY = localY;
+        if (localY > maxY) maxY = localY;
+      }
+
+      return Rect.fromLTRB(minX, minY, maxX, maxY);
     } catch (_) {
       return null;
     }
