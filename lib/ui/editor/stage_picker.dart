@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/stage_data.dart';
+import '../../models/stage_data.dart';
 
 /// ステージ選択の結果
 class StagePickerResult {
