@@ -260,6 +260,10 @@ class StageRegistry {
     StageEntry(level: 1, name: 'ステージ1-1', assetPath: 'assets/stages/stage1-1.json'),
     StageEntry(level: 2, name: 'ステージ1-2', assetPath: 'assets/stages/stage1-2.json'),
     StageEntry(level: 3, name: 'ステージ1-3', assetPath: 'assets/stages/stage1-3.json'),
+    StageEntry(level: 4, name: 'ステージ2-1', assetPath: 'assets/stages/stage2-1.json'),
+    StageEntry(level: 5, name: 'ステージ2-2', assetPath: 'assets/stages/stage2-2.json'),
+    StageEntry(level: 6, name: 'ステージ2-3', assetPath: 'assets/stages/stage2-3.json'),
+    StageEntry(level: 7, name: 'ステージ2-4', assetPath: 'assets/stages/stage2-4.json'),
   ];
 
   /// 全ステージを読み込み（レベル順）

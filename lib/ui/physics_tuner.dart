@@ -516,7 +516,7 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
       ParticleOtedama.beadRestitution = 0.0;
       ParticleOtedama.jointFrequency = 39.94;
       ParticleOtedama.jointDamping = 0.0;
-      ParticleOtedama.distanceConstraintIterations = 10;
+      ParticleOtedama.distanceConstraintIterations = 6;
       ParticleOtedama.distanceConstraintStiffness = 1.0;
       ParticleOtedama.shellRelativeDamping = 0.0;
       ParticleOtedama.gravityScale = 2.50;

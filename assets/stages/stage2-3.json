@@ -1,0 +1,98 @@
+{
+  "level": 2,
+  "name": "ステージ2-3",
+  "background": "backgrounds/屋敷と山々.jpeg",
+  "backgroundDarkness": 0.2,
+  "ambientSound": "quiet_residential_area.mp3",
+  "ambientSoundVolume": 0.4,
+  "spawnX": -8,
+  "spawnY": 3,
+  "objects": [
+    {
+      "type": "terrain",
+      "x": 0,
+      "y": 0,
+      "vertices": [
+        {"x": -20, "y": 5},
+        {"x": -5, "y": 5},
+        {"x": -5, "y": 20},
+        {"x": -20, "y": 20}
+      ],
+      "isLoop": true,
+      "terrainType": "stoneTiles"
+    },
+    {
+      "type": "terrain",
+      "x": 0,
+      "y": 0,
+      "vertices": [
+        {"x": 5, "y": -5},
+        {"x": 20, "y": -5},
+        {"x": 20, "y": 10},
+        {"x": 5, "y": 10}
+      ],
+      "isLoop": true,
+      "terrainType": "stoneTiles"
+    },
+    {
+      "type": "transitionZone",
+      "x": -12,
+      "y": 0,
+      "width": 5,
+      "height": 5,
+      "angle": 0,
+      "nextStage": "assets/stages/stage2-2.json",
+      "spawnX": -8,
+      "spawnY": -19,
+      "linkId": "stage2_2to3"
+    },
+    {
+      "type": "platform",
+      "x": 0,
+      "y": 0,
+      "width": 6,
+      "height": 1,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 12,
+      "y": -12,
+      "width": 8,
+      "height": 1,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 0,
+      "y": -18,
+      "width": 6,
+      "height": 1,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": -12,
+      "y": -24,
+      "width": 8,
+      "height": 1,
+      "angle": 0
+    },
+    {
+      "type": "transitionZone",
+      "x": -12,
+      "y": -29,
+      "width": 5,
+      "height": 5,
+      "angle": 0,
+      "nextStage": "assets/stages/stage2-4.json",
+      "spawnX": -12,
+      "spawnY": 3,
+      "linkId": "stage2_3to4"
+    }
+  ],
+  "boundaries": {
+    "fallThreshold": 50,
+    "transitions": []
+  }
+}

@@ -10,6 +10,7 @@ enum TerrainType {
   metal,
   snow,
   snowIce,
+  stoneTiles,
 }
 
 /// TerrainType拡張メソッド
@@ -31,6 +32,8 @@ extension TerrainTypeExtension on TerrainType {
       case TerrainType.dirt:
       case TerrainType.snow:
         return 0.5; // 標準
+      case TerrainType.stoneTiles:
+        return 0.6; // やや摩擦が高い（rockと同等）
     }
   }
 
@@ -50,6 +53,8 @@ extension TerrainTypeExtension on TerrainType {
       case TerrainType.dirt:
       case TerrainType.snow:
         return 0.2; // 標準
+      case TerrainType.stoneTiles:
+        return 0.3; // 少し跳ねる（rockと同等）
     }
   }
 
@@ -72,6 +77,8 @@ extension TerrainTypeExtension on TerrainType {
         return const Color(0xFF8B5A2B); // 茶色（土）- 草と同様
       case TerrainType.snowIce:
         return const Color(0xFFB0E0E6); // 氷と同様
+      case TerrainType.stoneTiles:
+        return const Color(0xFF808080); // グレー（石タイル）
     }
   }
 

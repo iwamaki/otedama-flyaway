@@ -89,6 +89,8 @@ class _TerrainTypeSelector extends StatelessWidget {
         return '雪';
       case TerrainType.snowIce:
         return '雪氷';
+      case TerrainType.stoneTiles:
+        return '石タイル';
     }
   }
 
