@@ -258,6 +258,14 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             StageTransitionOverlay(
               onFadeOutComplete: _loadNextStage,
               onTransitionComplete: _onTransitionComplete,
+              onPausePhysics: () {
+                game.paused = true;
+                logger.debug(LogCategory.game, 'Physics paused for stage transition');
+              },
+              onResumePhysics: () {
+                game.paused = false;
+                logger.debug(LogCategory.game, 'Physics resumed after stage transition');
+              },
             ),
         ],
       ),

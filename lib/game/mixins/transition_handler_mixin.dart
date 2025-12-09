@@ -71,6 +71,10 @@ mixin TransitionHandlerMixin on Forge2DGame {
     if (_isTransitioning) return;
     _isTransitioning = true;
 
+    // 遷移検出時に即座に物理演算を停止
+    paused = true;
+    logger.debug(LogCategory.game, 'Physics paused immediately on boundary detection');
+
     final velocity = otedama?.getVelocity() ?? Vector2.zero();
     logger.info(LogCategory.game,
         'Stage transition: ${transition.edge} -> ${transition.nextStage}, velocity: ${velocity.length.toStringAsFixed(2)}');
@@ -119,6 +123,10 @@ mixin TransitionHandlerMixin on Forge2DGame {
       return;
     }
     _isTransitioning = true;
+
+    // 遷移検出時に即座に物理演算を停止
+    paused = true;
+    logger.debug(LogCategory.game, 'Physics paused immediately on zone detection');
 
     final velocity = otedama?.getVelocity() ?? Vector2.zero();
     logger.info(LogCategory.game,

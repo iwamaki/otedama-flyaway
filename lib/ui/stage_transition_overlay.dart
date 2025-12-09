@@ -11,10 +11,18 @@ class StageTransitionOverlay extends StatefulWidget {
   /// 遷移完了後のコールバック
   final VoidCallback onTransitionComplete;
 
+  /// 物理演算を一時停止するコールバック
+  final VoidCallback? onPausePhysics;
+
+  /// 物理演算を再開するコールバック
+  final VoidCallback? onResumePhysics;
+
   const StageTransitionOverlay({
     super.key,
     required this.onFadeOutComplete,
     required this.onTransitionComplete,
+    this.onPausePhysics,
+    this.onResumePhysics,
   });
 
   @override
@@ -47,29 +55,38 @@ class _StageTransitionOverlayState extends State<StageTransitionOverlay>
   }
 
   Future<void> _startTransition() async {
-    // 1. フェードアウト（画面が暗くなる）
+    // 注: 物理演算は遷移検出時点で既に停止済み（TransitionHandlerMixin）
+
+    // 1. フェードアウト（画面が暗くなる、物理は停止中）
     await _controller.forward();
 
-    // 2. フェードアウト完了後、数フレーム待機（アニメーション処理を完全に終わらせる）
+    // 2. 数フレーム待機（アニメーション処理を完全に終わらせる）
     await _waitForFrames(2);
 
-    // 3. ステージロード（画面真っ暗の状態で実行）
+    // 3. ステージロード（画面真っ暗の状態で実行、物理は停止中）
     await widget.onFadeOutComplete();
 
-    // 4. 黒画面を維持するフラグを立てる（フェードインアニメーション中もalpha=1.0を維持）
+    // 4. 黒画面を維持するフラグを立てる
     setState(() => _holdBlack = true);
 
-    // 5. 十分な時間待機（物理エンジン、レンダリング、音声の初期化完了を待つ）
-    // 1秒の余裕を持って全ての初期化処理が完了するのを待つ
-    await Future.delayed(const Duration(milliseconds: 1000));
+    // 5. 物理を一時的に再開して新しいステージを描画（黒画面中）
+    widget.onResumePhysics?.call();
+    await _waitForFrames(5);
+    widget.onPausePhysics?.call();
 
-    // 6. 黒画面維持フラグを解除してフェードイン開始
+    // 6. 安定化のための待機
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // 7. 黒画面維持フラグを解除
     setState(() => _holdBlack = false);
 
-    // 7. フェードイン（画面が明るくなる）
+    // 8. フェードイン（画面が明るくなる）
     await _controller.reverse();
 
-    // 8. 完了通知
+    // 9. フェードイン完了後、物理演算を再開
+    widget.onResumePhysics?.call();
+
+    // 10. 完了通知
     widget.onTransitionComplete();
   }
 
