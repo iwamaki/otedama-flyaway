@@ -29,16 +29,19 @@ class TerrainTextureCache {
     TerrainType.stoneTiles: 'terrain/stone-tiles_128x128.png',
   };
 
-  /// 全テクスチャをロード
+  /// 全テクスチャをロード（並列処理）
   Future<void> loadAll() async {
     if (_isLoaded) return;
 
     final images = Images(prefix: 'assets/texture/');
 
-    for (final entry in _textureFiles.entries) {
-      final image = await images.load(entry.value);
-      _textures[entry.key] = image;
-    }
+    // 並列でロード
+    await Future.wait(
+      _textureFiles.entries.map((entry) async {
+        final image = await images.load(entry.value);
+        _textures[entry.key] = image;
+      }),
+    );
 
     _isLoaded = true;
   }

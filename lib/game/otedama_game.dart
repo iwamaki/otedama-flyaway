@@ -129,8 +129,7 @@ class OtedamaGame extends Forge2DGame
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // 音声サービスを初期化
-    await AudioService.instance.initialize();
+    // 注: AudioServiceはLoadingManager.initializeApp()で初期化済み
 
     // カメラ設定
     camera.viewfinder.anchor = Anchor.center;
@@ -340,6 +339,13 @@ class OtedamaGame extends Forge2DGame
       setTransitionCooldown: setTransitionCooldown,
     );
     resetGoalState();
+
+    // ステージ遷移後、カメラを即座にお手玉の位置にテレポート
+    // これにより、旧位置から新位置への補間中に大量のオブジェクトが
+    // 描画対象になることを防ぐ
+    if (otedama != null) {
+      _cameraController.teleportTo(otedama!.centerPosition);
+    }
   }
 
   /// 背景を変更

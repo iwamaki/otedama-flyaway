@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 import '../game/otedama_game.dart' show OtedamaGame, TransitionInfo;
 import '../models/stage_data.dart';
 import '../services/audio_service.dart';
+import '../services/loading_manager.dart';
 import '../services/logger_service.dart';
 import '../services/settings_service.dart';
 import 'clear_screen.dart';
@@ -120,15 +121,24 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         '_loadNextStage: nextStage=${info.nextStage}, velocity=${info.velocity.length.toStringAsFixed(2)}');
 
     try {
-      // 一時保存データがあればそれを使用、なければアセットからロード
+      // 一時保存データがあればそれを使用
       StageData stageData;
       final unsavedData = game.getUnsavedStage(info.nextStage);
       if (unsavedData != null) {
         stageData = unsavedData;
         logger.debug(LogCategory.stage, 'Using unsaved stage data: ${info.nextStage}');
       } else {
-        logger.debug(LogCategory.stage, 'Loading stage from asset: ${info.nextStage}');
-        stageData = await StageData.loadFromAsset(info.nextStage);
+        // LoadingManagerでプリロード（キャッシュがあればそれを使用）
+        final preloaded = LoadingManager.instance.getPreloadedStage(info.nextStage);
+        if (preloaded != null) {
+          stageData = preloaded.stageData;
+          logger.debug(LogCategory.stage, 'Using preloaded stage data: ${info.nextStage}');
+        } else {
+          // プリロードされていない場合はLoadingManagerでプリロード
+          logger.debug(LogCategory.stage, 'Preloading stage: ${info.nextStage}');
+          final result = await LoadingManager.instance.preloadStage(info.nextStage);
+          stageData = result.stageData;
+        }
       }
       logger.debug(LogCategory.stage, 'Stage data loaded: ${stageData.name}, objects: ${stageData.objects.length}');
 
@@ -139,6 +149,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       );
       game.resetTransitionState();
       logger.info(LogCategory.game, 'Stage loaded successfully: ${stageData.name}');
+
+      // 隣接ステージを先行プリロード（バックグラウンド）
+      LoadingManager.instance.preloadAdjacentStages(stageData);
     } catch (e, stackTrace) {
       logger.error(LogCategory.stage, 'Failed to load stage: ${info.nextStage}',
           error: e);

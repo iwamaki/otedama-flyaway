@@ -23,4 +23,9 @@ class CameraController {
     final newPos = currentPos + diff * CameraConfig.followLerpSpeed;
     camera.viewfinder.position = newPos;
   }
+
+  /// カメラを即座に指定位置にテレポート（ステージ遷移時用）
+  void teleportTo(Vector2 position) {
+    camera.viewfinder.position = position;
+  }
 }

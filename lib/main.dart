@@ -10,9 +10,8 @@ import 'components/stage/terrain.dart';
 import 'components/stage/trampoline.dart';
 import 'components/stage/transition_zone.dart';
 import 'models/stage_data.dart';
-import 'services/asset_preloader.dart';
+import 'services/loading_manager.dart';
 import 'services/logger_service.dart';
-import 'services/settings_service.dart';
 import 'ui/game_screen.dart';
 import 'ui/start_screen.dart';
 
@@ -40,16 +39,12 @@ void main() async {
   registerTerrainFactory();
   registerTransitionZoneFactory();
 
-  // 設定サービスを初期化
-  await SettingsService.instance.init();
-  logger.info(LogCategory.system, 'Settings service initialized');
-
-  // 地形テクスチャをプリロード
-  await TerrainTextureCache.instance.loadAll();
-  logger.info(LogCategory.system, 'Terrain textures preloaded');
-
-  // 背景画像をプリロード
-  await AssetPreloader.instance.loadAll();
+  // LoadingManagerで全ての初期化を実行
+  // - SettingsService
+  // - TerrainTextureCache（並列化）
+  // - AssetPreloader
+  // - AudioService
+  await LoadingManager.instance.initializeApp();
 
   runApp(const OtedamaApp());
 }
