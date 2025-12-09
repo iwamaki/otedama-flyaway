@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 /// ParticleOtedama の物理ソルバー
@@ -24,6 +26,23 @@ class ParticlePhysicsSolver {
   /// キャッシュ用バッファ（毎フレームの再割り当てを防ぐ）
   List<Vector2> _shellPositionCache = [];
   final Vector2 _centroidCache = Vector2.zero();
+
+  /// PBD計算用の再利用可能なVector2キャッシュ
+  final Vector2 _deltaCache = Vector2.zero();
+  final Vector2 _correctionCache = Vector2.zero();
+  final Vector2 _newPosACache = Vector2.zero();
+  final Vector2 _newPosBCache = Vector2.zero();
+
+  /// 外殻反転チェック用キャッシュ
+  List<Vector2> _inversionPositionCache = [];
+  final Vector2 _inversionCentroidCache = Vector2.zero();
+
+  /// 速度変化の閾値（この速度以下の粒子は一部の計算をスキップ）
+  static const double _lowVelocityThreshold = 0.5;
+  static const double _lowVelocityThresholdSq = _lowVelocityThreshold * _lowVelocityThreshold;
+
+  /// 反転チェックをスキップするための速度閾値
+  static const double _inversionCheckVelocityThreshold = 5.0;
 
   ParticlePhysicsSolver({
     required this.constraintIterations,
@@ -60,6 +79,7 @@ class ParticlePhysicsSolver {
 
   /// 距離制約を強制（Position Based Dynamics）
   /// Box2Dのジョイントだけでは伸びてしまうので、位置を直接補正
+  /// 最適化版: Vector2キャッシュの再利用、早期終了判定
   void enforceDistanceConstraints(
     List<Body> shellBodies,
     List<double> initialJointLengths,
@@ -67,68 +87,96 @@ class ParticlePhysicsSolver {
     if (shellBodies.length < 2 || initialJointLengths.isEmpty) return;
     if (constraintStiffness <= 0) return;
 
+    final shellCount = shellBodies.length;
+    final halfStiffness = 0.5 * constraintStiffness;
+
     // 複数回反復して精度を上げる
     for (int iter = 0; iter < constraintIterations; iter++) {
-      for (int i = 0; i < shellBodies.length; i++) {
+      for (int i = 0; i < shellCount; i++) {
         final bodyA = shellBodies[i];
-        final bodyB = shellBodies[(i + 1) % shellBodies.length];
+        final bodyB = shellBodies[(i + 1) % shellCount];
         final targetLength = initialJointLengths[i];
 
-        final delta = bodyB.position - bodyA.position;
-        final currentLength = delta.length;
+        // キャッシュを再利用してVector2生成を回避
+        final posA = bodyA.position;
+        final posB = bodyB.position;
+        _deltaCache.x = posB.x - posA.x;
+        _deltaCache.y = posB.y - posA.y;
 
-        if (currentLength < 0.001) continue;
+        final currentLengthSq = _deltaCache.x * _deltaCache.x + _deltaCache.y * _deltaCache.y;
+        if (currentLengthSq < 0.000001) continue;
 
-        // 目標長さとの差
+        // sqrtを1回だけ呼ぶ
+        final currentLength = math.sqrt(currentLengthSq);
         final diff = currentLength - targetLength;
+
+        // 差が小さい場合はスキップ
         if (diff.abs() < 0.001) continue;
 
-        // 補正量を計算
-        final normalized = delta / currentLength;
-        final correction = normalized * (diff * 0.5 * constraintStiffness);
+        // 正規化と補正量を計算（キャッシュ使用）
+        final invLength = 1.0 / currentLength;
+        final correctionFactor = diff * halfStiffness * invLength;
+        _correctionCache.x = _deltaCache.x * correctionFactor;
+        _correctionCache.y = _deltaCache.y * correctionFactor;
 
-        // 無効な値チェック
-        if (correction.x.isNaN || correction.y.isNaN ||
-            correction.x.isInfinite || correction.y.isInfinite) {
+        // 無効な値チェック（まとめてチェック）
+        if (!_correctionCache.x.isFinite || !_correctionCache.y.isFinite) {
           continue;
         }
 
         // 両方の粒子を均等に移動（質量を考慮）
-        final totalMass = bodyA.mass + bodyB.mass;
+        final massA = bodyA.mass;
+        final massB = bodyB.mass;
+        final totalMass = massA + massB;
         if (totalMass <= 0) continue;
 
-        final ratioA = bodyB.mass / totalMass;
-        final ratioB = bodyA.mass / totalMass;
+        final ratioA = massB / totalMass;
+        final ratioB = massA / totalMass;
 
-        // 新しい位置を計算
-        final newPosA = bodyA.position + correction * ratioA;
-        final newPosB = bodyB.position - correction * ratioB;
+        // 新しい位置を計算（キャッシュ使用）
+        _newPosACache.x = posA.x + _correctionCache.x * ratioA;
+        _newPosACache.y = posA.y + _correctionCache.y * ratioA;
+        _newPosBCache.x = posB.x - _correctionCache.x * ratioB;
+        _newPosBCache.y = posB.y - _correctionCache.y * ratioB;
 
         // 位置が有効な場合のみ適用
-        if (!newPosA.x.isNaN && !newPosA.y.isNaN &&
-            !newPosA.x.isInfinite && !newPosA.y.isInfinite) {
-          bodyA.setTransform(newPosA, bodyA.angle);
+        if (_newPosACache.x.isFinite && _newPosACache.y.isFinite) {
+          bodyA.setTransform(_newPosACache, bodyA.angle);
         }
-        if (!newPosB.x.isNaN && !newPosB.y.isNaN &&
-            !newPosB.x.isInfinite && !newPosB.y.isInfinite) {
-          bodyB.setTransform(newPosB, bodyB.angle);
+        if (_newPosBCache.x.isFinite && _newPosBCache.y.isFinite) {
+          bodyB.setTransform(_newPosBCache, bodyB.angle);
         }
 
-        // 速度も補正（伸びる方向の速度成分を減衰）
-        final relVel = bodyB.linearVelocity - bodyA.linearVelocity;
-        final velAlongNormal = relVel.dot(normalized);
+        // 速度補正は伸びが大きい場合のみ実行
+        if (diff > 0.01) {
+          final velA = bodyA.linearVelocity;
+          final velB = bodyB.linearVelocity;
+          final relVelX = velB.x - velA.x;
+          final relVelY = velB.y - velA.y;
 
-        if (diff > 0 && velAlongNormal > 0) {
-          // 伸びている＆さらに伸びようとしている場合、速度を補正
-          final velCorrection = normalized * (velAlongNormal * 0.5 * constraintStiffness);
-          bodyA.linearVelocity = bodyA.linearVelocity + velCorrection * ratioA;
-          bodyB.linearVelocity = bodyB.linearVelocity - velCorrection * ratioB;
+          // 正規化済みdelta
+          final normalizedX = _deltaCache.x * invLength;
+          final normalizedY = _deltaCache.y * invLength;
+          final velAlongNormal = relVelX * normalizedX + relVelY * normalizedY;
+
+          if (velAlongNormal > 0) {
+            final velCorrectionFactor = velAlongNormal * halfStiffness;
+            final velCorrX = normalizedX * velCorrectionFactor;
+            final velCorrY = normalizedY * velCorrectionFactor;
+            bodyA.linearVelocity = Vector2(velA.x + velCorrX * ratioA, velA.y + velCorrY * ratioA);
+            bodyB.linearVelocity = Vector2(velB.x - velCorrX * ratioB, velB.y - velCorrY * ratioB);
+          }
         }
       }
     }
   }
 
+
+  /// AABB（軸並行境界ボックス）のキャッシュ
+  double _aabbMinX = 0, _aabbMinY = 0, _aabbMaxX = 0, _aabbMaxY = 0;
+
   /// ビーズを外殻の内側に閉じ込める
+  /// 最適化版: AABBによる早期判定、速度が小さいビーズのスキップ
   void enforceBeadContainment(List<Body> shellBodies, List<Body> beadBodies) {
     if (!beadContainmentEnabled) return;
     if (shellBodies.length < 3 || beadBodies.isEmpty) return;
@@ -136,11 +184,39 @@ class ParticlePhysicsSolver {
     // 外殻の頂点リストをキャッシュに更新（再割り当てを避ける）
     _updateShellPositionCache(shellBodies);
 
+    // AABBを計算（高速な境界チェック用）
+    _updateAABB();
+
     // 重心を事前計算（_pushBeadInside内で毎回計算していたものをキャッシュ）
     _calculateCentroidInto(_shellPositionCache, _centroidCache);
 
+    // AABBにマージンを追加（ビーズ半径分）
+    final margin = beadRadius + beadContainmentMargin;
+    final aabbMinXExpanded = _aabbMinX + margin;
+    final aabbMaxXExpanded = _aabbMaxX - margin;
+    final aabbMinYExpanded = _aabbMinY + margin;
+    final aabbMaxYExpanded = _aabbMaxY - margin;
+
     for (final bead in beadBodies) {
       final beadPos = bead.position;
+
+      // 速度が十分小さく、AABBの内側深くにいるビーズはスキップ
+      final vel = bead.linearVelocity;
+      final speedSq = vel.x * vel.x + vel.y * vel.y;
+      if (speedSq < _lowVelocityThresholdSq) {
+        // 内側マージン付きAABB内にいればスキップ
+        if (beadPos.x > aabbMinXExpanded && beadPos.x < aabbMaxXExpanded &&
+            beadPos.y > aabbMinYExpanded && beadPos.y < aabbMaxYExpanded) {
+          continue;
+        }
+      }
+
+      // AABBの外側にいる場合は確実に外殻外
+      if (beadPos.x < _aabbMinX || beadPos.x > _aabbMaxX ||
+          beadPos.y < _aabbMinY || beadPos.y > _aabbMaxY) {
+        _pushBeadInsideWithCentroid(bead, _shellPositionCache, _centroidCache);
+        continue;
+      }
 
       // ビーズが多角形の内側にあるかチェック
       if (_isPointInsidePolygon(beadPos, _shellPositionCache)) {
@@ -149,6 +225,24 @@ class ParticlePhysicsSolver {
 
       // 外側にいる場合、最も近い外殻エッジに押し戻す
       _pushBeadInsideWithCentroid(bead, _shellPositionCache, _centroidCache);
+    }
+  }
+
+  /// AABBを更新
+  void _updateAABB() {
+    if (_shellPositionCache.isEmpty) return;
+
+    _aabbMinX = _shellPositionCache[0].x;
+    _aabbMaxX = _shellPositionCache[0].x;
+    _aabbMinY = _shellPositionCache[0].y;
+    _aabbMaxY = _shellPositionCache[0].y;
+
+    for (int i = 1; i < _shellPositionCache.length; i++) {
+      final p = _shellPositionCache[i];
+      if (p.x < _aabbMinX) _aabbMinX = p.x;
+      if (p.x > _aabbMaxX) _aabbMaxX = p.x;
+      if (p.y < _aabbMinY) _aabbMinY = p.y;
+      if (p.y > _aabbMaxY) _aabbMaxY = p.y;
     }
   }
 
@@ -242,15 +336,6 @@ class ParticlePhysicsSolver {
     }
   }
 
-  /// 多角形の重心を計算（新規Vector2を返す）
-  Vector2 _calculateCentroid(List<Vector2> polygon) {
-    var sum = Vector2.zero();
-    for (final p in polygon) {
-      sum += p;
-    }
-    return sum / polygon.length.toDouble();
-  }
-
   /// 多角形の重心を計算（既存のVector2に格納）
   void _calculateCentroidInto(List<Vector2> polygon, Vector2 result) {
     result.setValues(0, 0);
@@ -264,53 +349,86 @@ class ParticlePhysicsSolver {
 
   /// 外殻の反転（クロス）を検出して補正する
   /// 強い衝撃で外殻が八の字にクロスしてしまう問題を防ぐ
+  /// 最適化版: 速度が低い時はスキップ、キャッシュ使用
   void preventShellInversion(List<Body> shellBodies) {
     if (shellBodies.length < 3) return;
 
-    final positions = shellBodies.map((b) => b.position).toList();
-    final centroid = _calculateCentroid(positions);
+    // 速度が低い場合は反転チェックをスキップ（衝撃がなければ反転しない）
+    double maxSpeedSq = 0;
+    for (final body in shellBodies) {
+      final vel = body.linearVelocity;
+      final speedSq = vel.x * vel.x + vel.y * vel.y;
+      if (speedSq > maxSpeedSq) maxSpeedSq = speedSq;
+    }
+    final thresholdSq = _inversionCheckVelocityThreshold * _inversionCheckVelocityThreshold;
+    if (maxSpeedSq < thresholdSq) return;
+
     final n = shellBodies.length;
+
+    // キャッシュを使用してメモリ割り当てを削減
+    if (_inversionPositionCache.length != n) {
+      _inversionPositionCache = List.generate(n, (_) => Vector2.zero());
+    }
+    for (int i = 0; i < n; i++) {
+      _inversionPositionCache[i].setFrom(shellBodies[i].position);
+    }
+    _calculateCentroidInto(_inversionPositionCache, _inversionCentroidCache);
 
     // 各頂点について、隣接する3点で凹みが発生していないかチェック
     for (int i = 0; i < n; i++) {
-      final prev = positions[(i - 1 + n) % n];
-      final curr = positions[i];
-      final next = positions[(i + 1) % n];
+      final prev = _inversionPositionCache[(i - 1 + n) % n];
+      final curr = _inversionPositionCache[i];
+      final next = _inversionPositionCache[(i + 1) % n];
 
       // 外積で回転方向をチェック（反時計回りなら正）
-      final cross = _crossProduct2D(curr - prev, next - curr);
+      // インライン計算で一時オブジェクト生成を回避
+      final v1x = curr.x - prev.x;
+      final v1y = curr.y - prev.y;
+      final v2x = next.x - curr.x;
+      final v2y = next.y - curr.y;
+      final cross = v1x * v2y - v1y * v2x;
 
       // 凹み（内側に折れ曲がり）を検出
-      // 正常な凸多角形なら全て同じ符号になるはず
       if (cross < -0.01) {
-        // この頂点が内側に折れ込んでいる（反転の兆候）
-        // 重心から外側に押し出す
-        final toVertex = curr - centroid;
-        final dist = toVertex.length;
+        final toVertexX = curr.x - _inversionCentroidCache.x;
+        final toVertexY = curr.y - _inversionCentroidCache.y;
+        final distSq = toVertexX * toVertexX + toVertexY * toVertexY;
 
-        if (dist < 0.01) continue;
+        if (distSq < 0.0001) continue;
+        final dist = math.sqrt(distSq);
 
         // 隣接頂点の重心からの平均距離を計算
-        final prevDist = (prev - centroid).length;
-        final nextDist = (next - centroid).length;
-        final avgNeighborDist = (prevDist + nextDist) / 2;
+        final prevDx = prev.x - _inversionCentroidCache.x;
+        final prevDy = prev.y - _inversionCentroidCache.y;
+        final nextDx = next.x - _inversionCentroidCache.x;
+        final nextDy = next.y - _inversionCentroidCache.y;
+        final prevDist = math.sqrt(prevDx * prevDx + prevDy * prevDy);
+        final nextDist = math.sqrt(nextDx * nextDx + nextDy * nextDy);
+        final avgNeighborDist = (prevDist + nextDist) * 0.5;
 
         // 現在の頂点が隣より内側にいる場合、押し出す
         if (dist < avgNeighborDist * 0.7) {
           final targetDist = avgNeighborDist * 0.9;
-          final correction = toVertex.normalized() * (targetDist - dist);
+          final invDist = 1.0 / dist;
+          final normalizedX = toVertexX * invDist;
+          final normalizedY = toVertexY * invDist;
+          final correctionDist = targetDist - dist;
 
           final body = shellBodies[i];
-          final newPos = curr + correction;
+          final newPosX = curr.x + normalizedX * correctionDist;
+          final newPosY = curr.y + normalizedY * correctionDist;
 
-          if (!newPos.x.isNaN && !newPos.y.isNaN) {
-            body.setTransform(newPos, body.angle);
+          if (newPosX.isFinite && newPosY.isFinite) {
+            body.setTransform(Vector2(newPosX, newPosY), body.angle);
 
             // 内向きの速度成分も除去
             final vel = body.linearVelocity;
-            final inwardVel = vel.dot(-toVertex.normalized());
+            final inwardVel = -(vel.x * normalizedX + vel.y * normalizedY);
             if (inwardVel > 0) {
-              body.linearVelocity = vel + toVertex.normalized() * inwardVel;
+              body.linearVelocity = Vector2(
+                vel.x + normalizedX * inwardVel,
+                vel.y + normalizedY * inwardVel,
+              );
             }
           }
         }
@@ -318,16 +436,10 @@ class ParticlePhysicsSolver {
     }
 
     // 全体の符号付き面積もチェック（完全に反転した場合）
-    final signedArea = _calculateSignedArea(positions);
+    final signedArea = _calculateSignedArea(_inversionPositionCache);
     if (signedArea < 0) {
-      // 多角形全体が反転している場合、各頂点を重心から押し出す
-      _expandFromCentroid(shellBodies, centroid);
+      _expandFromCentroid(shellBodies, _inversionCentroidCache);
     }
-  }
-
-  /// 2Dベクトルの外積（スカラー値）
-  double _crossProduct2D(Vector2 a, Vector2 b) {
-    return a.x * b.y - a.y * b.x;
   }
 
   /// 符号付き面積を計算（正=反時計回り、負=時計回り=反転）

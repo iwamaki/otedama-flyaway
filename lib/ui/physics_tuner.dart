@@ -502,9 +502,9 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
       ParticleOtedama.shellCount = 20;
       ParticleOtedama.beadCount = 15;
       ParticleOtedama.shellRadius = 0.27;
-      ParticleOtedama.beadRadius = 0.29;
+      ParticleOtedama.beadRadius = 0.21;
       ParticleOtedama.beadSizeVariation = 0.26;
-      ParticleOtedama.overallRadius = 1.99;
+      ParticleOtedama.overallRadius = 1.50;
       ParticleOtedama.shellDensity = 3.0;
       ParticleOtedama.beadDensity = 3.0;
       ParticleOtedama.shellFriction = 0.25;
@@ -522,7 +522,7 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
       ParticleOtedama.gravityScale = 2.50;
       ParticleOtedama.beadContainmentEnabled = true;
       ParticleOtedama.beadContainmentMargin = 0.10;
-      ParticleOtedama.launchMultiplier = 2.75;
+      ParticleOtedama.launchMultiplier = 2.40;
       ParticleOtedama.airLaunchMultiplier = 0.5;
       ParticleOtedama.touchEffectRadius = 1.0;
     });

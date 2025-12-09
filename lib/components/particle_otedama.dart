@@ -40,8 +40,8 @@ class ParticleOtedama extends BodyComponent {
   static int shellCount = 20;
   static int beadCount = 15;
   static double shellRadius = 0.27;
-  static double beadRadius = 0.29;
-  static double overallRadius = 1.99;
+  static double beadRadius = 0.21;
+  static double overallRadius = 1.50;
   static double shellDensity = 3.0;
   static double beadDensity = 3.0;
   static double shellFriction = 0.25;
@@ -54,7 +54,7 @@ class ParticleOtedama extends BodyComponent {
   static double gravityScale = 2.50; // 重力スケール（1.0 = 通常）
 
   // 距離制約の補正（PBDアプローチ）
-  static int distanceConstraintIterations = 10; // 補正の反復回数
+  static int distanceConstraintIterations = 6; // 補正の反復回数（最適化: 10→6）
   static double distanceConstraintStiffness = 1.0; // 補正の強さ（0.0-1.0）
 
   // ビーズ封じ込め制約
@@ -84,7 +84,7 @@ class ParticleOtedama extends BodyComponent {
   static const double _groundedVelocityThreshold = 1.5; // 接地判定の速度閾値
 
   /// 発射力の倍率（スワイプ→力の変換係数）
-  static double launchMultiplier = 2.75;
+  static double launchMultiplier = 2.40;
 
   /// 空中発射の力の倍率（初回の何倍か）
   static double airLaunchMultiplier = 0.5;
