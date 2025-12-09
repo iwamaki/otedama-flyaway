@@ -14,9 +14,6 @@ class TerrainPattern {
   /// エッジ装飾レンダラー
   final EdgeDecorationRenderer _edgeRenderer = EdgeDecorationRenderer();
 
-  /// 再利用するPaintオブジェクト（GC負荷軽減）
-  static final Paint _paint = Paint();
-
   TerrainPattern(this.terrainType);
 
   /// テクスチャサイズ（ワールド座標単位）
@@ -58,7 +55,7 @@ class TerrainPattern {
       return;
     }
 
-    _drawTiledTexture(canvas, clipPath, texture, viewportBounds);
+    _drawTiledTexture(canvas, clipPath, texture, terrainType, viewportBounds);
   }
 
   /// エッジ装飾付き地形を描画（草・雪など）
@@ -79,7 +76,8 @@ class TerrainPattern {
     }
 
     // ベーステクスチャを描画
-    _drawTiledTexture(canvas, clipPath, baseTexture, viewportBounds);
+    _drawTiledTexture(
+        canvas, clipPath, baseTexture, decoration.baseTextureType, viewportBounds);
 
     // エッジに沿って装飾を描画（ビューポートカリング適用）
     _edgeRenderer.draw(
@@ -91,24 +89,35 @@ class TerrainPattern {
     );
   }
 
-  /// タイル状にテクスチャを描画
+  /// タイル状にテクスチャを描画（SpriteBatch使用）
   void _drawTiledTexture(
     Canvas canvas,
     Path clipPath,
     ui.Image texture,
+    TerrainType textureType,
     Rect? viewportBounds,
   ) {
-    canvas.save();
-    canvas.clipPath(clipPath);
+    final spriteBatch = TerrainTextureCache.instance.getSpriteBatch(textureType);
+    if (spriteBatch == null) {
+      _drawFallback(canvas, clipPath);
+      return;
+    }
+
+    // バッチをクリア
+    spriteBatch.clear();
 
     final bounds = clipPath.getBounds();
     final effectiveBounds =
         viewportBounds != null ? bounds.intersect(viewportBounds) : bounds;
 
     if (effectiveBounds.isEmpty) {
-      canvas.restore();
       return;
     }
+
+    final textureWidth = texture.width.toDouble();
+    final textureHeight = texture.height.toDouble();
+    final srcRect = Rect.fromLTWH(0, 0, textureWidth, textureHeight);
+    final scale = textureSizeInWorld / textureWidth;
 
     final startX =
         ((effectiveBounds.left / textureSizeInWorld).floor() - 1) *
@@ -119,20 +128,20 @@ class TerrainPattern {
     final endX = effectiveBounds.right + textureSizeInWorld;
     final endY = effectiveBounds.bottom + textureSizeInWorld;
 
-    final srcRect = Rect.fromLTWH(
-      0,
-      0,
-      texture.width.toDouble(),
-      texture.height.toDouble(),
-    );
-
     for (double x = startX; x < endX; x += textureSizeInWorld) {
       for (double y = startY; y < endY; y += textureSizeInWorld) {
-        final dstRect = Rect.fromLTWH(x, y, textureSizeInWorld, textureSizeInWorld);
-        canvas.drawImageRect(texture, srcRect, dstRect, _paint);
+        spriteBatch.add(
+          source: srcRect,
+          offset: Vector2(x, y),
+          scale: scale,
+        );
       }
     }
 
+    // クリップパスを適用して一括描画
+    canvas.save();
+    canvas.clipPath(clipPath);
+    spriteBatch.render(canvas);
     canvas.restore();
   }
 

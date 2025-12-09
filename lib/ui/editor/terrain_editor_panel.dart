@@ -91,8 +91,24 @@ class _TerrainTypeSelector extends StatelessWidget {
         return '雪氷';
       case TerrainType.stoneTiles:
         return '石タイル';
+      case TerrainType.grassEdge:
+      case TerrainType.snowEdge:
+        return ''; // エッジ装飾専用（選択不可）
     }
   }
+
+  /// エディタで選択可能なTerrainType
+  static const _selectableTypes = [
+    TerrainType.grass,
+    TerrainType.dirt,
+    TerrainType.rock,
+    TerrainType.ice,
+    TerrainType.wood,
+    TerrainType.metal,
+    TerrainType.snow,
+    TerrainType.snowIce,
+    TerrainType.stoneTiles,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +133,7 @@ class _TerrainTypeSelector extends StatelessWidget {
               dropdownColor: Colors.grey[850],
               underline: const SizedBox(),
               style: const TextStyle(color: Colors.white, fontSize: 12),
-              items: TerrainType.values.map((type) {
+              items: _selectableTypes.map((type) {
                 return DropdownMenuItem(
                   value: type,
                   child: Row(

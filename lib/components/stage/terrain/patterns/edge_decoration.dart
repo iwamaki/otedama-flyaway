@@ -48,32 +48,33 @@ class EdgeDecoration {
     this.directionThreshold = 0.3,
   });
 
-  /// 草のデフォルト設定
+  /// 草のデフォルト設定（透過テクスチャ + 土ベース）
   static const grass = EdgeDecoration(
-    textureType: TerrainType.grass,
-    height: 1.2,
-    direction: EdgeDirection.top,
-    srcRectRatio: 0.6,
-    directionThreshold: 0.3,
-  );
-
-  /// 雪のデフォルト設定（土ベース）
-  static const snow = EdgeDecoration(
-    textureType: TerrainType.snow,
+    textureType: TerrainType.grassEdge,
     baseTextureType: TerrainType.dirt,
     height: 1.2,
     direction: EdgeDirection.top,
-    srcRectRatio: 0.6,
+    srcRectRatio: 1.0,
     directionThreshold: 0.3,
   );
 
-  /// 雪のデフォルト設定（氷ベース）
+  /// 雪のデフォルト設定（透過テクスチャ + 土ベース）
+  static const snow = EdgeDecoration(
+    textureType: TerrainType.snowEdge,
+    baseTextureType: TerrainType.dirt,
+    height: 1.2,
+    direction: EdgeDirection.top,
+    srcRectRatio: 1.0,
+    directionThreshold: 0.3,
+  );
+
+  /// 雪のデフォルト設定（透過テクスチャ + 氷ベース）
   static const snowIce = EdgeDecoration(
-    textureType: TerrainType.snowIce,
+    textureType: TerrainType.snowEdge,
     baseTextureType: TerrainType.ice,
     height: 1.2,
     direction: EdgeDirection.top,
-    srcRectRatio: 0.6,
+    srcRectRatio: 1.0,
     directionThreshold: 0.3,
   );
 }
@@ -83,10 +84,7 @@ class EdgeDecorationRenderer {
   /// テクスチャサイズ（ワールド座標単位）
   double get textureSizeInWorld => TerrainTextureCache.textureSizeInWorld;
 
-  /// 再利用するPaintオブジェクト（GC負荷軽減）
-  static final Paint _paint = Paint();
-
-  /// エッジに沿って装飾を描画（斜面対応）
+  /// エッジに沿って装飾を描画（斜面対応、SpriteBatch使用）
   /// [viewportBounds] はローカル座標系でのビューポート範囲（カリング用）
   void draw({
     required Canvas canvas,
@@ -95,25 +93,34 @@ class EdgeDecorationRenderer {
     required EdgeDecoration decoration,
     Rect? viewportBounds,
   }) {
+    final spriteBatch =
+        TerrainTextureCache.instance.getSpriteBatch(decoration.textureType);
+    if (spriteBatch == null) return;
+
     final texture =
         TerrainTextureCache.instance.getTexture(decoration.textureType);
     if (texture == null) return;
 
-    // 装飾は地形の境界内に収める
-    canvas.save();
-    canvas.clipPath(clipPath);
+    // バッチをクリア
+    spriteBatch.clear();
 
     // テクスチャのソース領域を計算
+    final textureWidth = texture.width.toDouble();
+    final textureHeight = texture.height.toDouble();
     final srcRect = Rect.fromLTWH(
       0,
       0,
-      texture.width.toDouble(),
-      texture.height * decoration.srcRectRatio,
+      textureWidth,
+      textureHeight * decoration.srcRectRatio,
     );
 
     // ビューポートカリング用の拡張範囲（装飾の高さ分のマージン）
     final cullingBounds =
         viewportBounds?.inflate(decoration.height + textureSizeInWorld);
+
+    // スケール計算（テクスチャピクセル→ワールド座標）
+    final segmentWidth = textureSizeInWorld;
+    final scale = segmentWidth / textureWidth;
 
     for (final (start, end, normal) in edges) {
       // 指定した方向のエッジのみ処理
@@ -133,7 +140,6 @@ class EdgeDecorationRenderer {
       final angle = math.atan2(edgeVector.y, edgeVector.x);
 
       // エッジに沿ってテクスチャを配置
-      final segmentWidth = textureSizeInWorld;
       final numSegments = (edgeLength / segmentWidth).ceil() + 1;
 
       for (int i = 0; i < numSegments; i++) {
@@ -147,23 +153,23 @@ class EdgeDecorationRenderer {
           continue;
         }
 
-        canvas.save();
-        canvas.translate(posX, posY);
-        canvas.rotate(angle);
-
-        // 装飾テクスチャを描画（エッジから内側に向かって）
-        final dstRect = Rect.fromLTWH(
-          -segmentWidth / 2,
-          0, // エッジから内側（回転後の下方向）に描画
-          segmentWidth,
-          decoration.height,
+        // SpriteBatchに追加（ドローコールなし）
+        // 元のコード: translate(posX, posY) → rotate(angle) → drawRect(-segmentWidth/2, 0, ...)
+        // anchor: テクスチャの上端中央（ピクセル座標）
+        spriteBatch.add(
+          source: srcRect,
+          offset: Vector2(posX, posY),
+          rotation: angle,
+          scale: scale,
+          anchor: Vector2(textureWidth / 2, 0),
         );
-
-        canvas.drawImageRect(texture, srcRect, dstRect, _paint);
-        canvas.restore();
       }
     }
 
+    // クリップパスを適用して一括描画
+    canvas.save();
+    canvas.clipPath(clipPath);
+    spriteBatch.render(canvas);
     canvas.restore();
   }
 

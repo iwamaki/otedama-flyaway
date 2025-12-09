@@ -11,6 +11,9 @@ enum TerrainType {
   snow,
   snowIce,
   stoneTiles,
+  // エッジ装飾専用（透過テクスチャ）
+  grassEdge,
+  snowEdge,
 }
 
 /// TerrainType拡張メソッド
@@ -34,6 +37,9 @@ extension TerrainTypeExtension on TerrainType {
         return 0.5; // 標準
       case TerrainType.stoneTiles:
         return 0.6; // やや摩擦が高い（rockと同等）
+      case TerrainType.grassEdge:
+      case TerrainType.snowEdge:
+        return 0.5; // 装飾専用（使用されない）
     }
   }
 
@@ -55,6 +61,9 @@ extension TerrainTypeExtension on TerrainType {
         return 0.2; // 標準
       case TerrainType.stoneTiles:
         return 0.3; // 少し跳ねる（rockと同等）
+      case TerrainType.grassEdge:
+      case TerrainType.snowEdge:
+        return 0.2; // 装飾専用（使用されない）
     }
   }
 
@@ -79,6 +88,10 @@ extension TerrainTypeExtension on TerrainType {
         return const Color(0xFFB0E0E6); // 氷と同様
       case TerrainType.stoneTiles:
         return const Color(0xFF808080); // グレー（石タイル）
+      case TerrainType.grassEdge:
+        return const Color(0xFF4CAF50); // 緑（装飾専用）
+      case TerrainType.snowEdge:
+        return const Color(0xFFFFFFFF); // 白（装飾専用）
     }
   }
 
