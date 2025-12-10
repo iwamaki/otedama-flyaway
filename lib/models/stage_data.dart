@@ -207,6 +207,20 @@ class StageData {
     );
   }
 
+  /// このステージ内のTransitionZone情報を取得
+  List<TransitionZoneInfo> get transitionZones {
+    return objects
+        .where((obj) => obj['type'] == 'transitionZone')
+        .map((obj) => TransitionZoneInfo(
+              id: obj['id'] as String? ?? '',
+              x: (obj['x'] as num?)?.toDouble() ?? 0,
+              y: (obj['y'] as num?)?.toDouble() ?? 0,
+              nextStage: obj['nextStage'] as String? ?? '',
+              targetZoneId: obj['targetZoneId'] as String?,
+            ))
+        .toList();
+  }
+
   /// コピーして一部のフィールドを変更
   StageData copyWith({
     int? level,
@@ -237,6 +251,23 @@ class StageData {
       boundaries: boundaries ?? this.boundaries,
     );
   }
+}
+
+/// TransitionZoneの情報（軽量版）
+class TransitionZoneInfo {
+  final String id;
+  final double x;
+  final double y;
+  final String nextStage;
+  final String? targetZoneId;
+
+  const TransitionZoneInfo({
+    required this.id,
+    required this.x,
+    required this.y,
+    required this.nextStage,
+    this.targetZoneId,
+  });
 }
 
 /// ステージエントリ（一覧表示用）

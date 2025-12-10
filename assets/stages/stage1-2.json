@@ -60,7 +60,8 @@
       "angle": 0,
       "nextStage": "assets/stages/stage1-1.json",
       "respawnSide": "right",
-      "linkId": "miwjyinq_o74"
+      "id": "zone_1_2_left",
+      "targetZoneId": "zone_1_1_right"
     },
     {
       "type": "transitionZone",
@@ -71,7 +72,8 @@
       "angle": 0,
       "nextStage": "assets/stages/stage1-3.json",
       "respawnSide": "left",
-      "linkId": "miwk0ws7_ttu"
+      "id": "zone_1_2_right",
+      "targetZoneId": "zone_1_3_left"
     }
   ],
   "boundaries": {

@@ -54,7 +54,8 @@
       "angle": 0,
       "nextStage": "assets/stages/stage2-2.json",
       "respawnSide": "right",
-      "linkId": "stage2_1to2"
+      "id": "zone_2_1_top",
+      "targetZoneId": "zone_2_2_bottom"
     },
     {
       "type": "transitionZone",
@@ -65,7 +66,8 @@
       "angle": 0,
       "nextStage": "assets/stages/stage1-3.json",
       "respawnSide": "right",
-      "linkId": "stage1_3to2_1"
+      "id": "zone_2_1_left",
+      "targetZoneId": "zone_1_3_right"
     }
   ],
   "boundaries": {

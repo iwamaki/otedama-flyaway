@@ -114,10 +114,10 @@ mixin TransitionHandlerMixin on Forge2DGame {
   }
 
   /// 遷移ゾーンからの遷移をトリガー
-  /// スポーン位置はlinkIdを使って遷移先ステージで解決する
+  /// スポーン位置はtargetZoneIdを使って遷移先ステージで解決する
   void triggerZoneTransition(TransitionZone zone) {
     logger.debug(LogCategory.game,
-        'triggerZoneTransition called: nextStage=${zone.nextStage}, linkId=${zone.linkId}, _isTransitioning=$_isTransitioning');
+        'triggerZoneTransition called: nextStage=${zone.nextStage}, targetZoneId=${zone.targetZoneId}, _isTransitioning=$_isTransitioning');
 
     if (_isTransitioning) {
       logger.debug(LogCategory.game, 'triggerZoneTransition: already transitioning, skipped');
@@ -131,19 +131,17 @@ mixin TransitionHandlerMixin on Forge2DGame {
 
     final velocity = otedama?.getVelocity() ?? Vector2.zero();
     logger.info(LogCategory.game,
-        'Zone transition -> ${zone.nextStage}, linkId=${zone.linkId}, velocity: ${velocity.length.toStringAsFixed(2)}');
+        'Zone transition -> ${zone.nextStage}, targetZoneId=${zone.targetZoneId}, velocity: ${velocity.length.toStringAsFixed(2)}');
 
-    // スポーン位置は遷移先でlinkIdを使って対応するゾーンの位置から解決する
-    // 遷移元ゾーンの位置も渡して、同じステージ内の遷移時に除外できるようにする
+    // スポーン位置は遷移先でtargetZoneIdを使って対応するゾーンの位置から解決する
     final info = TransitionInfo(
       nextStage: zone.nextStage,
       velocity: velocity,
-      linkId: zone.linkId.isNotEmpty ? zone.linkId : null,
-      sourceZonePosition: zone.position.clone(),
+      targetZoneId: zone.targetZoneId,
     );
 
     logger.debug(LogCategory.game,
-        'TransitionInfo: nextStage=${info.nextStage}, linkId=${info.linkId}');
+        'TransitionInfo: nextStage=${info.nextStage}, targetZoneId=${info.targetZoneId}');
 
     if (onStageTransition != null) {
       onStageTransition!.call(info);

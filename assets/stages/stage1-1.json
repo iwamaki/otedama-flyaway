@@ -60,7 +60,8 @@
       "angle": 0,
       "nextStage": "assets/stages/stage1-2.json",
       "respawnSide": "left",
-      "linkId": "miwjyinq_o74"
+      "id": "zone_1_1_right",
+      "targetZoneId": "zone_1_2_left"
     },
     {
       "type": "platform",

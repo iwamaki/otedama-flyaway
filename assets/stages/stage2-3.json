@@ -43,7 +43,8 @@
       "angle": 0,
       "nextStage": "assets/stages/stage2-2.json",
       "respawnSide": "right",
-      "linkId": "stage2_2to3"
+      "id": "zone_2_3_bottom",
+      "targetZoneId": "zone_2_2_top"
     },
     {
       "type": "platform",
@@ -86,7 +87,8 @@
       "angle": 0,
       "nextStage": "assets/stages/stage2-4.json",
       "respawnSide": "right",
-      "linkId": "stage2_3to4"
+      "id": "zone_2_3_top",
+      "targetZoneId": "zone_2_4_bottom"
     }
   ],
   "boundaries": {

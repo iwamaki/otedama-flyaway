@@ -66,29 +66,32 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     return null;
   }
 
-  /// リンクID（ペアの遷移ゾーンを識別するための一意のID）
-  String linkId;
+  /// このゾーンの一意のID
+  String id;
 
-  /// ゾーンの色（linkIdから自動生成）
-  Color get color => _colorFromLinkId(linkId);
+  /// 遷移先ゾーンのID（このIDを持つゾーンの位置にスポーンする）
+  String? targetZoneId;
+
+  /// ゾーンの色（idから自動生成）
+  Color get color => _colorFromId(id);
 
   /// サイズ変更可能
   @override
   bool get canResize => true;
 
-  /// 一意のリンクIDを生成
-  static String generateLinkId() {
+  /// 一意のIDを生成
+  static String generateId() {
     final now = DateTime.now().millisecondsSinceEpoch;
     final random = Random().nextInt(0xFFFF);
     return '${now.toRadixString(36)}_${random.toRadixString(36)}';
   }
 
-  /// linkIdから一貫した色を生成
-  static Color _colorFromLinkId(String linkId) {
-    // linkIdのハッシュ値を計算
+  /// idから一貫した色を生成
+  static Color _colorFromId(String id) {
+    // idのハッシュ値を計算
     int hash = 0;
-    for (int i = 0; i < linkId.length; i++) {
-      hash = linkId.codeUnitAt(i) + ((hash << 5) - hash);
+    for (int i = 0; i < id.length; i++) {
+      hash = id.codeUnitAt(i) + ((hash << 5) - hash);
     }
     // HSLで鮮やかな色を生成（色相のみ変更、彩度と輝度は固定）
     final hue = (hash % 360).abs().toDouble();
@@ -104,12 +107,13 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     this.respawnX,
     this.respawnY,
     this.respawnSide,
-    String? linkId,
+    String? id,
+    this.targetZoneId,
   })  : initialPosition = position.clone(),
         _width = width,
         _height = height,
         initialAngle = angle,
-        linkId = linkId ?? generateLinkId();
+        id = id ?? generateId();
 
   /// JSONから生成
   factory TransitionZone.fromJson(Map<String, dynamic> json) {
@@ -122,7 +126,8 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       respawnX: (json['respawnX'] as num?)?.toDouble(),
       respawnY: (json['respawnY'] as num?)?.toDouble(),
       respawnSide: json['respawnSide'] as String?,
-      linkId: json['linkId'] as String?,
+      id: json['id'] as String?,
+      targetZoneId: json['targetZoneId'] as String?,
     );
   }
 
@@ -161,7 +166,8 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       if (respawnX != null) 'respawnX': respawnX,
       if (respawnY != null) 'respawnY': respawnY,
       if (respawnSide != null) 'respawnSide': respawnSide,
-      'linkId': linkId,
+      'id': id,
+      if (targetZoneId != null) 'targetZoneId': targetZoneId,
     };
   }
 
@@ -196,8 +202,11 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     if (props.containsKey('respawnSide')) {
       respawnSide = props['respawnSide'] as String?;
     }
-    if (props.containsKey('linkId')) {
-      linkId = props['linkId'] as String? ?? linkId;
+    if (props.containsKey('id')) {
+      id = props['id'] as String? ?? id;
+    }
+    if (props.containsKey('targetZoneId')) {
+      targetZoneId = props['targetZoneId'] as String?;
     }
   }
 
@@ -249,7 +258,7 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
 
     if (isTransitionZone && nextStage.isNotEmpty) {
       logger.info(LogCategory.game,
-          'TransitionZone triggering: nextStage=$nextStage, linkId=$linkId');
+          'TransitionZone triggering: nextStage=$nextStage, id=$id, targetZoneId=$targetZoneId');
       // 遷移を発動（自分自身を渡して、速度情報を取得できるようにする）
       otedamaGame.triggerZoneTransitionCompat(this);
     } else {

@@ -43,7 +43,8 @@
       "angle": 0,
       "nextStage": "assets/stages/stage2-3.json",
       "respawnSide": "right",
-      "linkId": "stage2_3to4"
+      "id": "zone_2_4_bottom",
+      "targetZoneId": "zone_2_3_top"
     },
     {
       "type": "platform",

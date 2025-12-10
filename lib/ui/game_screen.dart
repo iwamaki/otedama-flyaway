@@ -121,6 +121,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         '_loadNextStage: nextStage=${info.nextStage}, velocity=${info.velocity.length.toStringAsFixed(2)}');
 
     try {
+      // 開発者モードの場合、遷移前に現在のステージを一時保存
+      // （編集中の変更が遷移先で反映されるようにする）
+      if (widget.developerMode) {
+        game.saveCurrentStageTemporarily();
+        logger.debug(LogCategory.stage, 'Saved current stage before transition (developer mode)');
+      }
+
       // 一時保存データがあればそれを使用
       StageData stageData;
       final unsavedData = game.getUnsavedStage(info.nextStage);

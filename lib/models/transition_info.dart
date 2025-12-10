@@ -8,20 +8,12 @@ class TransitionInfo {
   /// 遷移時の速度
   final Vector2 velocity;
 
-  /// 遷移先でのスポーン位置（nullの場合はステージのデフォルト）
-  final Vector2? spawnPosition;
-
-  /// 遷移ゾーンのリンクID（遷移先で対応するゾーンを特定するため）
-  final String? linkId;
-
-  /// 遷移元ゾーンの位置（同じステージ内の遷移時に除外するため）
-  final Vector2? sourceZonePosition;
+  /// 遷移先ゾーンのID（このIDを持つゾーンの位置にスポーンする）
+  final String? targetZoneId;
 
   const TransitionInfo({
     required this.nextStage,
     required this.velocity,
-    this.spawnPosition,
-    this.linkId,
-    this.sourceZonePosition,
+    this.targetZoneId,
   });
 }

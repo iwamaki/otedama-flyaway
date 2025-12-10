@@ -311,15 +311,16 @@ class OtedamaGame extends Forge2DGame
   void clearAllUnsavedStages() => _stageManager.clearAllUnsavedStages();
 
   /// 遷移先ステージに戻り用TransitionZoneを追加
-  Future<bool> addReturnTransitionZoneToTargetStage({
+  /// 戻り値: 追加された戻りゾーンのID（元ゾーンのtargetZoneIdに設定する用）
+  Future<String?> addReturnTransitionZoneToTargetStage({
     required String targetStageAsset,
     required Vector2 currentZonePosition,
-    required String linkId,
+    required String sourceZoneId,
   }) =>
       _stageManager.addReturnTransitionZoneToTargetStage(
         targetStageAsset: targetStageAsset,
         currentZonePosition: currentZonePosition,
-        linkId: linkId,
+        sourceZoneId: sourceZoneId,
       );
 
   /// StageDataからステージを読み込み
