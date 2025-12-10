@@ -14,10 +14,14 @@ class TransitionInfo {
   /// 遷移ゾーンのリンクID（遷移先で対応するゾーンを特定するため）
   final String? linkId;
 
+  /// 遷移元ゾーンの位置（同じステージ内の遷移時に除外するため）
+  final Vector2? sourceZonePosition;
+
   const TransitionInfo({
     required this.nextStage,
     required this.velocity,
     this.spawnPosition,
     this.linkId,
+    this.sourceZonePosition,
   });
 }

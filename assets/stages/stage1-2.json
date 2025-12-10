@@ -59,10 +59,7 @@
       "height": 5,
       "angle": 0,
       "nextStage": "assets/stages/stage1-1.json",
-      "spawnX": 20.397335052490234,
-      "spawnY": 0.16454672813415527,
-      "respawnX": -22,
-      "respawnY": 0,
+      "respawnSide": "right",
       "linkId": "miwjyinq_o74"
     },
     {
@@ -73,10 +70,7 @@
       "height": 5,
       "angle": 0,
       "nextStage": "assets/stages/stage1-3.json",
-      "spawnX": -24.704917907714844,
-      "spawnY": -0.061918094754219055,
-      "respawnX": 15,
-      "respawnY": 0,
+      "respawnSide": "left",
       "linkId": "miwk0ws7_ttu"
     }
   ],

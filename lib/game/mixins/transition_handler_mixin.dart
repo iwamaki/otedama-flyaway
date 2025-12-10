@@ -87,7 +87,7 @@ mixin TransitionHandlerMixin on Forge2DGame {
   }
 
   /// 遷移ゾーン判定チェック
-  void checkTransitionZones(double spawnX, double spawnY) {
+  void checkTransitionZones() {
     if (!canTransition || otedama == null) return;
 
     final pos = otedama!.centerPosition;
@@ -106,7 +106,7 @@ mixin TransitionHandlerMixin on Forge2DGame {
             pos.y <= zonePos.y + halfH) {
           logger.debug(LogCategory.game,
               '_checkTransitionZones: otedama at (${pos.x.toStringAsFixed(1)}, ${pos.y.toStringAsFixed(1)}) inside zone at (${zonePos.x.toStringAsFixed(1)}, ${zonePos.y.toStringAsFixed(1)})');
-          triggerZoneTransition(zone, spawnX, spawnY);
+          triggerZoneTransition(zone);
           return;
         }
       }
@@ -114,9 +114,10 @@ mixin TransitionHandlerMixin on Forge2DGame {
   }
 
   /// 遷移ゾーンからの遷移をトリガー
-  void triggerZoneTransition(TransitionZone zone, double spawnX, double spawnY) {
+  /// スポーン位置はlinkIdを使って遷移先ステージで解決する
+  void triggerZoneTransition(TransitionZone zone) {
     logger.debug(LogCategory.game,
-        'triggerZoneTransition called: nextStage=${zone.nextStage}, _isTransitioning=$_isTransitioning');
+        'triggerZoneTransition called: nextStage=${zone.nextStage}, linkId=${zone.linkId}, _isTransitioning=$_isTransitioning');
 
     if (_isTransitioning) {
       logger.debug(LogCategory.game, 'triggerZoneTransition: already transitioning, skipped');
@@ -130,28 +131,19 @@ mixin TransitionHandlerMixin on Forge2DGame {
 
     final velocity = otedama?.getVelocity() ?? Vector2.zero();
     logger.info(LogCategory.game,
-        'Zone transition -> ${zone.nextStage}, velocity: ${velocity.length.toStringAsFixed(2)}');
+        'Zone transition -> ${zone.nextStage}, linkId=${zone.linkId}, velocity: ${velocity.length.toStringAsFixed(2)}');
 
-    // スポーン位置が指定されている場合はそれを使う
-    Vector2? spawnPos;
-    if (zone.spawnX != null || zone.spawnY != null) {
-      spawnPos = Vector2(
-        zone.spawnX ?? spawnX,
-        zone.spawnY ?? spawnY,
-      );
-      logger.debug(LogCategory.game,
-          'Custom spawn position: (${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)})');
-    }
-
+    // スポーン位置は遷移先でlinkIdを使って対応するゾーンの位置から解決する
+    // 遷移元ゾーンの位置も渡して、同じステージ内の遷移時に除外できるようにする
     final info = TransitionInfo(
       nextStage: zone.nextStage,
       velocity: velocity,
-      spawnPosition: spawnPos,
       linkId: zone.linkId.isNotEmpty ? zone.linkId : null,
+      sourceZonePosition: zone.position.clone(),
     );
 
     logger.debug(LogCategory.game,
-        'TransitionInfo: nextStage=${info.nextStage}, spawnPos=(${spawnPos?.x.toStringAsFixed(1)}, ${spawnPos?.y.toStringAsFixed(1)})');
+        'TransitionInfo: nextStage=${info.nextStage}, linkId=${info.linkId}');
 
     if (onStageTransition != null) {
       onStageTransition!.call(info);

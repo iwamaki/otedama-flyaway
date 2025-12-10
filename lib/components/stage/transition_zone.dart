@@ -34,13 +34,37 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
   /// 次ステージのアセットパス
   String nextStage;
 
-  /// 遷移先でのスポーン位置（nullの場合はステージのデフォルトを使用）
-  double? spawnX;
-  double? spawnY;
-
-  /// このゾーンに遷移してきた場合のリスポーン位置（nullの場合はゾーン位置を使用）
+  /// このゾーンに遷移してきた場合のリスポーン位置
+  /// respawnSideが指定されている場合はゾーン位置から自動計算
+  /// respawnX/Yが指定されている場合はそちらを優先
   double? respawnX;
   double? respawnY;
+
+  /// リスポーン位置の方向（"left" または "right"）
+  /// 指定するとゾーンの左右にオフセットした位置を自動計算
+  String? respawnSide;
+
+  /// リスポーン位置のオフセット距離
+  static const double _respawnOffset = 5.0;
+
+  /// 計算されたリスポーン位置を取得
+  (double x, double y)? get respawnPosition {
+    // 明示的な座標指定がある場合はそちらを優先
+    if (respawnX != null && respawnY != null) {
+      return (respawnX!, respawnY!);
+    }
+    // respawnSideが指定されている場合は自動計算
+    if (respawnSide != null) {
+      final zoneX = body.position.x;
+      final zoneY = body.position.y;
+      if (respawnSide == 'left') {
+        return (zoneX - _width / 2 - _respawnOffset, zoneY);
+      } else if (respawnSide == 'right') {
+        return (zoneX + _width / 2 + _respawnOffset, zoneY);
+      }
+    }
+    return null;
+  }
 
   /// リンクID（ペアの遷移ゾーンを識別するための一意のID）
   String linkId;
@@ -77,10 +101,9 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     double height = 5.0,
     double angle = 0.0,
     this.nextStage = '',
-    this.spawnX,
-    this.spawnY,
     this.respawnX,
     this.respawnY,
+    this.respawnSide,
     String? linkId,
   })  : initialPosition = position.clone(),
         _width = width,
@@ -96,10 +119,9 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       height: json.getDouble('height', 5.0),
       angle: json.getDouble('angle'),
       nextStage: json['nextStage'] as String? ?? '',
-      spawnX: (json['spawnX'] as num?)?.toDouble(),
-      spawnY: (json['spawnY'] as num?)?.toDouble(),
       respawnX: (json['respawnX'] as num?)?.toDouble(),
       respawnY: (json['respawnY'] as num?)?.toDouble(),
+      respawnSide: json['respawnSide'] as String?,
       linkId: json['linkId'] as String?,
     );
   }
@@ -136,23 +158,19 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       'height': _height,
       'angle': angle,
       'nextStage': nextStage,
-      if (spawnX != null) 'spawnX': spawnX,
-      if (spawnY != null) 'spawnY': spawnY,
       if (respawnX != null) 'respawnX': respawnX,
       if (respawnY != null) 'respawnY': respawnY,
+      if (respawnSide != null) 'respawnSide': respawnSide,
       'linkId': linkId,
     };
   }
 
   @override
   void applyProperties(Map<String, dynamic> props) {
-    bool positionChanged = false;
-
     if (props.containsKey('x') || props.containsKey('y')) {
       final newX = (props['x'] as num?)?.toDouble() ?? position.x;
       final newY = (props['y'] as num?)?.toDouble() ?? position.y;
       body.setTransform(Vector2(newX, newY), body.angle);
-      positionChanged = true;
     }
     if (props.containsKey('angle')) {
       final newAngle = (props['angle'] as num?)?.toDouble() ?? 0.0;
@@ -169,25 +187,17 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     if (props.containsKey('nextStage')) {
       nextStage = props['nextStage'] as String? ?? '';
     }
-    if (props.containsKey('spawnX')) {
-      spawnX = (props['spawnX'] as num?)?.toDouble();
-    }
-    if (props.containsKey('spawnY')) {
-      spawnY = (props['spawnY'] as num?)?.toDouble();
-    }
     if (props.containsKey('respawnX')) {
       respawnX = (props['respawnX'] as num?)?.toDouble();
     }
     if (props.containsKey('respawnY')) {
       respawnY = (props['respawnY'] as num?)?.toDouble();
     }
+    if (props.containsKey('respawnSide')) {
+      respawnSide = props['respawnSide'] as String?;
+    }
     if (props.containsKey('linkId')) {
       linkId = props['linkId'] as String? ?? linkId;
-    }
-
-    // 位置が変更された場合、ペアゾーンの spawnX/Y を自動同期
-    if (positionChanged && isMounted && linkId.isNotEmpty) {
-      otedamaGame.syncTransitionZonePair(this);
     }
   }
 
@@ -239,8 +249,8 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
 
     if (isTransitionZone && nextStage.isNotEmpty) {
       logger.info(LogCategory.game,
-          'TransitionZone triggering: nextStage=$nextStage, spawnX=$spawnX, spawnY=$spawnY');
-      // 遷移を発動（自分自身を渡して、スポーン位置や速度情報を取得できるようにする）
+          'TransitionZone triggering: nextStage=$nextStage, linkId=$linkId');
+      // 遷移を発動（自分自身を渡して、速度情報を取得できるようにする）
       otedamaGame.triggerZoneTransitionCompat(this);
     } else {
       logger.debug(LogCategory.game,

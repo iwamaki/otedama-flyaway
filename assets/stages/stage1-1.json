@@ -59,10 +59,7 @@
       "height": 5,
       "angle": 0,
       "nextStage": "assets/stages/stage1-2.json",
-      "spawnX": -26.21781349182129,
-      "spawnY": -0.5263622999191284,
-      "respawnX": 15,
-      "respawnY": 0,
+      "respawnSide": "left",
       "linkId": "miwjyinq_o74"
     },
     {

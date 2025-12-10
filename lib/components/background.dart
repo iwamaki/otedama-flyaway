@@ -24,7 +24,7 @@ class Background extends PositionComponent {
     this.imagePath,
     ui.Image? preloadedImage,
     this.fallbackColor = const Color(0xFFE8DCC8),
-    this.parallaxFactor = 0.1, // デフォルト: お手玉の10%の速さで動く
+    this.parallaxFactor = 1.0, // デフォルト: カメラと同じ速さで動く
     double darkness = 0.0,
   })  : _image = preloadedImage,
         _darkness = darkness.clamp(0.0, 1.0);
@@ -86,9 +86,11 @@ class Background extends PositionComponent {
     final imgHeight = _image!.height.toDouble();
 
     // 画面を覆うためのスケールを計算（cover方式）
+    // パララックスで動く分だけ余白が必要なので、その分拡大する
     final scaleX = screenSize.x / imgWidth;
     final scaleY = screenSize.y / imgHeight;
-    final scale = scaleX > scaleY ? scaleX : scaleY;
+    final baseScale = scaleX > scaleY ? scaleX : scaleY;
+    final scale = baseScale * (1.0 + parallaxFactor * 0.5); // パララックス分の余白を確保
 
     // スケール後のサイズ
     final scaledWidth = imgWidth * scale;

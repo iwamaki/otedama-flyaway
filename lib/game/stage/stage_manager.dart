@@ -258,32 +258,48 @@ class StageManager {
 
     // お手玉を新しいスポーン位置に移動（遷移情報があれば速度も維持）
     if (transitionInfo != null) {
-      final spawnPos = transitionInfo.spawnPosition ?? Vector2(spawnX, spawnY);
+      // linkIdで対応する遷移ゾーンを探し、そのゾーンの位置をスポーン位置として使用
+      Vector2 spawnPos = Vector2(spawnX, spawnY);
+      if (transitionInfo.linkId != null) {
+        // 同じlinkIdを持つゾーンを探す
+        // 遷移元ゾーンの位置と一致するものは除外（同じステージ内の遷移の場合）
+        final sourcePos = transitionInfo.sourceZonePosition;
+        final matchingZone = _stageObjects
+            .whereType<TransitionZone>()
+            .where((zone) {
+              if (zone.linkId != transitionInfo.linkId) return false;
+              // 遷移元ゾーンの位置と近いものは除外
+              if (sourcePos != null) {
+                final dx = (zone.position.x - sourcePos.x).abs();
+                final dy = (zone.position.y - sourcePos.y).abs();
+                if (dx < 0.1 && dy < 0.1) return false;
+              }
+              return true;
+            })
+            .firstOrNull;
+        if (matchingZone != null) {
+          // 対応するゾーンの位置をスポーン位置として使用
+          spawnPos = matchingZone.position.clone();
+          logger.debug(LogCategory.stage,
+              'Spawn position resolved from linkId=${transitionInfo.linkId}: (${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)})');
+
+          // リスポーン位置も設定（ゾーンにrespawnPositionがあればそれを使用）
+          final respawnPos = matchingZone.respawnPosition;
+          if (respawnPos != null) {
+            spawnX = respawnPos.$1;
+            spawnY = respawnPos.$2;
+            logger.debug(LogCategory.stage,
+                'Respawn position set from zone: (${spawnX.toStringAsFixed(1)}, ${spawnY.toStringAsFixed(1)})');
+          }
+        } else {
+          logger.warning(LogCategory.stage,
+              'No matching zone found for linkId=${transitionInfo.linkId}, using stage default');
+        }
+      }
+
       otedama?.resetToPosition(spawnPos, velocity: transitionInfo.velocity);
       logger.debug(LogCategory.game,
           'Otedama positioned at ${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)} with velocity ${transitionInfo.velocity.length.toStringAsFixed(2)}');
-
-      // リスポーン位置を遷移先の遷移ゾーンから取得（落下時にこの位置に戻る）
-      // linkIdで対応する遷移ゾーンを探し、respawnX/Yがあればそれを使用
-      if (transitionInfo.linkId != null) {
-        final matchingZone = _stageObjects
-            .whereType<TransitionZone>()
-            .where((zone) => zone.linkId == transitionInfo.linkId)
-            .firstOrNull;
-        if (matchingZone != null &&
-            matchingZone.respawnX != null &&
-            matchingZone.respawnY != null) {
-          // ゾーンに指定されたリスポーン位置を使用
-          spawnX = matchingZone.respawnX!;
-          spawnY = matchingZone.respawnY!;
-          logger.debug(LogCategory.stage,
-              'Respawn position set from zone (linkId=${transitionInfo.linkId}): (${spawnX.toStringAsFixed(1)}, ${spawnY.toStringAsFixed(1)})');
-        } else {
-          // respawnX/Yが設定されていない場合はステージのデフォルトを維持
-          logger.debug(LogCategory.stage,
-              'No respawn position in zone, using stage default: (${spawnX.toStringAsFixed(1)}, ${spawnY.toStringAsFixed(1)})');
-        }
-      }
 
       // 遷移クールダウンを設定
       setTransitionCooldown();
@@ -294,17 +310,17 @@ class StageManager {
     onChanged?.call();
   }
 
-  /// 遷移先ステージに戻り用TransitionZoneを追加（または更新）
+  /// 遷移先ステージに戻り用TransitionZoneを追加
   /// linkId でペアを特定するため、同じステージ間に複数の遷移ゾーンがあっても正しく対応できる
-  /// 戻り値: (成功フラグ, 戻りゾーンの位置) - 位置は元ゾーンのspawnX/Y更新に使用
-  Future<(bool, Vector2?)> addReturnTransitionZoneToTargetStage({
+  /// スポーン位置はlinkIdを使って自動解決されるため、spawnX/spawnYは不要
+  Future<bool> addReturnTransitionZoneToTargetStage({
     required String targetStageAsset,
     required Vector2 currentZonePosition,
     required String linkId,
   }) async {
     if (_currentStageAsset == null) {
       logger.warning(LogCategory.stage, 'Cannot add return zone: current stage asset is null');
-      return (false, null);
+      return false;
     }
 
     try {
@@ -347,26 +363,16 @@ class StageManager {
 
       List<Map<String, dynamic>> newObjects;
       String logMessage;
-      Vector2 returnZonePosition;
 
       if (existingReturnZoneIndex >= 0) {
-        // 既存の戻りゾーンがある場合は spawnX/spawnY を更新
-        newObjects = List<Map<String, dynamic>>.from(targetStage.objects);
-        final existingZone = Map<String, dynamic>.from(newObjects[existingReturnZoneIndex]);
-        existingZone['spawnX'] = currentZonePosition.x;
-        existingZone['spawnY'] = currentZonePosition.y;
-        newObjects[existingReturnZoneIndex] = existingZone;
-        // 戻りゾーンの現在位置を取得
-        returnZonePosition = Vector2(
-          (existingZone['x'] as num?)?.toDouble() ?? 0.0,
-          (existingZone['y'] as num?)?.toDouble() ?? 0.0,
-        );
-        logMessage = 'Updated return TransitionZone (linkId=$linkId) spawn position in $targetStageAsset to (${currentZonePosition.x.toStringAsFixed(1)}, ${currentZonePosition.y.toStringAsFixed(1)})';
+        // 既存の戻りゾーンがある - linkIdベースの解決なので更新不要
+        logger.debug(LogCategory.stage,
+            'Return zone already exists with linkId=$linkId in $targetStageAsset');
+        return true;
       } else {
         // 新規に戻りゾーンを追加（元ゾーンと同じ絶対座標に配置）
         final returnZoneX = currentZonePosition.x;
         final returnZoneY = currentZonePosition.y;
-        returnZonePosition = Vector2(returnZoneX, returnZoneY);
 
         final returnZoneJson = {
           'type': 'transitionZone',
@@ -376,8 +382,6 @@ class StageManager {
           'height': 5.0,
           'angle': 0.0,
           'nextStage': _currentStageAsset!,
-          'spawnX': currentZonePosition.x,
-          'spawnY': currentZonePosition.y,
           'linkId': linkId,
         };
         newObjects = [...targetStage.objects, returnZoneJson];
@@ -392,70 +396,10 @@ class StageManager {
       logger.info(LogCategory.stage, logMessage);
 
       onChanged?.call();
-      return (true, returnZonePosition);
+      return true;
     } catch (e) {
       logger.error(LogCategory.stage, 'Failed to add/update return zone to $targetStageAsset', error: e);
-      return (false, null);
-    }
-  }
-
-  /// TransitionZone の位置変更時にペアのゾーンの spawnX/Y を自動同期
-  /// 同じステージ内のペアゾーン、および一時保存されたクロスステージのペアゾーンを更新
-  void syncTransitionZonePair(TransitionZone movedZone) {
-    final newPosition = movedZone.position;
-    final linkId = movedZone.linkId;
-    final nextStage = movedZone.nextStage;
-
-    if (linkId.isEmpty) return;
-
-    // 1. 同じステージ内のペアゾーンを更新
-    for (final obj in _stageObjects) {
-      if (obj is TransitionZone &&
-          obj.linkId == linkId &&
-          obj != movedZone) {
-        // ペアゾーンの spawnX/Y を移動したゾーンの位置に更新
-        obj.spawnX = newPosition.x;
-        obj.spawnY = newPosition.y;
-        logger.debug(LogCategory.stage,
-            'Synced same-stage pair: updated spawnX/Y to (${newPosition.x.toStringAsFixed(1)}, ${newPosition.y.toStringAsFixed(1)})');
-      }
-    }
-
-    // 2. クロスステージのペアゾーンを更新（一時保存データ内）
-    if (nextStage.isNotEmpty && nextStage != _currentStageAsset) {
-      _syncCrossStageZone(nextStage, linkId, newPosition);
-    }
-
-    // 3. 現在のステージが一時保存の対象になっている他ステージからの参照を更新
-    if (_currentStageAsset != null) {
-      for (final entry in _unsavedStages.entries) {
-        if (entry.key == _currentStageAsset) continue;
-        _syncCrossStageZone(entry.key, linkId, newPosition);
-      }
-    }
-  }
-
-  /// クロスステージのゾーンの spawnX/Y を更新（一時保存データ内）
-  void _syncCrossStageZone(String stageAsset, String linkId, Vector2 newPosition) {
-    final stageData = _unsavedStages[stageAsset];
-    if (stageData == null) return;
-
-    bool updated = false;
-    final newObjects = stageData.objects.map((obj) {
-      if (obj['type'] == 'transitionZone' && obj['linkId'] == linkId) {
-        final updatedObj = Map<String, dynamic>.from(obj);
-        updatedObj['spawnX'] = newPosition.x;
-        updatedObj['spawnY'] = newPosition.y;
-        updated = true;
-        return updatedObj;
-      }
-      return obj;
-    }).toList();
-
-    if (updated) {
-      _unsavedStages[stageAsset] = stageData.copyWith(objects: newObjects);
-      logger.debug(LogCategory.stage,
-          'Synced cross-stage pair in $stageAsset: updated spawnX/Y to (${newPosition.x.toStringAsFixed(1)}, ${newPosition.y.toStringAsFixed(1)})');
+      return false;
     }
   }
 

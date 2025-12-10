@@ -53,10 +53,7 @@
       "height": 5,
       "angle": 0,
       "nextStage": "assets/stages/stage2-2.json",
-      "spawnX": -8,
-      "spawnY": 3,
-      "respawnX": -8,
-      "respawnY": -16,
+      "respawnSide": "right",
       "linkId": "stage2_1to2"
     },
     {
@@ -67,10 +64,7 @@
       "height": 5,
       "angle": 0,
       "nextStage": "assets/stages/stage1-3.json",
-      "spawnX": 52,
-      "spawnY": -14,
-      "respawnX": -20,
-      "respawnY": 3,
+      "respawnSide": "right",
       "linkId": "stage1_3to2_1"
     }
   ],

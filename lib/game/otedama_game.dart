@@ -229,7 +229,7 @@ class OtedamaGame extends Forge2DGame
 
       // 遷移ゾーン判定
       if (canTransition) {
-        checkTransitionZones(_stageManager.spawnX, _stageManager.spawnY);
+        checkTransitionZones();
       }
     }
 
@@ -311,8 +311,7 @@ class OtedamaGame extends Forge2DGame
   void clearAllUnsavedStages() => _stageManager.clearAllUnsavedStages();
 
   /// 遷移先ステージに戻り用TransitionZoneを追加
-  /// 戻り値: (成功フラグ, 戻りゾーンの位置)
-  Future<(bool, Vector2?)> addReturnTransitionZoneToTargetStage({
+  Future<bool> addReturnTransitionZoneToTargetStage({
     required String targetStageAsset,
     required Vector2 currentZonePosition,
     required String linkId,
@@ -322,10 +321,6 @@ class OtedamaGame extends Forge2DGame
         currentZonePosition: currentZonePosition,
         linkId: linkId,
       );
-
-  /// TransitionZone の位置変更時にペアのゾーンの spawnX/Y を自動同期
-  void syncTransitionZonePair(TransitionZone zone) =>
-      _stageManager.syncTransitionZonePair(zone);
 
   /// StageDataからステージを読み込み
   Future<void> loadStage(
@@ -431,8 +426,8 @@ class OtedamaGame extends Forge2DGame
     selectObject(obj);
   }
 
-  /// 遷移ゾーンからの遷移をトリガー（1引数版、コンポーネントから呼び出し用）
+  /// 遷移ゾーンからの遷移をトリガー（コンポーネントから呼び出し用）
   void triggerZoneTransitionCompat(TransitionZone zone) {
-    triggerZoneTransition(zone, _stageManager.spawnX, _stageManager.spawnY);
+    triggerZoneTransition(zone);
   }
 }

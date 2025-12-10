@@ -92,39 +92,8 @@ class _TransitionZoneSettingsState extends State<TransitionZoneSettings> {
                 ),
               ),
             ),
-          // スポーン位置設定
+          // リンクID表示（出現位置はlinkIdで自動解決される）
           if (widget.zone.nextStage.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            const Text(
-              '出現位置（空欄でデフォルト）',
-              style: TextStyle(color: Colors.teal, fontSize: 10),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Expanded(
-                  child: _SpawnInput(
-                    label: 'X',
-                    value: widget.zone.spawnX,
-                    onChanged: (value) {
-                      widget.zone.applyProperties({'spawnX': value});
-                      widget.onChanged();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _SpawnInput(
-                    label: 'Y',
-                    value: widget.zone.spawnY,
-                    onChanged: (value) {
-                      widget.zone.applyProperties({'spawnY': value});
-                      widget.onChanged();
-                    },
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: 8),
             // リンクID表示
             Row(
@@ -149,29 +118,22 @@ class _TransitionZoneSettingsState extends State<TransitionZoneSettings> {
               ],
             ),
             const SizedBox(height: 8),
-            // 戻りゾーン追加/更新ボタン
+            // 戻りゾーン追加ボタン
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  final (success, returnZonePosition) = await widget.game.addReturnTransitionZoneToTargetStage(
+                  final success = await widget.game.addReturnTransitionZoneToTargetStage(
                     targetStageAsset: widget.zone.nextStage,
                     currentZonePosition: widget.zone.position.clone(),
                     linkId: widget.zone.linkId,
                   );
-                  if (success && returnZonePosition != null) {
-                    // 元ゾーンのspawnX/Yを戻りゾーンの位置に更新
-                    widget.zone.applyProperties({
-                      'spawnX': returnZonePosition.x,
-                      'spawnY': returnZonePosition.y,
-                    });
-                  }
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(success
-                            ? '戻りゾーンを追加/更新しました'
-                            : '戻りゾーンの追加/更新に失敗しました'),
+                            ? '戻りゾーンを追加しました'
+                            : '戻りゾーンの追加に失敗しました'),
                         backgroundColor: success ? Colors.green : Colors.red,
                         duration: const Duration(seconds: 2),
                       ),
@@ -184,9 +146,9 @@ class _TransitionZoneSettingsState extends State<TransitionZoneSettings> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 8),
                 ),
-                icon: const Icon(Icons.sync_alt, size: 16),
+                icon: const Icon(Icons.add_link, size: 16),
                 label: const Text(
-                  '戻りゾーンを追加/更新',
+                  '戻りゾーンを追加',
                   style: TextStyle(fontSize: 11),
                 ),
               ),
@@ -194,45 +156,6 @@ class _TransitionZoneSettingsState extends State<TransitionZoneSettings> {
           ],
         ],
       ),
-    );
-  }
-}
-
-/// スポーン位置入力フィールド
-class _SpawnInput extends StatelessWidget {
-  final String label;
-  final double? value;
-  final ValueChanged<double?> onChanged;
-
-  const _SpawnInput({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      initialValue: value?.toStringAsFixed(1) ?? '',
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white54, fontSize: 10),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        border: const OutlineInputBorder(),
-      ),
-      style: const TextStyle(color: Colors.white, fontSize: 11),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-      onChanged: (text) {
-        if (text.isEmpty) {
-          onChanged(null);
-        } else {
-          final parsed = double.tryParse(text);
-          if (parsed != null) {
-            onChanged(parsed);
-          }
-        }
-      },
     );
   }
 }
