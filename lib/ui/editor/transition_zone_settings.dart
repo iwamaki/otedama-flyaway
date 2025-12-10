@@ -214,6 +214,9 @@ class _TransitionZoneSettingsState extends State<TransitionZoneSettings> {
               ),
             ),
           // 遷移先ゾーン設定
+          // リスポーン位置（respawnSide）
+          const SizedBox(height: 12),
+          _buildRespawnSideSelector(),
           if (widget.zone.nextStage.isNotEmpty) ...[
             const SizedBox(height: 12),
             _buildTargetZoneSelector(),
@@ -311,6 +314,54 @@ class _TransitionZoneSettingsState extends State<TransitionZoneSettings> {
               widget.onChanged();
             }
           },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRespawnSideSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'リスポーン位置',
+          style: TextStyle(color: Colors.teal, fontSize: 10),
+        ),
+        const SizedBox(height: 4),
+        DropdownButtonFormField<String?>(
+          value: widget.zone.respawnSide,
+          items: const [
+            DropdownMenuItem<String?>(
+              value: null,
+              child: Text('なし（遷移先ゾーン位置）', style: TextStyle(color: Colors.white38, fontSize: 11)),
+            ),
+            DropdownMenuItem<String?>(
+              value: 'left',
+              child: Text('左側', style: TextStyle(color: Colors.white, fontSize: 11)),
+            ),
+            DropdownMenuItem<String?>(
+              value: 'right',
+              child: Text('右側', style: TextStyle(color: Colors.white, fontSize: 11)),
+            ),
+          ],
+          onChanged: (value) {
+            widget.zone.applyProperties({'respawnSide': value});
+            widget.onChanged();
+          },
+          decoration: const InputDecoration(
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            border: OutlineInputBorder(),
+          ),
+          dropdownColor: Colors.grey[850],
+          style: const TextStyle(fontSize: 11),
+        ),
+        const Padding(
+          padding: EdgeInsets.only(top: 4),
+          child: Text(
+            '他ステージからこのゾーンに飛んできた時のスポーン位置',
+            style: TextStyle(color: Colors.white38, fontSize: 9),
+          ),
         ),
       ],
     );

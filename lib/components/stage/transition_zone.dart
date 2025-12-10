@@ -45,7 +45,7 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
   String? respawnSide;
 
   /// リスポーン位置のオフセット距離
-  static const double _respawnOffset = 5.0;
+  static const double _respawnOffset = 3.0;
 
   /// 計算されたリスポーン位置を取得
   (double x, double y)? get respawnPosition {
