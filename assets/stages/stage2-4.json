@@ -44,6 +44,8 @@
       "nextStage": "assets/stages/stage2-3.json",
       "spawnX": -12,
       "spawnY": -26,
+      "respawnX": -12,
+      "respawnY": 3,
       "linkId": "stage2_3to4"
     },
     {

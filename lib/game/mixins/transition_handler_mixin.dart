@@ -147,6 +147,7 @@ mixin TransitionHandlerMixin on Forge2DGame {
       nextStage: zone.nextStage,
       velocity: velocity,
       spawnPosition: spawnPos,
+      linkId: zone.linkId.isNotEmpty ? zone.linkId : null,
     );
 
     logger.debug(LogCategory.game,

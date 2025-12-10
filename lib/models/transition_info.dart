@@ -11,9 +11,13 @@ class TransitionInfo {
   /// 遷移先でのスポーン位置（nullの場合はステージのデフォルト）
   final Vector2? spawnPosition;
 
+  /// 遷移ゾーンのリンクID（遷移先で対応するゾーンを特定するため）
+  final String? linkId;
+
   const TransitionInfo({
     required this.nextStage,
     required this.velocity,
     this.spawnPosition,
+    this.linkId,
   });
 }

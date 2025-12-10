@@ -126,6 +126,8 @@
       "nextStage": "assets/stages/stage1-2.json",
       "spawnX": 19.48903465270996,
       "spawnY": 0.4411149024963379,
+      "respawnX": -20,
+      "respawnY": 0,
       "linkId": "miwk0ws7_ttu"
     },
     {
@@ -160,6 +162,8 @@
       "nextStage": "assets/stages/stage2-1.json",
       "spawnX": -25,
       "spawnY": 3,
+      "respawnX": 52,
+      "respawnY": -18,
       "linkId": "stage1_3to2_1"
     }
   ],

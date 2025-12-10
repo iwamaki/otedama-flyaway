@@ -38,6 +38,10 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
   double? spawnX;
   double? spawnY;
 
+  /// このゾーンに遷移してきた場合のリスポーン位置（nullの場合はゾーン位置を使用）
+  double? respawnX;
+  double? respawnY;
+
   /// リンクID（ペアの遷移ゾーンを識別するための一意のID）
   String linkId;
 
@@ -75,6 +79,8 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     this.nextStage = '',
     this.spawnX,
     this.spawnY,
+    this.respawnX,
+    this.respawnY,
     String? linkId,
   })  : initialPosition = position.clone(),
         _width = width,
@@ -92,6 +98,8 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       nextStage: json['nextStage'] as String? ?? '',
       spawnX: (json['spawnX'] as num?)?.toDouble(),
       spawnY: (json['spawnY'] as num?)?.toDouble(),
+      respawnX: (json['respawnX'] as num?)?.toDouble(),
+      respawnY: (json['respawnY'] as num?)?.toDouble(),
       linkId: json['linkId'] as String?,
     );
   }
@@ -130,6 +138,8 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       'nextStage': nextStage,
       if (spawnX != null) 'spawnX': spawnX,
       if (spawnY != null) 'spawnY': spawnY,
+      if (respawnX != null) 'respawnX': respawnX,
+      if (respawnY != null) 'respawnY': respawnY,
       'linkId': linkId,
     };
   }
@@ -164,6 +174,12 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     }
     if (props.containsKey('spawnY')) {
       spawnY = (props['spawnY'] as num?)?.toDouble();
+    }
+    if (props.containsKey('respawnX')) {
+      respawnX = (props['respawnX'] as num?)?.toDouble();
+    }
+    if (props.containsKey('respawnY')) {
+      respawnY = (props['respawnY'] as num?)?.toDouble();
     }
     if (props.containsKey('linkId')) {
       linkId = props['linkId'] as String? ?? linkId;

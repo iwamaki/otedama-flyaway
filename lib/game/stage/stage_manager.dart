@@ -263,6 +263,28 @@ class StageManager {
       logger.debug(LogCategory.game,
           'Otedama positioned at ${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)} with velocity ${transitionInfo.velocity.length.toStringAsFixed(2)}');
 
+      // リスポーン位置を遷移先の遷移ゾーンから取得（落下時にこの位置に戻る）
+      // linkIdで対応する遷移ゾーンを探し、respawnX/Yがあればそれを使用
+      if (transitionInfo.linkId != null) {
+        final matchingZone = _stageObjects
+            .whereType<TransitionZone>()
+            .where((zone) => zone.linkId == transitionInfo.linkId)
+            .firstOrNull;
+        if (matchingZone != null &&
+            matchingZone.respawnX != null &&
+            matchingZone.respawnY != null) {
+          // ゾーンに指定されたリスポーン位置を使用
+          spawnX = matchingZone.respawnX!;
+          spawnY = matchingZone.respawnY!;
+          logger.debug(LogCategory.stage,
+              'Respawn position set from zone (linkId=${transitionInfo.linkId}): (${spawnX.toStringAsFixed(1)}, ${spawnY.toStringAsFixed(1)})');
+        } else {
+          // respawnX/Yが設定されていない場合はステージのデフォルトを維持
+          logger.debug(LogCategory.stage,
+              'No respawn position in zone, using stage default: (${spawnX.toStringAsFixed(1)}, ${spawnY.toStringAsFixed(1)})');
+        }
+      }
+
       // 遷移クールダウンを設定
       setTransitionCooldown();
     } else {
