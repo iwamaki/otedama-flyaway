@@ -37,29 +37,29 @@ class ParticleOtedama extends BodyComponent {
   late ParticlePhysicsSolver _physicsSolver;
 
   // 設定可能なパラメータ（調整済みデフォルト値）
-  static int shellCount = 20;
-  static int beadCount = 15;
-  static double shellRadius = 0.27;
-  static double beadRadius = 0.21;
-  static double overallRadius = 1.50;
-  static double shellDensity = 3.0;
-  static double beadDensity = 3.0;
+  static int shellCount = 25;
+  static int beadCount = 10;
+  static double shellRadius = 0.30;
+  static double beadRadius = 0.40;
+  static double overallRadius = 1.70;
+  static double shellDensity = 5.0;
+  static double beadDensity = 2.99;
   static double shellFriction = 0.25;
   static double beadFriction = 1.0;
   static double shellRestitution = 0.05;
   static double beadRestitution = 0.0;
-  static double jointFrequency = 39.94; // 0=硬い接続（伸びない）、>0=バネ
+  static double jointFrequency = 23.65; // 0=硬い接続（伸びない）、>0=バネ
   static double jointDamping = 0.0;
   static double shellRelativeDamping = 0.0; // 節同士の相対運動の減衰（重力に影響しない）
-  static double gravityScale = 2.50; // 重力スケール（1.0 = 通常）
+  static double gravityScale = 3.0; // 重力スケール（1.0 = 通常）
 
   // 距離制約の補正（PBDアプローチ）
-  static int distanceConstraintIterations = 6; // 補正の反復回数（最適化: 10→6）
+  static int distanceConstraintIterations = 6; // 補正の反復回数
   static double distanceConstraintStiffness = 1.0; // 補正の強さ（0.0-1.0）
 
   // ビーズ封じ込め制約
   static bool beadContainmentEnabled = true; // 封じ込め有効
-  static double beadContainmentMargin = 0.10; // 外殻境界からのマージン
+  static double beadContainmentMargin = 0.0; // 外殻境界からのマージン
 
   // 外殻反転防止パラメータ
   static double inversionCheckVelocityThreshold = 5.0; // この速度以下は反転チェックをスキップ
@@ -68,16 +68,16 @@ class ParticleOtedama extends BodyComponent {
   static double inversionPushTargetRatio = 0.9; // 押し出し先の距離比率
 
   // 曲げ制約パラメータ（反転を根本的に防ぐ）
-  static double minBendingAngleDegrees = 120.0; // 最小角度（度）
-  static double bendingStiffness = 0.5; // 曲げ剛性（0.0-1.0）
+  static double minBendingAngleDegrees = 60.0; // 最小角度（度）
+  static double bendingStiffness = 0.0; // 曲げ剛性（0.0-1.0）
 
   // ビーズサイズのバリエーション（0.0〜1.0、大きいほどバラつく）
-  static double beadSizeVariation = 0.26;
+  static double beadSizeVariation = 0.62;
 
   // 外殻の内側突起（ビーズとの接触を確保）
   static bool shellSpikeEnabled = true; // 突起を有効化
-  static double shellSpikeLength = 0.41; // 突起の長さ（内側方向へのオフセット）
-  static double shellSpikeRadius = 0.11; // 突起の半径
+  static double shellSpikeLength = 0.38; // 突起の長さ（内側方向へのオフセット）
+  static double shellSpikeRadius = 0.09; // 突起の半径
 
   // 初期ジョイント長を記録
   final List<double> _initialJointLengths = [];
@@ -94,7 +94,7 @@ class ParticleOtedama extends BodyComponent {
   static const double _groundedVelocityThreshold = 1.5; // 接地判定の速度閾値
 
   /// 発射力の倍率（スワイプ→力の変換係数）
-  static double launchMultiplier = 2.40;
+  static double launchMultiplier = 2.25;
 
   /// 空中発射の力の倍率（初回の何倍か）
   static double airLaunchMultiplier = 0.5;
