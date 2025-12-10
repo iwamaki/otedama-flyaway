@@ -252,7 +252,7 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
             'Iterations',
             ParticleOtedama.distanceConstraintIterations.toDouble(),
             0,
-            10,
+            20,
             (v) {
               ParticleOtedama.distanceConstraintIterations = v.round();
               setState(() {});
@@ -299,6 +299,76 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
             0.5,
             (v) {
               ParticleOtedama.beadContainmentMargin = v;
+              setState(() {});
+            },
+          ),
+
+          const Divider(color: Colors.white24),
+
+          // 曲げ制約パラメータ
+          _buildSectionHeader('Bending (曲げ制約)'),
+          _buildSlider(
+            'MinAngle',
+            ParticleOtedama.minBendingAngleDegrees,
+            60.0,
+            170.0,
+            (v) {
+              ParticleOtedama.minBendingAngleDegrees = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'Stiffness',
+            ParticleOtedama.bendingStiffness,
+            0.0,
+            1.0,
+            (v) {
+              ParticleOtedama.bendingStiffness = v;
+              setState(() {});
+            },
+          ),
+
+          const Divider(color: Colors.white24),
+
+          // 反転防止パラメータ（フォールバック）
+          _buildSectionHeader('Inversion (反転補正)'),
+          _buildSlider(
+            'VelThresh',
+            ParticleOtedama.inversionCheckVelocityThreshold,
+            0.0,
+            10.0,
+            (v) {
+              ParticleOtedama.inversionCheckVelocityThreshold = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'CrossThr',
+            ParticleOtedama.inversionCrossThreshold,
+            -0.1,
+            0.0,
+            (v) {
+              ParticleOtedama.inversionCrossThreshold = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'PushStart',
+            ParticleOtedama.inversionPushStartRatio,
+            0.3,
+            0.9,
+            (v) {
+              ParticleOtedama.inversionPushStartRatio = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'PushTarget',
+            ParticleOtedama.inversionPushTargetRatio,
+            0.5,
+            1.0,
+            (v) {
+              ParticleOtedama.inversionPushTargetRatio = v;
               setState(() {});
             },
           ),
@@ -522,6 +592,12 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
       ParticleOtedama.gravityScale = 2.50;
       ParticleOtedama.beadContainmentEnabled = true;
       ParticleOtedama.beadContainmentMargin = 0.10;
+      ParticleOtedama.minBendingAngleDegrees = 120.0;
+      ParticleOtedama.bendingStiffness = 0.5;
+      ParticleOtedama.inversionCheckVelocityThreshold = 5.0;
+      ParticleOtedama.inversionCrossThreshold = -0.01;
+      ParticleOtedama.inversionPushStartRatio = 0.7;
+      ParticleOtedama.inversionPushTargetRatio = 0.9;
       ParticleOtedama.launchMultiplier = 2.40;
       ParticleOtedama.airLaunchMultiplier = 0.5;
       ParticleOtedama.touchEffectRadius = 1.0;
@@ -562,6 +638,16 @@ shellRelativeDamping: ${ParticleOtedama.shellRelativeDamping}
 // Containment
 beadContainmentEnabled: ${ParticleOtedama.beadContainmentEnabled}
 beadContainmentMargin: ${ParticleOtedama.beadContainmentMargin}
+
+// Bending
+minBendingAngleDegrees: ${ParticleOtedama.minBendingAngleDegrees}
+bendingStiffness: ${ParticleOtedama.bendingStiffness}
+
+// Inversion
+inversionCheckVelocityThreshold: ${ParticleOtedama.inversionCheckVelocityThreshold}
+inversionCrossThreshold: ${ParticleOtedama.inversionCrossThreshold}
+inversionPushStartRatio: ${ParticleOtedama.inversionPushStartRatio}
+inversionPushTargetRatio: ${ParticleOtedama.inversionPushTargetRatio}
 
 // Launch
 launchMultiplier: ${ParticleOtedama.launchMultiplier}

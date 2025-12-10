@@ -61,6 +61,16 @@ class ParticleOtedama extends BodyComponent {
   static bool beadContainmentEnabled = true; // 封じ込め有効
   static double beadContainmentMargin = 0.10; // 外殻境界からのマージン
 
+  // 外殻反転防止パラメータ
+  static double inversionCheckVelocityThreshold = 5.0; // この速度以下は反転チェックをスキップ
+  static double inversionCrossThreshold = -0.01; // 凹み検出の外積閾値（負の値）
+  static double inversionPushStartRatio = 0.7; // 押し出し開始の距離比率
+  static double inversionPushTargetRatio = 0.9; // 押し出し先の距離比率
+
+  // 曲げ制約パラメータ（反転を根本的に防ぐ）
+  static double minBendingAngleDegrees = 120.0; // 最小角度（度）
+  static double bendingStiffness = 0.5; // 曲げ剛性（0.0-1.0）
+
   // ビーズサイズのバリエーション（0.0〜1.0、大きいほどバラつく）
   static double beadSizeVariation = 0.26;
 
@@ -134,7 +144,10 @@ class ParticleOtedama extends BodyComponent {
     _physicsSolver.enforceDistanceConstraints(shellBodies, _initialJointLengths);
     PerformanceMonitor.instance.endSection('pbd');
 
-    // 外殻の反転（クロス）を防止
+    // 曲げ制約を強制（外殻が内側に折れ曲がることを防ぐ）
+    _physicsSolver.enforceBendingConstraints(shellBodies);
+
+    // 外殻の反転（クロス）を防止（曲げ制約で防げなかった場合のフォールバック）
     _physicsSolver.preventShellInversion(shellBodies);
 
     // ビーズ封じ込め制約（外殻の内側に留める）
@@ -288,6 +301,12 @@ class ParticleOtedama extends BodyComponent {
       beadContainmentMargin: beadContainmentMargin,
       beadRadius: beadRadius,
       shellRadius: shellRadius,
+      inversionCheckVelocityThreshold: inversionCheckVelocityThreshold,
+      inversionCrossThreshold: inversionCrossThreshold,
+      inversionPushStartRatio: inversionPushStartRatio,
+      inversionPushTargetRatio: inversionPushTargetRatio,
+      minBendingAngle: minBendingAngleDegrees * math.pi / 180.0,
+      bendingStiffness: bendingStiffness,
     );
     _createParticleBodies();
   }
@@ -594,6 +613,12 @@ class ParticleOtedama extends BodyComponent {
       beadContainmentMargin: beadContainmentMargin,
       beadRadius: beadRadius,
       shellRadius: shellRadius,
+      inversionCheckVelocityThreshold: inversionCheckVelocityThreshold,
+      inversionCrossThreshold: inversionCrossThreshold,
+      inversionPushStartRatio: inversionPushStartRatio,
+      inversionPushTargetRatio: inversionPushTargetRatio,
+      minBendingAngle: minBendingAngleDegrees * math.pi / 180.0,
+      bendingStiffness: bendingStiffness,
     );
 
     reset();

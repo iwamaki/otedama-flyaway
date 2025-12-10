@@ -23,6 +23,24 @@ class ParticlePhysicsSolver {
   /// 外殻粒子の半径（接触判定に使用）
   final double shellRadius;
 
+  /// 反転チェックをスキップするための速度閾値
+  final double inversionCheckVelocityThreshold;
+
+  /// 凹み検出の外積閾値（負の値、小さいほど敏感）
+  final double inversionCrossThreshold;
+
+  /// 押し出し開始の距離比率（隣接頂点の平均距離に対する比率）
+  final double inversionPushStartRatio;
+
+  /// 押し出し先の距離比率
+  final double inversionPushTargetRatio;
+
+  /// 曲げ制約: 最小角度（ラジアン）
+  final double minBendingAngle;
+
+  /// 曲げ制約: 剛性（0.0-1.0）
+  final double bendingStiffness;
+
   /// キャッシュ用バッファ（毎フレームの再割り当てを防ぐ）
   List<Vector2> _shellPositionCache = [];
   final Vector2 _centroidCache = Vector2.zero();
@@ -41,9 +59,6 @@ class ParticlePhysicsSolver {
   static const double _lowVelocityThreshold = 0.5;
   static const double _lowVelocityThresholdSq = _lowVelocityThreshold * _lowVelocityThreshold;
 
-  /// 反転チェックをスキップするための速度閾値
-  static const double _inversionCheckVelocityThreshold = 5.0;
-
   ParticlePhysicsSolver({
     required this.constraintIterations,
     required this.constraintStiffness,
@@ -51,6 +66,12 @@ class ParticlePhysicsSolver {
     required this.beadContainmentMargin,
     required this.beadRadius,
     required this.shellRadius,
+    this.inversionCheckVelocityThreshold = 5.0,
+    this.inversionCrossThreshold = -0.01,
+    this.inversionPushStartRatio = 0.7,
+    this.inversionPushTargetRatio = 0.9,
+    this.minBendingAngle = 2.094, // 120度 = 2π/3
+    this.bendingStiffness = 0.5,
   });
 
   /// 隣接する節間の相対速度に減衰力を適用
@@ -347,6 +368,105 @@ class ParticlePhysicsSolver {
     result.y /= polygon.length;
   }
 
+  /// 曲げ制約を強制（Bending Constraint）
+  /// 隣接3点の角度が最小値を下回らないように制約
+  /// これにより外殻が内側に折れ曲がること自体を防ぐ
+  void enforceBendingConstraints(List<Body> shellBodies) {
+    if (shellBodies.length < 3) return;
+    if (bendingStiffness <= 0) return;
+
+    final n = shellBodies.length;
+    final cosMinAngle = math.cos(minBendingAngle);
+
+    for (int i = 0; i < n; i++) {
+      final prevBody = shellBodies[(i - 1 + n) % n];
+      final currBody = shellBodies[i];
+      final nextBody = shellBodies[(i + 1) % n];
+
+      final prev = prevBody.position;
+      final curr = currBody.position;
+      final next = nextBody.position;
+
+      // currを頂点とするベクトル
+      final v1x = prev.x - curr.x;
+      final v1y = prev.y - curr.y;
+      final v2x = next.x - curr.x;
+      final v2y = next.y - curr.y;
+
+      final len1Sq = v1x * v1x + v1y * v1y;
+      final len2Sq = v2x * v2x + v2y * v2y;
+      if (len1Sq < 0.0001 || len2Sq < 0.0001) continue;
+
+      final len1 = math.sqrt(len1Sq);
+      final len2 = math.sqrt(len2Sq);
+
+      // cos(angle) = dot(v1, v2) / (|v1| * |v2|)
+      final dot = v1x * v2x + v1y * v2y;
+      final cosAngle = dot / (len1 * len2);
+
+      // 角度が最小値より小さい場合（cosが大きい場合）に補正
+      // cos(120°) ≈ -0.5 なので、cosAngle > -0.5 なら角度 < 120°
+      if (cosAngle > cosMinAngle) {
+        // 外積で回転方向を判定（正=反時計回り=凸、負=時計回り=凹）
+        final cross = v1x * v2y - v1y * v2x;
+
+        // 凹んでいる場合のみ補正（cross < 0）
+        if (cross < 0) {
+          // currを外側に押し出す
+          // 押し出し方向: v1とv2の二等分線の逆方向（外向き）
+          final bisectX = v1x / len1 + v2x / len2;
+          final bisectY = v1y / len1 + v2y / len2;
+          final bisectLen = math.sqrt(bisectX * bisectX + bisectY * bisectY);
+
+          if (bisectLen > 0.0001) {
+            // 必要な角度補正量を計算
+            final targetCosAngle = cosMinAngle - 0.1; // 少し余裕を持たせる
+            final angleDiff = math.acos(cosAngle.clamp(-1.0, 1.0)) -
+                math.acos(targetCosAngle.clamp(-1.0, 1.0));
+
+            // 補正距離（角度差に比例）
+            final avgLen = (len1 + len2) * 0.5;
+            final correctionDist = angleDiff * avgLen * bendingStiffness * 0.5;
+
+            // 二等分線方向に押し出し（bisectは内向きなので符号反転）
+            final pushX = -bisectX / bisectLen * correctionDist;
+            final pushY = -bisectY / bisectLen * correctionDist;
+
+            if (pushX.isFinite && pushY.isFinite) {
+              // currを主に動かし、prev/nextも少し動かす
+              final newCurrX = curr.x + pushX * 0.6;
+              final newCurrY = curr.y + pushY * 0.6;
+              currBody.setTransform(Vector2(newCurrX, newCurrY), currBody.angle);
+
+              // prev/nextは逆方向に少し動かす（全体の形を保つ）
+              final sidePush = 0.2;
+              prevBody.setTransform(
+                Vector2(prev.x - pushX * sidePush, prev.y - pushY * sidePush),
+                prevBody.angle,
+              );
+              nextBody.setTransform(
+                Vector2(next.x - pushX * sidePush, next.y - pushY * sidePush),
+                nextBody.angle,
+              );
+
+              // 速度も補正（内向き成分を除去）
+              final vel = currBody.linearVelocity;
+              final inwardNormX = bisectX / bisectLen;
+              final inwardNormY = bisectY / bisectLen;
+              final inwardVel = vel.x * inwardNormX + vel.y * inwardNormY;
+              if (inwardVel > 0) {
+                currBody.linearVelocity = Vector2(
+                  vel.x - inwardNormX * inwardVel * bendingStiffness,
+                  vel.y - inwardNormY * inwardVel * bendingStiffness,
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   /// 外殻の反転（クロス）を検出して補正する
   /// 強い衝撃で外殻が八の字にクロスしてしまう問題を防ぐ
   /// 最適化版: 速度が低い時はスキップ、キャッシュ使用
@@ -360,7 +480,7 @@ class ParticlePhysicsSolver {
       final speedSq = vel.x * vel.x + vel.y * vel.y;
       if (speedSq > maxSpeedSq) maxSpeedSq = speedSq;
     }
-    final thresholdSq = _inversionCheckVelocityThreshold * _inversionCheckVelocityThreshold;
+    final thresholdSq = inversionCheckVelocityThreshold * inversionCheckVelocityThreshold;
     if (maxSpeedSq < thresholdSq) return;
 
     final n = shellBodies.length;
@@ -389,7 +509,7 @@ class ParticlePhysicsSolver {
       final cross = v1x * v2y - v1y * v2x;
 
       // 凹み（内側に折れ曲がり）を検出
-      if (cross < -0.01) {
+      if (cross < inversionCrossThreshold) {
         final toVertexX = curr.x - _inversionCentroidCache.x;
         final toVertexY = curr.y - _inversionCentroidCache.y;
         final distSq = toVertexX * toVertexX + toVertexY * toVertexY;
@@ -407,8 +527,8 @@ class ParticlePhysicsSolver {
         final avgNeighborDist = (prevDist + nextDist) * 0.5;
 
         // 現在の頂点が隣より内側にいる場合、押し出す
-        if (dist < avgNeighborDist * 0.7) {
-          final targetDist = avgNeighborDist * 0.9;
+        if (dist < avgNeighborDist * inversionPushStartRatio) {
+          final targetDist = avgNeighborDist * inversionPushTargetRatio;
           final invDist = 1.0 / dist;
           final normalizedX = toVertexX * invDist;
           final normalizedY = toVertexY * invDist;

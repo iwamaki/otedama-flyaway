@@ -21,6 +21,9 @@ class PerformanceMonitor {
   int _consecutiveSpikes = 0;
   static const int _consecutiveSpikeThreshold = 3;
 
+  /// 連続スパイク時のログ抑制（N回ごとにログ出力）
+  static const int _spikeLogInterval = 30; // 約0.5秒ごと
+
   /// セクション計測用
   final Map<String, Stopwatch> _sectionTimers = {};
   final Map<String, List<double>> _sectionHistory = {};
@@ -53,10 +56,20 @@ class PerformanceMonitor {
     // スパイク検出
     if (dt > spikeThreshold) {
       _consecutiveSpikes++;
-      if (_consecutiveSpikes >= _consecutiveSpikeThreshold) {
+      // 最初の連続スパイク検出時、またはその後は一定間隔でのみログ出力
+      if (_consecutiveSpikes == _consecutiveSpikeThreshold ||
+          (_consecutiveSpikes > _consecutiveSpikeThreshold &&
+              _consecutiveSpikes % _spikeLogInterval == 0)) {
         _logSpike(dt);
       }
     } else {
+      // スパイク終了時にログ出力
+      if (_consecutiveSpikes >= _consecutiveSpikeThreshold) {
+        logger.info(
+          LogCategory.performance,
+          'Spike ended after $_consecutiveSpikes frames',
+        );
+      }
       _consecutiveSpikes = 0;
     }
 
