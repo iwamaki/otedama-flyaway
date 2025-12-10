@@ -93,6 +93,12 @@ class ParticleOtedama extends BodyComponent {
   bool _isGrounded = false; // 接地中フラグ
   static const double _groundedVelocityThreshold = 1.5; // 接地判定の速度閾値
 
+  // 静止判定用（ドリフト防止）
+  bool _isAtRest = false; // 静止状態フラグ
+  int _restFrameCount = 0; // 連続静止フレーム数
+  static const double _restVelocityThreshold = 1.5; // 静止判定の速度閾値
+  static const int _restFramesRequired = 10; // 静止確定に必要なフレーム数
+
   /// 発射力の倍率（スワイプ→力の変換係数）
   static double launchMultiplier = 2.25;
 
@@ -132,6 +138,20 @@ class ParticleOtedama extends BodyComponent {
   @override
   void update(double dt) {
     super.update(dt);
+
+    // 静止判定を更新
+    _updateRestState();
+
+    // 静止状態ならPBD補正をスキップ（ドリフト防止）
+    if (_isAtRest) {
+      // ダミーボディを粒子の重心に追従させる
+      if (shellBodies.isNotEmpty || beadBodies.isNotEmpty) {
+        body.setTransform(centerPosition, 0);
+      }
+      // 接地判定と発射カウントリセット
+      _updateGroundedState();
+      return;
+    }
 
     // 衝突検出（速度変化を監視）
     _detectImpact();
@@ -207,6 +227,38 @@ class ParticleOtedama extends BodyComponent {
       _previousVelocities[i].setFrom(shellBodies[i].linearVelocity);
     }
     _velocityBufferInitialized = true;
+  }
+
+  /// 静止状態の更新（ドリフト防止）
+  void _updateRestState() {
+    // お手玉全体の速度で判定
+    final velocity = getVelocity();
+    final speed = velocity.length;
+
+    if (speed < _restVelocityThreshold) {
+      _restFrameCount++;
+      if (_restFrameCount >= _restFramesRequired && !_isAtRest) {
+        // 静止確定：全粒子の速度をゼロに固定
+        _isAtRest = true;
+        _freezeAllVelocities();
+      }
+    } else {
+      // 動いているので静止解除
+      _restFrameCount = 0;
+      _isAtRest = false;
+    }
+  }
+
+  /// 全粒子の速度をゼロに固定
+  void _freezeAllVelocities() {
+    for (final body in shellBodies) {
+      body.linearVelocity = Vector2.zero();
+      body.angularVelocity = 0;
+    }
+    for (final body in beadBodies) {
+      body.linearVelocity = Vector2.zero();
+      body.angularVelocity = 0;
+    }
   }
 
   /// 接地状態の更新と発射カウントのリセット
@@ -487,6 +539,10 @@ class ParticleOtedama extends BodyComponent {
       return; // 発射回数制限に達している
     }
 
+    // 静止状態を解除
+    _isAtRest = false;
+    _restFrameCount = 0;
+
     // 空中発射かどうかで力を調整
     final powerMultiplier = (_launchCount >= 1) ? airLaunchMultiplier : 1.0;
     final launchType = _launchCount == 0 ? 'initial' : 'air';
@@ -538,6 +594,8 @@ class ParticleOtedama extends BodyComponent {
     _launchCount = 0;
     _isGrounded = true;
     _velocityBufferInitialized = false;
+    _isAtRest = false;
+    _restFrameCount = 0;
   }
 
   /// 指定位置にリセット（オプションで速度を維持）
@@ -562,9 +620,13 @@ class ParticleOtedama extends BodyComponent {
     if (velocity != null && velocity.length > _groundedVelocityThreshold) {
       _launchCount = 1; // 空中発射1回分として扱う
       _isGrounded = false;
+      _isAtRest = false;
+      _restFrameCount = 0;
     } else {
       _launchCount = 0;
       _isGrounded = true;
+      _isAtRest = false;
+      _restFrameCount = 0;
     }
   }
 
