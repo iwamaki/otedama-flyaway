@@ -5,46 +5,32 @@
   "backgroundDarkness": 0.3,
   "ambientSound": "mountain_in_spring.mp3",
   "ambientSoundVolume": 0.5,
-  "spawnX": -5,
-  "spawnY": 46,
+  "bgm": null,
+  "bgmVolume": 0.4,
+  "spawnX": -10.0,
+  "spawnY": 38.0,
   "objects": [
     {
       "type": "terrain",
-      "x": 0,
-      "y": 0,
+      "x": 0.0,
+      "y": 0.0,
       "vertices": [
-        { "x": -26, "y": 62 },
-        { "x": 26, "y": 62 },
-        { "x": 26, "y": 72 },
-        { "x": -26, "y": 72 }
-      ],
-      "isLoop": true,
-      "terrainType": "grass",
-      "fillColor": 4287322667
-    },
-    {
-      "type": "terrain",
-      "x": 0,
-      "y": 0,
-      "vertices": [
-        { "x": -32, "y": -20 },
-        { "x": -28, "y": -20 },
-        { "x": -28, "y": 72 },
-        { "x": -32, "y": 72 }
-      ],
-      "isLoop": true,
-      "terrainType": "rock",
-      "fillColor": 4285098345
-    },
-    {
-      "type": "terrain",
-      "x": 0,
-      "y": 0,
-      "vertices": [
-        { "x": 28, "y": -20 },
-        { "x": 32, "y": -20 },
-        { "x": 32, "y": 72 },
-        { "x": 28, "y": 72 }
+        {
+          "x": -40.0,
+          "y": -28.0
+        },
+        {
+          "x": -25.0,
+          "y": -28.0
+        },
+        {
+          "x": -25.0,
+          "y": 56.0
+        },
+        {
+          "x": -40.0,
+          "y": 56.0
+        }
       ],
       "isLoop": true,
       "terrainType": "rock",
@@ -52,95 +38,219 @@
     },
     {
       "type": "terrain",
-      "x": 0,
-      "y": 0,
+      "x": 0.0,
+      "y": 0.0,
       "vertices": [
-        { "x": -10, "y": 48 },
-        { "x": 10, "y": 48 },
-        { "x": 10, "y": 51 },
-        { "x": -10, "y": 51 }
+        {
+          "x": 25.0,
+          "y": -28.0
+        },
+        {
+          "x": 40.0,
+          "y": -28.0
+        },
+        {
+          "x": 40.0,
+          "y": 56.0
+        },
+        {
+          "x": 25.0,
+          "y": 56.0
+        }
       ],
       "isLoop": true,
-      "terrainType": "grass",
+      "terrainType": "rock",
+      "fillColor": 4285098345
+    },
+    {
+      "type": "terrain",
+      "x": 0.0,
+      "y": 0.0,
+      "vertices": [
+        {
+          "x": -25.0,
+          "y": 40.0
+        },
+        {
+          "x": -10.0,
+          "y": 40.0
+        },
+        {
+          "x": -10.0,
+          "y": 44.0
+        },
+        {
+          "x": -25.0,
+          "y": 44.0
+        }
+      ],
+      "isLoop": true,
+      "terrainType": "wood",
       "fillColor": 4287322667
     },
     {
       "type": "terrain",
-      "x": 0,
-      "y": 0,
+      "x": 0.0,
+      "y": 0.0,
       "vertices": [
-        { "x": -24, "y": 38 },
-        { "x": -8, "y": 38 },
-        { "x": -8, "y": 41 },
-        { "x": -24, "y": 41 }
+        {
+          "x": -3.0,
+          "y": 32.0
+        },
+        {
+          "x": 3.0,
+          "y": 32.0
+        },
+        {
+          "x": 3.0,
+          "y": 33.0
+        },
+        {
+          "x": -3.0,
+          "y": 33.0
+        }
       ],
       "isLoop": true,
-      "terrainType": "grass",
+      "terrainType": "wood",
       "fillColor": 4287322667
     },
     {
       "type": "terrain",
-      "x": 0,
-      "y": 0,
+      "x": -4.0,
+      "y": 2.0,
       "vertices": [
-        { "x": 12, "y": 28 },
-        { "x": 24, "y": 28 },
-        { "x": 24, "y": 31 },
-        { "x": 12, "y": 31 }
+        {
+          "x": -5.0,
+          "y": 22.0
+        },
+        {
+          "x": 1.0,
+          "y": 22.0
+        },
+        {
+          "x": 1.0,
+          "y": 23.0
+        },
+        {
+          "x": -5.0,
+          "y": 23.0
+        }
       ],
       "isLoop": true,
-      "terrainType": "grass",
+      "terrainType": "wood",
       "fillColor": 4287322667
     },
     {
       "type": "terrain",
-      "x": 0,
-      "y": 0,
+      "x": 0.0,
+      "y": 0.0,
       "vertices": [
-        { "x": -22, "y": 18 },
-        { "x": -6, "y": 18 },
-        { "x": -6, "y": 21 },
-        { "x": -22, "y": 21 }
+        {
+          "x": 10.0,
+          "y": 12.0
+        },
+        {
+          "x": 25.0,
+          "y": 12.0
+        },
+        {
+          "x": 25.0,
+          "y": 16.0
+        },
+        {
+          "x": 10.0,
+          "y": 16.0
+        }
       ],
       "isLoop": true,
-      "terrainType": "grass",
+      "terrainType": "wood",
       "fillColor": 4287322667
     },
     {
       "type": "terrain",
-      "x": 0,
-      "y": 0,
+      "x": 0.0,
+      "y": 0.0,
       "vertices": [
-        { "x": 10, "y": 8 },
-        { "x": 22, "y": 8 },
-        { "x": 22, "y": 11 },
-        { "x": 10, "y": 11 }
+        {
+          "x": -5.0,
+          "y": 4.0
+        },
+        {
+          "x": 1.0,
+          "y": 4.0
+        },
+        {
+          "x": 1.0,
+          "y": 5.0
+        },
+        {
+          "x": -5.0,
+          "y": 5.0
+        }
       ],
       "isLoop": true,
-      "terrainType": "grass",
+      "terrainType": "wood",
       "fillColor": 4287322667
     },
     {
       "type": "terrain",
-      "x": 0,
-      "y": 0,
+      "x": 5.0,
+      "y": 0.0,
       "vertices": [
-        { "x": -20, "y": -10 },
-        { "x": -6, "y": -10 },
-        { "x": -6, "y": -7 },
-        { "x": -20, "y": -7 }
+        {
+          "x": 5.0,
+          "y": -6.0
+        },
+        {
+          "x": 11.0,
+          "y": -6.0
+        },
+        {
+          "x": 11.0,
+          "y": -5.0
+        },
+        {
+          "x": 5.0,
+          "y": -5.0
+        }
       ],
       "isLoop": true,
-      "terrainType": "grass",
+      "terrainType": "wood",
+      "fillColor": 4287322667
+    },
+    {
+      "type": "terrain",
+      "x": 0.0,
+      "y": 0.0,
+      "vertices": [
+        {
+          "x": -6.0,
+          "y": -16.0
+        },
+        {
+          "x": 6.0,
+          "y": -16.0
+        },
+        {
+          "x": 6.0,
+          "y": -12.0
+        },
+        {
+          "x": -6.0,
+          "y": -12.0
+        }
+      ],
+      "isLoop": true,
+      "terrainType": "wood",
       "fillColor": 4287322667
     },
     {
       "type": "transitionZone",
-      "x": 0,
-      "y": 57,
-      "width": 50,
-      "height": 5,
-      "angle": 0,
+      "x": 0.0,
+      "y": 44.0,
+      "width": 50.0,
+      "height": 3.0,
+      "angle": 0.0,
       "nextStage": "assets/stages/stage1-2.json",
       "id": "zone_1_3_bottom",
       "targetZoneId": "zone_1_2_top",
@@ -148,11 +258,11 @@
     },
     {
       "type": "transitionZone",
-      "x": 0,
-      "y": -15,
-      "width": 50,
-      "height": 5,
-      "angle": 0,
+      "x": 0.0,
+      "y": -25.5,
+      "width": 50.0,
+      "height": 5.0,
+      "angle": 0.0,
       "nextStage": "assets/stages/stage2-1.json",
       "id": "zone_1_3_top",
       "targetZoneId": "zone_2_1_bottom",
@@ -160,7 +270,7 @@
     }
   ],
   "boundaries": {
-    "fallThreshold": 80,
+    "fallThreshold": 80.0,
     "transitions": []
   }
 }
