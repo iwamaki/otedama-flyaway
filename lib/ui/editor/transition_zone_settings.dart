@@ -170,6 +170,9 @@ class _TransitionZoneSettingsState extends State<TransitionZoneSettings> {
             ],
           ),
           const SizedBox(height: 8),
+          // ライン判定モードスイッチ
+          _buildLineModeSwitcher(),
+          const SizedBox(height: 12),
           // このゾーンのID入力
           _buildIdInput(),
           const SizedBox(height: 12),
@@ -265,6 +268,41 @@ class _TransitionZoneSettingsState extends State<TransitionZoneSettings> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildLineModeSwitcher() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '判定モード',
+                style: TextStyle(color: Colors.teal, fontSize: 10),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                widget.zone.isLine
+                    ? 'ライン判定（X座標を維持して遷移）'
+                    : '面判定（ゾーン中心に遷移）',
+                style: const TextStyle(color: Colors.white38, fontSize: 9),
+              ),
+            ],
+          ),
+        ),
+        Switch(
+          value: widget.zone.isLine,
+          onChanged: (value) {
+            widget.zone.applyProperties({'isLine': value});
+            widget.onChanged();
+            setState(() {});
+          },
+          activeColor: Colors.teal,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ],
     );
   }
 

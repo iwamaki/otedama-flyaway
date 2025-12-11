@@ -171,9 +171,12 @@ class _StartScreenState extends State<StartScreen>
                         padding: const EdgeInsets.symmetric(horizontal: 48),
                         child: _StartButton(
                           onTap: () {
-                            // デフォルトステージ（最初のステージ）で開始
+                            // デフォルトステージ（level 1のステージ）で開始
                             final defaultStage = StageRegistry.entries.isNotEmpty
-                                ? StageRegistry.entries.first
+                                ? StageRegistry.entries.firstWhere(
+                                    (e) => e.level >= 1,
+                                    orElse: () => StageRegistry.entries.first,
+                                  )
                                 : null;
                             widget.onStart(StartScreenResult(selectedStage: defaultStage));
                           },

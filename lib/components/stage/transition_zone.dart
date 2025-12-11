@@ -72,6 +72,9 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
   /// 遷移先ゾーンのID（このIDを持つゾーンの位置にスポーンする）
   String? targetZoneId;
 
+  /// ライン判定モード（true: 線で判定、false: 面で判定）
+  bool isLine;
+
   /// ゾーンの色（idから自動生成）
   Color get color => _colorFromId(id);
 
@@ -109,6 +112,7 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     this.respawnSide,
     String? id,
     this.targetZoneId,
+    this.isLine = false,
   })  : initialPosition = position.clone(),
         _width = width,
         _height = height,
@@ -128,6 +132,7 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       respawnSide: json['respawnSide'] as String?,
       id: json['id'] as String?,
       targetZoneId: json['targetZoneId'] as String?,
+      isLine: json['isLine'] as bool? ?? false,
     );
   }
 
@@ -168,6 +173,7 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
       if (respawnSide != null) 'respawnSide': respawnSide,
       'id': id,
       if (targetZoneId != null) 'targetZoneId': targetZoneId,
+      'isLine': isLine,
     };
   }
 
@@ -208,6 +214,9 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     if (props.containsKey('targetZoneId')) {
       targetZoneId = props['targetZoneId'] as String?;
     }
+    if (props.containsKey('isLine')) {
+      isLine = props['isLine'] as bool? ?? false;
+    }
   }
 
   void _rebuildFixtures() {
@@ -247,6 +256,10 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
 
   @override
   void beginContact(Object other, Contact contact) {
+    // ライン判定モードの場合は物理コンタクトによる遷移を無効化
+    // （checkTransitionZones()のライン通過判定に任せる）
+    if (isLine) return;
+
     final fixtureA = contact.fixtureA;
     final fixtureB = contact.fixtureB;
 
@@ -272,31 +285,70 @@ class TransitionZone extends BodyComponent with StageObject, ContactCallbacks {
     final halfWidth = _width / 2;
     final halfHeight = _height / 2;
 
-    // 半透明の背景
-    final bgPaint = Paint()
-      ..color = color.withValues(alpha: 0.3)
-      ..style = PaintingStyle.fill;
-    canvas.drawRect(
-      Rect.fromLTWH(-halfWidth, -halfHeight, _width, _height),
-      bgPaint,
-    );
+    if (isLine) {
+      // ライン判定モード：水平線として描画
+      final linePaint = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.2;
+      canvas.drawLine(
+        Offset(-halfWidth, 0),
+        Offset(halfWidth, 0),
+        linePaint,
+      );
 
-    // 枠線
-    final borderPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.1;
-    canvas.drawRect(
-      Rect.fromLTWH(-halfWidth, -halfHeight, _width, _height),
-      borderPaint,
-    );
+      // 破線風の装飾（視認性向上）
+      final dashPaint = Paint()
+        ..color = color.withValues(alpha: 0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.1;
+      const dashLength = 1.0;
+      const gapLength = 0.5;
+      double x = -halfWidth;
+      while (x < halfWidth) {
+        canvas.drawLine(
+          Offset(x, -0.3),
+          Offset(x, 0.3),
+          dashPaint,
+        );
+        x += dashLength + gapLength;
+      }
 
-    // 矢印アイコン（遷移を示す）
-    _drawTransitionIcon(canvas);
+      // 矢印アイコン（遷移を示す）
+      _drawTransitionIcon(canvas);
 
-    // 選択中ならハイライト
-    if (isSelected) {
-      SelectionHighlight.draw(canvas, halfWidth: halfWidth, halfHeight: halfHeight);
+      // 選択中ならハイライト
+      if (isSelected) {
+        SelectionHighlight.draw(canvas, halfWidth: halfWidth, halfHeight: 0.5);
+      }
+    } else {
+      // 面判定モード：矩形として描画（従来の動作）
+      // 半透明の背景
+      final bgPaint = Paint()
+        ..color = color.withValues(alpha: 0.3)
+        ..style = PaintingStyle.fill;
+      canvas.drawRect(
+        Rect.fromLTWH(-halfWidth, -halfHeight, _width, _height),
+        bgPaint,
+      );
+
+      // 枠線
+      final borderPaint = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.1;
+      canvas.drawRect(
+        Rect.fromLTWH(-halfWidth, -halfHeight, _width, _height),
+        borderPaint,
+      );
+
+      // 矢印アイコン（遷移を示す）
+      _drawTransitionIcon(canvas);
+
+      // 選択中ならハイライト
+      if (isSelected) {
+        SelectionHighlight.draw(canvas, halfWidth: halfWidth, halfHeight: halfHeight);
+      }
     }
   }
 

@@ -189,7 +189,8 @@ class StageManager {
     ParticleOtedama? otedama,
     required Future<void> Function(String?) changeBackground,
     required void Function() deselectObject,
-    required void Function() setTransitionCooldown,
+    required void Function(String zoneId, double cx, double cy, double halfW, double halfH, bool isLine) setSpawnZoneCooldown,
+    required void Function(String zoneId, bool isDownward) setLineCooldownDirection,
   }) async {
     // 現在のステージを一時保存（アセットパスがある場合のみ）
     if (_currentStageAsset != null && _stageObjects.isNotEmpty) {
@@ -268,9 +269,36 @@ class StageManager {
             .firstOrNull;
         if (matchingZone != null) {
           // 対応するゾーンの位置をスポーン位置として使用
-          spawnPos = matchingZone.position.clone();
-          logger.debug(LogCategory.stage,
-              'Spawn position resolved from targetZoneId=${transitionInfo.targetZoneId}: (${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)})');
+          final zonePos = matchingZone.position;
+
+          if (matchingZone.isLine) {
+            // ライン判定ゾーン：Y座標をオフセットしてライン上にスポーンしないようにする
+            // 速度の方向に基づいてオフセット方向を決定
+            // velocity.y >= 0（下方向）→ ラインの少し上にスポーン
+            // velocity.y < 0（上方向）→ ラインの少し下にスポーン
+            const spawnOffset = 0.5;
+            final yOffset = transitionInfo.velocity.y >= 0 ? -spawnOffset : spawnOffset;
+
+            // X座標は相対X座標があれば適用
+            double spawnXPos = zonePos.x;
+            if (transitionInfo.relativeX != null) {
+              final halfW = matchingZone.width / 2;
+              final clampedRelativeX = transitionInfo.relativeX!.clamp(-halfW, halfW);
+              spawnXPos = zonePos.x + clampedRelativeX;
+            }
+
+            spawnPos = Vector2(spawnXPos, zonePos.y + yOffset);
+            logger.debug(LogCategory.stage,
+                'Spawn position resolved from line zone ${transitionInfo.targetZoneId}: '
+                'zonePos=(${zonePos.x.toStringAsFixed(1)}, ${zonePos.y.toStringAsFixed(1)}), '
+                'yOffset=$yOffset, '
+                'final=(${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)})');
+          } else {
+            // 面判定ゾーン：ゾーン中心にスポーン
+            spawnPos = zonePos.clone();
+            logger.debug(LogCategory.stage,
+                'Spawn position resolved from targetZoneId=${transitionInfo.targetZoneId}: (${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)})');
+          }
 
           // リスポーン位置も設定（ゾーンにrespawnPositionがあればそれを使用）
           final respawnPos = matchingZone.respawnPosition;
@@ -290,8 +318,34 @@ class StageManager {
       logger.debug(LogCategory.game,
           'Otedama positioned at ${spawnPos.x.toStringAsFixed(1)}, ${spawnPos.y.toStringAsFixed(1)} with velocity ${transitionInfo.velocity.length.toStringAsFixed(2)}');
 
-      // 遷移クールダウンを設定
-      setTransitionCooldown();
+      // スポーン先ゾーンのクールダウンを設定
+      if (transitionInfo.targetZoneId != null) {
+        final matchingZone = _stageObjects
+            .whereType<TransitionZone>()
+            .where((zone) => zone.id == transitionInfo.targetZoneId)
+            .firstOrNull;
+        if (matchingZone != null) {
+          if (matchingZone.isLine) {
+            // ライン判定ゾーン：速度のY成分から到来方向を判定してクールダウン設定
+            // velocity.y > 0 → 下方向に移動中（上から来た）→ downward = true
+            // velocity.y < 0 → 上方向に移動中（下から来た）→ downward = false
+            final isDownward = transitionInfo.velocity.y >= 0;
+            setLineCooldownDirection(matchingZone.id, isDownward);
+            logger.debug(LogCategory.stage,
+                'Line zone cooldown set: ${matchingZone.id}, isDownward=$isDownward (velocity.y=${transitionInfo.velocity.y.toStringAsFixed(2)})');
+          } else {
+            // 面判定ゾーン：位置ベースクールダウン
+            setSpawnZoneCooldown(
+              matchingZone.id,
+              matchingZone.position.x,
+              matchingZone.position.y,
+              matchingZone.width / 2,
+              matchingZone.height / 2,
+              false,
+            );
+          }
+        }
+      }
     } else {
       otedama?.resetToPosition(Vector2(spawnX, spawnY));
     }

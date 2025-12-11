@@ -282,6 +282,8 @@ class OtedamaGame extends Forge2DGame
     otedama?.resetToPosition(Vector2(spawnX, spawnY));
     resetGoalState();
     resetTimer();
+    // クールダウンをクリア（リスポーン後は全方向への遷移を許可）
+    clearAllCooldowns();
   }
 
   // --- ステージ管理（委譲） ---
@@ -336,7 +338,8 @@ class OtedamaGame extends Forge2DGame
       otedama: otedama,
       changeBackground: (bg) => changeBackground(bg),
       deselectObject: deselectObject,
-      setTransitionCooldown: setTransitionCooldown,
+      setSpawnZoneCooldown: setSpawnZoneCooldown,
+      setLineCooldownDirection: setLineCooldownDirection,
     );
     resetGoalState();
 

@@ -1,170 +1,166 @@
 {
-  "level": 1,
-  "name": "ステージ1-3",
+  "level": 3,
+  "name": "ステージ1-3 跳躍",
   "background": "backgrounds/Overgrown_trees.png",
-  "backgroundDarkness": 0.2,
+  "backgroundDarkness": 0.3,
   "ambientSound": "mountain_in_spring.mp3",
   "ambientSoundVolume": 0.5,
-  "spawnX": -20,
-  "spawnY": 0,
+  "spawnX": -5,
+  "spawnY": 46,
   "objects": [
     {
       "type": "terrain",
       "x": 0,
       "y": 0,
       "vertices": [
-        {
-          "x": -30,
-          "y": 5
-        },
-        {
-          "x": -18,
-          "y": 5
-        },
-        {
-          "x": -18,
-          "y": 15
-        },
-        {
-          "x": -30,
-          "y": 15
-        }
+        { "x": -26, "y": 62 },
+        { "x": 26, "y": 62 },
+        { "x": 26, "y": 72 },
+        { "x": -26, "y": 72 }
       ],
       "isLoop": true,
       "terrainType": "grass",
-      "fillColor": 4287322667,
-      "strokeColor": 4284299802
-    },
-    {
-      "type": "terrain",
-      "x": 0.5,
-      "y": 0,
-      "vertices": [
-        {
-          "x": -12,
-          "y": 5
-        },
-        {
-          "x": -5,
-          "y": 5
-        },
-        {
-          "x": -5,
-          "y": 15
-        },
-        {
-          "x": -12,
-          "y": 15
-        }
-      ],
-      "isLoop": true,
-      "terrainType": "grass",
-      "fillColor": 4287322667,
-      "strokeColor": 4284299802
+      "fillColor": 4287322667
     },
     {
       "type": "terrain",
       "x": 0,
       "y": 0,
       "vertices": [
-        {
-          "x": 2,
-          "y": 5
-        },
-        {
-          "x": 9,
-          "y": 5
-        },
-        {
-          "x": 9,
-          "y": 15
-        },
-        {
-          "x": 2,
-          "y": 15
-        }
+        { "x": -32, "y": -20 },
+        { "x": -28, "y": -20 },
+        { "x": -28, "y": 72 },
+        { "x": -32, "y": 72 }
       ],
       "isLoop": true,
-      "terrainType": "grass",
-      "fillColor": 4287322667,
-      "strokeColor": 4284299802
+      "terrainType": "rock",
+      "fillColor": 4285098345
     },
     {
       "type": "terrain",
-      "x": 22.55301856994629,
-      "y": -20.057584762573242,
+      "x": 0,
+      "y": 0,
       "vertices": [
-        {
-          "x": 20,
-          "y": 5
-        },
-        {
-          "x": 40,
-          "y": 5
-        },
-        {
-          "x": 40,
-          "y": 15
-        },
-        {
-          "x": 20,
-          "y": 15
-        }
+        { "x": 28, "y": -20 },
+        { "x": 32, "y": -20 },
+        { "x": 32, "y": 72 },
+        { "x": 28, "y": 72 }
+      ],
+      "isLoop": true,
+      "terrainType": "rock",
+      "fillColor": 4285098345
+    },
+    {
+      "type": "terrain",
+      "x": 0,
+      "y": 0,
+      "vertices": [
+        { "x": -10, "y": 48 },
+        { "x": 10, "y": 48 },
+        { "x": 10, "y": 51 },
+        { "x": -10, "y": 51 }
       ],
       "isLoop": true,
       "terrainType": "grass",
-      "fillColor": 4287322667,
-      "strokeColor": 4284299802
+      "fillColor": 4287322667
+    },
+    {
+      "type": "terrain",
+      "x": 0,
+      "y": 0,
+      "vertices": [
+        { "x": -24, "y": 38 },
+        { "x": -8, "y": 38 },
+        { "x": -8, "y": 41 },
+        { "x": -24, "y": 41 }
+      ],
+      "isLoop": true,
+      "terrainType": "grass",
+      "fillColor": 4287322667
+    },
+    {
+      "type": "terrain",
+      "x": 0,
+      "y": 0,
+      "vertices": [
+        { "x": 12, "y": 28 },
+        { "x": 24, "y": 28 },
+        { "x": 24, "y": 31 },
+        { "x": 12, "y": 31 }
+      ],
+      "isLoop": true,
+      "terrainType": "grass",
+      "fillColor": 4287322667
+    },
+    {
+      "type": "terrain",
+      "x": 0,
+      "y": 0,
+      "vertices": [
+        { "x": -22, "y": 18 },
+        { "x": -6, "y": 18 },
+        { "x": -6, "y": 21 },
+        { "x": -22, "y": 21 }
+      ],
+      "isLoop": true,
+      "terrainType": "grass",
+      "fillColor": 4287322667
+    },
+    {
+      "type": "terrain",
+      "x": 0,
+      "y": 0,
+      "vertices": [
+        { "x": 10, "y": 8 },
+        { "x": 22, "y": 8 },
+        { "x": 22, "y": 11 },
+        { "x": 10, "y": 11 }
+      ],
+      "isLoop": true,
+      "terrainType": "grass",
+      "fillColor": 4287322667
+    },
+    {
+      "type": "terrain",
+      "x": 0,
+      "y": 0,
+      "vertices": [
+        { "x": -20, "y": -10 },
+        { "x": -6, "y": -10 },
+        { "x": -6, "y": -7 },
+        { "x": -20, "y": -7 }
+      ],
+      "isLoop": true,
+      "terrainType": "grass",
+      "fillColor": 4287322667
     },
     {
       "type": "transitionZone",
-      "x": -24.704917907714844,
-      "y": -0.061918094754219055,
-      "width": 5,
+      "x": 0,
+      "y": 57,
+      "width": 50,
       "height": 5,
       "angle": 0,
       "nextStage": "assets/stages/stage1-2.json",
-      "respawnSide": "right",
-      "id": "zone_1_3_left",
-      "targetZoneId": "zone_1_2_right"
-    },
-    {
-      "type": "platform",
-      "x": 18.416637420654297,
-      "y": -4.464259147644043,
-      "width": 7,
-      "height": 1,
-      "angle": 0,
-      "flipX": false,
-      "flipY": false,
-      "color": 4285238819
-    },
-    {
-      "type": "platform",
-      "x": 30.935937881469727,
-      "y": -14.597951889038086,
-      "width": 7,
-      "height": 1,
-      "angle": 0,
-      "flipX": false,
-      "flipY": false,
-      "color": 4285238819
+      "id": "zone_1_3_bottom",
+      "targetZoneId": "zone_1_2_top",
+      "isLine": true
     },
     {
       "type": "transitionZone",
-      "x": 56.5,
-      "y": -20,
-      "width": 5,
+      "x": 0,
+      "y": -15,
+      "width": 50,
       "height": 5,
       "angle": 0,
       "nextStage": "assets/stages/stage2-1.json",
-      "respawnSide": "left",
-      "id": "zone_1_3_right",
-      "targetZoneId": "zone_2_1_left"
+      "id": "zone_1_3_top",
+      "targetZoneId": "zone_2_1_bottom",
+      "isLine": true
     }
   ],
   "boundaries": {
-    "fallThreshold": 50,
+    "fallThreshold": 80,
     "transitions": []
   }
 }

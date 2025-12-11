@@ -11,9 +11,14 @@ class TransitionInfo {
   /// 遷移先ゾーンのID（このIDを持つゾーンの位置にスポーンする）
   final String? targetZoneId;
 
+  /// ライン判定時の相対X座標（ゾーン中心からのオフセット）
+  /// nullの場合はゾーン中心にスポーン
+  final double? relativeX;
+
   const TransitionInfo({
     required this.nextStage,
     required this.velocity,
     this.targetZoneId,
+    this.relativeX,
   });
 }

@@ -288,6 +288,7 @@ class StageEntry {
 class StageRegistry {
   /// 登録済みステージ一覧（レベル順）
   static const List<StageEntry> entries = [
+    StageEntry(level: 0, name: 'Shape Reference', assetPath: 'assets/stages/stage_reference.json'),
     StageEntry(level: 1, name: 'ステージ1-1', assetPath: 'assets/stages/stage1-1.json'),
     StageEntry(level: 2, name: 'ステージ1-2', assetPath: 'assets/stages/stage1-2.json'),
     StageEntry(level: 3, name: 'ステージ1-3', assetPath: 'assets/stages/stage1-3.json'),
