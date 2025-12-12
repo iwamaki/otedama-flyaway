@@ -193,6 +193,150 @@ class ParticlePhysicsSolver {
   }
 
 
+  /// スキップ制約用キャッシュ
+  final Vector2 _skipDeltaCache = Vector2.zero();
+  final Vector2 _skipCorrectionCache = Vector2.zero();
+
+  /// 角度順序維持用キャッシュ
+  final List<double> _angleCache = [];
+  final Vector2 _angleCentroidCache = Vector2.zero();
+
+  /// 角度順序を維持（クロス防止の根本対策）
+  /// 粒子が重心から見て正しい角度順序を保つように制約
+  void enforceAngleOrder(List<Body> shellBodies, double strength) {
+    if (shellBodies.length < 3) return;
+    if (strength <= 0) return;
+
+    final n = shellBodies.length;
+
+    // 重心を計算
+    _angleCentroidCache.setValues(0, 0);
+    for (final body in shellBodies) {
+      _angleCentroidCache.x += body.position.x;
+      _angleCentroidCache.y += body.position.y;
+    }
+    _angleCentroidCache.x /= n;
+    _angleCentroidCache.y /= n;
+
+    // 各粒子の角度を計算
+    if (_angleCache.length != n) {
+      _angleCache.clear();
+      for (int i = 0; i < n; i++) {
+        _angleCache.add(0);
+      }
+    }
+
+    for (int i = 0; i < n; i++) {
+      final pos = shellBodies[i].position;
+      final dx = pos.x - _angleCentroidCache.x;
+      final dy = pos.y - _angleCentroidCache.y;
+      _angleCache[i] = math.atan2(dy, dx);
+    }
+
+    // 期待される角度間隔
+    final expectedAngleStep = 2 * math.pi / n;
+
+    // 各粒子について、隣接粒子との角度関係をチェック
+    for (int i = 0; i < n; i++) {
+      final prevIdx = (i - 1 + n) % n;
+
+      final prevAngle = _angleCache[prevIdx];
+      final currAngle = _angleCache[i];
+
+      // 前の粒子との角度差
+      var diffPrev = currAngle - prevAngle;
+      while (diffPrev > math.pi) { diffPrev -= 2 * math.pi; }
+      while (diffPrev < -math.pi) { diffPrev += 2 * math.pi; }
+
+      // クロス検出: 角度差が負（順序が逆転）
+      // 閾値を設けて、小さな揺らぎは無視
+      final crossThreshold = -expectedAngleStep * 0.1; // 10%までは許容
+
+      if (diffPrev < crossThreshold) {
+        // クロスしている - 前の粒子と現在の粒子の中間に移動
+        final midAngle = prevAngle + expectedAngleStep * 0.5;
+
+        // 現在の重心からの距離を維持
+        final pos = shellBodies[i].position;
+        final dist = math.sqrt(
+          (pos.x - _angleCentroidCache.x) * (pos.x - _angleCentroidCache.x) +
+          (pos.y - _angleCentroidCache.y) * (pos.y - _angleCentroidCache.y)
+        );
+
+        // 理想的な位置（前の粒子より少し先）
+        final idealX = _angleCentroidCache.x + math.cos(midAngle) * dist;
+        final idealY = _angleCentroidCache.y + math.sin(midAngle) * dist;
+
+        // 滑らかに補正（strengthで強さを調整）
+        final corrStrength = strength * 0.3; // 控えめに補正
+        final newX = pos.x + (idealX - pos.x) * corrStrength;
+        final newY = pos.y + (idealY - pos.y) * corrStrength;
+
+        if (newX.isFinite && newY.isFinite) {
+          shellBodies[i].setTransform(Vector2(newX, newY), shellBodies[i].angle);
+        }
+      }
+    }
+  }
+
+  /// スキップ距離制約を強制（i番目とi+step番目の粒子間の最小距離を維持）
+  /// これにより外殻が内側に折れ曲がることを防ぐ
+  void enforceSkipConstraints(
+    List<Body> shellBodies,
+    List<double> initialSkipLengths,
+    int step,
+    double minRatio,
+  ) {
+    if (shellBodies.length < 3 || initialSkipLengths.isEmpty) return;
+    if (step <= 0 || step >= shellBodies.length ~/ 2) return;
+
+    final shellCount = shellBodies.length;
+
+    for (int i = 0; i < shellCount; i++) {
+      final bodyA = shellBodies[i];
+      final bodyB = shellBodies[(i + step) % shellCount];
+      final minLength = initialSkipLengths[i] * minRatio;
+
+      final posA = bodyA.position;
+      final posB = bodyB.position;
+      _skipDeltaCache.x = posB.x - posA.x;
+      _skipDeltaCache.y = posB.y - posA.y;
+
+      final currentLengthSq = _skipDeltaCache.x * _skipDeltaCache.x +
+          _skipDeltaCache.y * _skipDeltaCache.y;
+      final minLengthSq = minLength * minLength;
+
+      // 最小距離より近い場合のみ補正
+      if (currentLengthSq < minLengthSq && currentLengthSq > 0.000001) {
+        final currentLength = math.sqrt(currentLengthSq);
+        final diff = minLength - currentLength; // 正の値（押し広げる）
+
+        // 正規化と補正量を計算
+        final invLength = 1.0 / currentLength;
+        final correctionFactor = diff * 0.5 * invLength; // 両側に半分ずつ
+        _skipCorrectionCache.x = _skipDeltaCache.x * correctionFactor;
+        _skipCorrectionCache.y = _skipDeltaCache.y * correctionFactor;
+
+        if (!_skipCorrectionCache.x.isFinite || !_skipCorrectionCache.y.isFinite) {
+          continue;
+        }
+
+        // 両方の粒子を均等に押し広げる
+        final newPosAx = posA.x - _skipCorrectionCache.x;
+        final newPosAy = posA.y - _skipCorrectionCache.y;
+        final newPosBx = posB.x + _skipCorrectionCache.x;
+        final newPosBy = posB.y + _skipCorrectionCache.y;
+
+        if (newPosAx.isFinite && newPosAy.isFinite) {
+          bodyA.setTransform(Vector2(newPosAx, newPosAy), bodyA.angle);
+        }
+        if (newPosBx.isFinite && newPosBy.isFinite) {
+          bodyB.setTransform(Vector2(newPosBx, newPosBy), bodyB.angle);
+        }
+      }
+    }
+  }
+
   /// AABB（軸並行境界ボックス）のキャッシュ
   double _aabbMinX = 0, _aabbMinY = 0, _aabbMaxX = 0, _aabbMaxY = 0;
 

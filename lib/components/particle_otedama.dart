@@ -54,6 +54,7 @@ class ParticleOtedama extends BodyComponent {
   static double gravityScale = 3.0; // 重力スケール（1.0 = 通常）
 
   // 距離制約の補正（PBDアプローチ）
+  static bool distanceConstraintEnabled = true; // 距離制約を有効化
   static int distanceConstraintIterations = 6; // 補正の反復回数
   static double distanceConstraintStiffness = 1.0; // 補正の強さ（0.0-1.0）
 
@@ -62,14 +63,16 @@ class ParticleOtedama extends BodyComponent {
   static double beadContainmentMargin = 0.0; // 外殻境界からのマージン
 
   // 外殻反転防止パラメータ
+  static bool inversionPreventionEnabled = true; // 反転防止を有効化
   static double inversionCheckVelocityThreshold = 5.0; // この速度以下は反転チェックをスキップ
   static double inversionCrossThreshold = -0.01; // 凹み検出の外積閾値（負の値）
   static double inversionPushStartRatio = 0.7; // 押し出し開始の距離比率
   static double inversionPushTargetRatio = 0.9; // 押し出し先の距離比率
 
   // 曲げ制約パラメータ（反転を根本的に防ぐ）
+  static bool bendingConstraintEnabled = false; // 曲げ制約を有効化
   static double minBendingAngleDegrees = 60.0; // 最小角度（度）
-  static double bendingStiffness = 0.0; // 曲げ剛性（0.0-1.0）
+  static double bendingStiffness = 0.5; // 曲げ剛性（0.0-1.0）
 
   // ビーズサイズのバリエーション（0.0〜1.0、大きいほどバラつく）
   static double beadSizeVariation = 0.62;
@@ -79,8 +82,38 @@ class ParticleOtedama extends BodyComponent {
   static double shellSpikeLength = 0.38; // 突起の長さ（内側方向へのオフセット）
   static double shellSpikeRadius = 0.09; // 突起の半径
 
+  // 外殻の橋（隣接粒子間を埋めて通り抜けを防ぐ）- 非推奨、代わりにskipConstraintを使用
+  static bool shellBridgeEnabled = false; // 橋を有効化（非推奨）
+  static double shellBridgeWidth = 0.15; // 橋の幅（厚み）
+
+  // スキップ距離制約（i番目とi+N番目の粒子間の最小距離を維持）
+  static bool skipConstraintEnabled = true; // スキップ制約を有効化
+  static int skipConstraintStep = 2; // 何個飛ばしの粒子と制約するか（2=1つ飛ばし）
+  static double skipConstraintRatio = 0.9; // 初期距離に対する最小距離の比率
+
+  // 衝撃吸収（反転防止用）- 粒子間の速度差を制限
+  static bool impactDampingEnabled = true; // 衝撃吸収を有効化
+  static double maxSpeedDeviation = 10.0; // 平均速度からの最大偏差
+  static double deviationDampingFactor = 0.5; // 偏差の減衰率（0-1、小さいほど強く減衰）
+
+  // 角度順序維持（クロス防止の根本対策）
+  static bool angleOrderEnabled = true; // 角度順序維持を有効化
+  static double angleOrderStrength = 0.8; // 修正の強さ（0-1）
+
+  // CCD（連続衝突検出）- 高速時のすり抜け防止
+  static bool shellCcdEnabled = true; // CCD有効化
+
+  // 外殻粒子同士の衝突半径拡大（すり抜け防止の根本対策）
+  static bool shellCollisionEnabled = false; // 衝突用半径を追加（デフォルト無効）
+  static double shellCollisionRadiusMultiplier = 2.0; // 描画半径に対する衝突半径の倍率
+
+  // 衝突フィルタ用カテゴリ（外殻衝突用円は同士のみで衝突）
+  static const int _shellCollisionCategory = 0x0010;
+
   // 初期ジョイント長を記録
   final List<double> _initialJointLengths = [];
+  // スキップ制約の初期距離を記録
+  final List<double> _initialSkipLengths = [];
 
   // 衝突検出用（速度変化を監視）
   List<Vector2> _previousVelocities = [];
@@ -156,19 +189,45 @@ class ParticleOtedama extends BodyComponent {
     // 衝突検出（速度変化を監視）
     _detectImpact();
 
+    // 衝撃吸収：外殻粒子の速度を制限（反転防止）
+    if (impactDampingEnabled) {
+      _limitShellSpeed();
+    }
+
     // 節同士の相対運動に減衰を適用（重力には影響しない）
     _physicsSolver.applyRelativeDamping(shellBodies, dt, shellRelativeDamping);
 
     // 距離制約を強制（PBD：位置ベースで補正）
-    PerformanceMonitor.instance.startSection('pbd');
-    _physicsSolver.enforceDistanceConstraints(shellBodies, _initialJointLengths);
-    PerformanceMonitor.instance.endSection('pbd');
+    if (distanceConstraintEnabled) {
+      PerformanceMonitor.instance.startSection('pbd');
+      _physicsSolver.enforceDistanceConstraints(shellBodies, _initialJointLengths);
+      PerformanceMonitor.instance.endSection('pbd');
+    }
+
+    // スキップ距離制約を強制（折れ曲がり防止）
+    if (skipConstraintEnabled && _initialSkipLengths.isNotEmpty) {
+      _physicsSolver.enforceSkipConstraints(
+        shellBodies,
+        _initialSkipLengths,
+        skipConstraintStep,
+        skipConstraintRatio,
+      );
+    }
 
     // 曲げ制約を強制（外殻が内側に折れ曲がることを防ぐ）
-    _physicsSolver.enforceBendingConstraints(shellBodies);
+    if (bendingConstraintEnabled) {
+      _physicsSolver.enforceBendingConstraints(shellBodies);
+    }
 
     // 外殻の反転（クロス）を防止（曲げ制約で防げなかった場合のフォールバック）
-    _physicsSolver.preventShellInversion(shellBodies);
+    if (inversionPreventionEnabled) {
+      _physicsSolver.preventShellInversion(shellBodies);
+    }
+
+    // 角度順序を維持（クロス防止の根本対策）
+    if (angleOrderEnabled) {
+      _physicsSolver.enforceAngleOrder(shellBodies, angleOrderStrength);
+    }
 
     // ビーズ封じ込め制約（外殻の内側に留める）
     PerformanceMonitor.instance.startSection('bead');
@@ -185,6 +244,42 @@ class ParticleOtedama extends BodyComponent {
 
     // 現在の速度を保存（次フレームの衝突検出用）
     _storePreviousVelocities();
+  }
+
+  /// 外殻粒子の速度偏差を制限（反転防止）
+  /// 全体の動きは維持しつつ、一部の粒子だけが飛び出すのを防ぐ
+  void _limitShellSpeed() {
+    if (shellBodies.isEmpty) return;
+
+    // 平均速度を計算
+    double avgVelX = 0, avgVelY = 0;
+    for (final body in shellBodies) {
+      avgVelX += body.linearVelocity.x;
+      avgVelY += body.linearVelocity.y;
+    }
+    avgVelX /= shellBodies.length;
+    avgVelY /= shellBodies.length;
+
+    final maxDeviationSq = maxSpeedDeviation * maxSpeedDeviation;
+
+    for (final body in shellBodies) {
+      final vel = body.linearVelocity;
+      // 平均速度からの偏差
+      final devX = vel.x - avgVelX;
+      final devY = vel.y - avgVelY;
+      final deviationSq = devX * devX + devY * devY;
+
+      if (deviationSq > maxDeviationSq) {
+        // 偏差が大きい場合、平均速度に近づける
+        final deviation = math.sqrt(deviationSq);
+        final scale = maxSpeedDeviation / deviation;
+        final dampedScale = scale + (1 - scale) * (1 - deviationDampingFactor);
+        body.linearVelocity = Vector2(
+          avgVelX + devX * dampedScale,
+          avgVelY + devY * dampedScale,
+        );
+      }
+    }
   }
 
   /// 衝突検出（外殻粒子の速度変化を監視）
@@ -397,6 +492,17 @@ class ParticleOtedama extends BodyComponent {
       shellJoints.add(joint);
     }
 
+    // スキップ制約の初期距離を記録（i番目とi+step番目の粒子間）
+    _initialSkipLengths.clear();
+    if (skipConstraintEnabled && skipConstraintStep > 0) {
+      for (int i = 0; i < shellCount; i++) {
+        final bodyA = shellBodies[i];
+        final bodyB = shellBodies[(i + skipConstraintStep) % shellCount];
+        final initialLength = (bodyA.position - bodyB.position).length;
+        _initialSkipLengths.add(initialLength);
+      }
+    }
+
     // 内部ビーズを作成（ランダムに配置、サイズもバリエーション）
     final random = math.Random();
     for (int i = 0; i < beadCount; i++) {
@@ -422,22 +528,38 @@ class ParticleOtedama extends BodyComponent {
     }
   }
 
-  /// 外殻粒子のボディを作成（内側突起付き）
+  /// 外殻粒子のボディを作成（内側突起付き・橋付き）
   Body _createShellBody(Vector2 position, double angle) {
     final bodyDef = BodyDef()
       ..type = BodyType.dynamic
       ..position = position
       ..angularDamping = 1.0
-      ..linearDamping = 0.1;
+      ..linearDamping = 0.1
+      ..bullet = shellCcdEnabled; // CCD有効化（高速時のすり抜け防止）
 
     final body = world.createBody(bodyDef);
 
-    // メインの円形状
+    // メインの円形状（描画用・地面との衝突用）
     final mainShape = CircleShape()..radius = shellRadius;
     body.createFixture(FixtureDef(mainShape)
       ..density = shellDensity
       ..friction = shellFriction
       ..restitution = shellRestitution);
+
+    // 衝突用の大きな円（外殻粒子同士のすり抜け防止）
+    // フィルタで外殻同士のみ衝突するように設定（ビーズや地面とは衝突しない）
+    if (shellCollisionEnabled && shellCollisionRadiusMultiplier > 1.0) {
+      final collisionRadius = shellRadius * shellCollisionRadiusMultiplier;
+      final collisionShape = CircleShape()..radius = collisionRadius;
+      final fixtureDef = FixtureDef(collisionShape)
+        ..density = 0 // 質量には影響しない
+        ..friction = 0 // 摩擦なし
+        ..restitution = 0.1; // 低反発
+      // フィルタを設定（外殻衝突円同士のみで衝突）
+      fixtureDef.filter.categoryBits = _shellCollisionCategory;
+      fixtureDef.filter.maskBits = _shellCollisionCategory;
+      body.createFixture(fixtureDef);
+    }
 
     // 内側向きの突起を追加（ビーズとの接触用）
     if (shellSpikeEnabled && shellSpikeLength > 0 && shellSpikeRadius > 0) {
@@ -453,6 +575,34 @@ class ParticleOtedama extends BodyComponent {
         ..density = shellDensity * 0.5 // 突起は軽めに
         ..friction = shellFriction
         ..restitution = shellRestitution);
+    }
+
+    // 隣接粒子方向への橋を追加（通り抜け防止）- 非推奨
+    // 円は回転しても形が変わらないので、粒子が回転しても問題ない
+    if (shellBridgeEnabled && shellBridgeWidth > 0) {
+      // 次の粒子への角度差
+      final angleStep = 2 * math.pi / shellCount;
+
+      // 橋の円の半径
+      final bridgeCircleRadius = shellBridgeWidth * 0.5;
+
+      // 粒子の外周に沿って、次の粒子方向に2つの小円を配置
+      for (int i = 1; i <= 2; i++) {
+        final t = i / 3.0; // 0.33, 0.66 の位置
+        final circleAngle = angle + angleStep * t;
+        // 外殻の半径位置に配置
+        final circleX = math.cos(circleAngle) * overallRadius * 0.7 - math.cos(angle) * overallRadius * 0.7;
+        final circleY = math.sin(circleAngle) * overallRadius * 0.7 - math.sin(angle) * overallRadius * 0.7;
+
+        final bridgeShape = CircleShape()
+          ..radius = bridgeCircleRadius
+          ..position.setValues(circleX, circleY);
+
+        body.createFixture(FixtureDef(bridgeShape)
+          ..density = shellDensity * 0.2 // 橋は軽めに
+          ..friction = shellFriction
+          ..restitution = shellRestitution);
+      }
     }
 
     return body;

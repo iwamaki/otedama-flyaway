@@ -152,6 +152,145 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
               _rebuild();
             },
           ),
+          _buildToggle(
+            'Bridge',
+            ParticleOtedama.shellBridgeEnabled,
+            (v) {
+              ParticleOtedama.shellBridgeEnabled = v;
+              _rebuild();
+            },
+          ),
+          _buildSlider(
+            'BridgeW',
+            ParticleOtedama.shellBridgeWidth,
+            0.05,
+            0.5,
+            (v) {
+              ParticleOtedama.shellBridgeWidth = v;
+              _rebuild();
+            },
+          ),
+
+          const Divider(color: Colors.white24),
+
+          // スキップ制約パラメータ
+          _buildSectionHeader('Skip (折れ曲がり防止)'),
+          _buildToggle(
+            'Enabled',
+            ParticleOtedama.skipConstraintEnabled,
+            (v) {
+              ParticleOtedama.skipConstraintEnabled = v;
+              _rebuild();
+            },
+          ),
+          _buildSlider(
+            'Step',
+            ParticleOtedama.skipConstraintStep.toDouble(),
+            1,
+            5,
+            (v) {
+              ParticleOtedama.skipConstraintStep = v.round();
+              _rebuild();
+            },
+            isInt: true,
+          ),
+          _buildSlider(
+            'MinRatio',
+            ParticleOtedama.skipConstraintRatio,
+            0.5,
+            1.0,
+            (v) {
+              ParticleOtedama.skipConstraintRatio = v;
+              setState(() {});
+            },
+          ),
+
+          const Divider(color: Colors.white24),
+
+          // 衝撃吸収パラメータ（速度偏差制限）
+          _buildSectionHeader('Impact (速度偏差制限)'),
+          _buildToggle(
+            'Enabled',
+            ParticleOtedama.impactDampingEnabled,
+            (v) {
+              ParticleOtedama.impactDampingEnabled = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'MaxDev',
+            ParticleOtedama.maxSpeedDeviation,
+            2.0,
+            30.0,
+            (v) {
+              ParticleOtedama.maxSpeedDeviation = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'DevDamp',
+            ParticleOtedama.deviationDampingFactor,
+            0.0,
+            1.0,
+            (v) {
+              ParticleOtedama.deviationDampingFactor = v;
+              setState(() {});
+            },
+          ),
+
+          const Divider(color: Colors.white24),
+
+          // 角度順序維持パラメータ
+          _buildSectionHeader('AngleOrder (クロス防止)'),
+          _buildToggle(
+            'Enabled',
+            ParticleOtedama.angleOrderEnabled,
+            (v) {
+              ParticleOtedama.angleOrderEnabled = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'Strength',
+            ParticleOtedama.angleOrderStrength,
+            0.0,
+            1.0,
+            (v) {
+              ParticleOtedama.angleOrderStrength = v;
+              setState(() {});
+            },
+          ),
+
+          const Divider(color: Colors.white24),
+
+          // CCD・衝突半径パラメータ（根本対策）
+          _buildSectionHeader('CCD (すり抜け防止)'),
+          _buildToggle(
+            'CCD',
+            ParticleOtedama.shellCcdEnabled,
+            (v) {
+              ParticleOtedama.shellCcdEnabled = v;
+              _rebuild();
+            },
+          ),
+          _buildToggle(
+            'CollisionR',
+            ParticleOtedama.shellCollisionEnabled,
+            (v) {
+              ParticleOtedama.shellCollisionEnabled = v;
+              _rebuild();
+            },
+          ),
+          _buildSlider(
+            'ColMult',
+            ParticleOtedama.shellCollisionRadiusMultiplier,
+            1.0,
+            4.0,
+            (v) {
+              ParticleOtedama.shellCollisionRadiusMultiplier = v;
+              _rebuild();
+            },
+          ),
 
           const Divider(color: Colors.white24),
 
@@ -247,7 +386,15 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
           const Divider(color: Colors.white24),
 
           // 距離制約パラメータ
-          _buildSectionHeader('Constraint (制約)'),
+          _buildSectionHeader('Constraint (距離制約)'),
+          _buildToggle(
+            'Enabled',
+            ParticleOtedama.distanceConstraintEnabled,
+            (v) {
+              ParticleOtedama.distanceConstraintEnabled = v;
+              setState(() {});
+            },
+          ),
           _buildSlider(
             'Iterations',
             ParticleOtedama.distanceConstraintIterations.toDouble(),
@@ -307,6 +454,14 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
 
           // 曲げ制約パラメータ
           _buildSectionHeader('Bending (曲げ制約)'),
+          _buildToggle(
+            'Enabled',
+            ParticleOtedama.bendingConstraintEnabled,
+            (v) {
+              ParticleOtedama.bendingConstraintEnabled = v;
+              setState(() {});
+            },
+          ),
           _buildSlider(
             'MinAngle',
             ParticleOtedama.minBendingAngleDegrees,
@@ -332,6 +487,14 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
 
           // 反転防止パラメータ（フォールバック）
           _buildSectionHeader('Inversion (反転補正)'),
+          _buildToggle(
+            'Enabled',
+            ParticleOtedama.inversionPreventionEnabled,
+            (v) {
+              ParticleOtedama.inversionPreventionEnabled = v;
+              setState(() {});
+            },
+          ),
           _buildSlider(
             'VelThresh',
             ParticleOtedama.inversionCheckVelocityThreshold,
@@ -569,38 +732,79 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
 
   void _resetToDefaults() {
     setState(() {
+      // Shell
       ParticleOtedama.shellCount = 25;
-      ParticleOtedama.beadCount = 10;
       ParticleOtedama.shellRadius = 0.30;
-      ParticleOtedama.beadRadius = 0.40;
-      ParticleOtedama.beadSizeVariation = 0.62;
-      ParticleOtedama.overallRadius = 1.70;
       ParticleOtedama.shellDensity = 5.0;
-      ParticleOtedama.beadDensity = 2.99;
       ParticleOtedama.shellFriction = 0.25;
-      ParticleOtedama.beadFriction = 1.0;
       ParticleOtedama.shellRestitution = 0.05;
       ParticleOtedama.shellSpikeEnabled = true;
       ParticleOtedama.shellSpikeLength = 0.38;
       ParticleOtedama.shellSpikeRadius = 0.09;
+      ParticleOtedama.shellBridgeEnabled = false;
+      ParticleOtedama.shellBridgeWidth = 0.15;
+
+      // Skip
+      ParticleOtedama.skipConstraintEnabled = true;
+      ParticleOtedama.skipConstraintStep = 2;
+      ParticleOtedama.skipConstraintRatio = 0.9;
+
+      // Impact
+      ParticleOtedama.impactDampingEnabled = true;
+      ParticleOtedama.maxSpeedDeviation = 10.0;
+      ParticleOtedama.deviationDampingFactor = 0.5;
+
+      // AngleOrder
+      ParticleOtedama.angleOrderEnabled = true;
+      ParticleOtedama.angleOrderStrength = 0.8;
+
+      // CCD
+      ParticleOtedama.shellCcdEnabled = true;
+      ParticleOtedama.shellCollisionEnabled = false;
+      ParticleOtedama.shellCollisionRadiusMultiplier = 2.0;
+
+      // Beads
+      ParticleOtedama.beadCount = 0;
+      ParticleOtedama.beadRadius = 0.40;
+      ParticleOtedama.beadSizeVariation = 0.62;
+      ParticleOtedama.beadDensity = 2.99;
+      ParticleOtedama.beadFriction = 1.0;
       ParticleOtedama.beadRestitution = 0.0;
+
+      // Joints
       ParticleOtedama.jointFrequency = 23.65;
       ParticleOtedama.jointDamping = 0.0;
+
+      // Constraint
+      ParticleOtedama.distanceConstraintEnabled = true;
       ParticleOtedama.distanceConstraintIterations = 6;
       ParticleOtedama.distanceConstraintStiffness = 1.0;
       ParticleOtedama.shellRelativeDamping = 0.0;
-      ParticleOtedama.gravityScale = 3.0;
+
+      // Containment
       ParticleOtedama.beadContainmentEnabled = true;
       ParticleOtedama.beadContainmentMargin = 0.0;
+
+      // Bending
+      ParticleOtedama.bendingConstraintEnabled = false;
       ParticleOtedama.minBendingAngleDegrees = 60.0;
-      ParticleOtedama.bendingStiffness = 0.0;
+      ParticleOtedama.bendingStiffness = 0.5;
+
+      // Inversion
+      ParticleOtedama.inversionPreventionEnabled = true;
       ParticleOtedama.inversionCheckVelocityThreshold = 5.0;
       ParticleOtedama.inversionCrossThreshold = -0.01;
       ParticleOtedama.inversionPushStartRatio = 0.7;
       ParticleOtedama.inversionPushTargetRatio = 0.9;
+
+      // Launch
       ParticleOtedama.launchMultiplier = 2.25;
       ParticleOtedama.airLaunchMultiplier = 0.5;
       ParticleOtedama.touchEffectRadius = 1.0;
+
+      // Overall
+      ParticleOtedama.overallRadius = 1.70;
+      ParticleOtedama.gravityScale = 3.0;
     });
     widget.onRebuild();
   }
@@ -617,6 +821,27 @@ shellRestitution: ${ParticleOtedama.shellRestitution}
 shellSpikeEnabled: ${ParticleOtedama.shellSpikeEnabled}
 shellSpikeLength: ${ParticleOtedama.shellSpikeLength}
 shellSpikeRadius: ${ParticleOtedama.shellSpikeRadius}
+shellBridgeEnabled: ${ParticleOtedama.shellBridgeEnabled}
+shellBridgeWidth: ${ParticleOtedama.shellBridgeWidth}
+
+// Skip
+skipConstraintEnabled: ${ParticleOtedama.skipConstraintEnabled}
+skipConstraintStep: ${ParticleOtedama.skipConstraintStep}
+skipConstraintRatio: ${ParticleOtedama.skipConstraintRatio}
+
+// Impact
+impactDampingEnabled: ${ParticleOtedama.impactDampingEnabled}
+maxSpeedDeviation: ${ParticleOtedama.maxSpeedDeviation}
+deviationDampingFactor: ${ParticleOtedama.deviationDampingFactor}
+
+// AngleOrder
+angleOrderEnabled: ${ParticleOtedama.angleOrderEnabled}
+angleOrderStrength: ${ParticleOtedama.angleOrderStrength}
+
+// CCD
+shellCcdEnabled: ${ParticleOtedama.shellCcdEnabled}
+shellCollisionEnabled: ${ParticleOtedama.shellCollisionEnabled}
+shellCollisionRadiusMultiplier: ${ParticleOtedama.shellCollisionRadiusMultiplier}
 
 // Beads
 beadCount: ${ParticleOtedama.beadCount}
@@ -631,6 +856,7 @@ jointFrequency: ${ParticleOtedama.jointFrequency}
 jointDamping: ${ParticleOtedama.jointDamping}
 
 // Constraint
+distanceConstraintEnabled: ${ParticleOtedama.distanceConstraintEnabled}
 distanceConstraintIterations: ${ParticleOtedama.distanceConstraintIterations}
 distanceConstraintStiffness: ${ParticleOtedama.distanceConstraintStiffness}
 shellRelativeDamping: ${ParticleOtedama.shellRelativeDamping}
@@ -640,10 +866,12 @@ beadContainmentEnabled: ${ParticleOtedama.beadContainmentEnabled}
 beadContainmentMargin: ${ParticleOtedama.beadContainmentMargin}
 
 // Bending
+bendingConstraintEnabled: ${ParticleOtedama.bendingConstraintEnabled}
 minBendingAngleDegrees: ${ParticleOtedama.minBendingAngleDegrees}
 bendingStiffness: ${ParticleOtedama.bendingStiffness}
 
 // Inversion
+inversionPreventionEnabled: ${ParticleOtedama.inversionPreventionEnabled}
 inversionCheckVelocityThreshold: ${ParticleOtedama.inversionCheckVelocityThreshold}
 inversionCrossThreshold: ${ParticleOtedama.inversionCrossThreshold}
 inversionPushStartRatio: ${ParticleOtedama.inversionPushStartRatio}
