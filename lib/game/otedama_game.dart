@@ -430,6 +430,12 @@ class OtedamaGame extends Forge2DGame
     selectObject(obj);
   }
 
+  /// 小豆を追加
+  Future<void> addAzuki({Vector2? position}) async {
+    final obj = await _objectBuilder.addAzuki(position: position);
+    selectObject(obj);
+  }
+
   /// 遷移ゾーンからの遷移をトリガー（コンポーネントから呼び出し用）
   void triggerZoneTransitionCompat(TransitionZone zone) {
     triggerZoneTransition(zone);

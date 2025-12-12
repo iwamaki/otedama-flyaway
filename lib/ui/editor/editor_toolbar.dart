@@ -239,6 +239,8 @@ class EditorToolbar extends StatelessWidget {
           await game.addTerrain();
         } else if (selected.id == 'transitionZone') {
           await game.addTransitionZone();
+        } else if (selected.id == 'azuki') {
+          await game.addAzuki();
         }
         break;
       case ObjectType.image:

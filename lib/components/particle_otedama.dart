@@ -38,7 +38,7 @@ class ParticleOtedama extends BodyComponent {
 
   // 設定可能なパラメータ（調整済みデフォルト値）
   static int shellCount = 25;
-  static int beadCount = 10;
+  static int beadCount = 0;
   static double shellRadius = 0.30;
   static double beadRadius = 0.40;
   static double overallRadius = 1.70;
@@ -479,6 +479,33 @@ class ParticleOtedama extends BodyComponent {
       ..linearDamping = 0.1; // 最小限の減衰
 
     return world.createBody(bodyDef)..createFixture(fixtureDef);
+  }
+
+  /// ビーズを1つ追加（小豆を拾った時に呼ばれる）
+  void addBead() {
+    final random = math.Random();
+    final center = centerPosition;
+
+    // 中心付近にランダム配置
+    final r = random.nextDouble() * overallRadius * 0.3;
+    final angle = random.nextDouble() * 2 * math.pi;
+    final x = center.x + math.cos(angle) * r;
+    final y = center.y + math.sin(angle) * r;
+
+    // ビーズサイズにバリエーション
+    final sizeMultiplier = 1.0 - random.nextDouble() * beadSizeVariation;
+    final actualRadius = beadRadius * sizeMultiplier;
+
+    final body = _createCircleBody(
+      Vector2(x, y),
+      actualRadius,
+      beadDensity,
+      beadFriction,
+      beadRestitution,
+    );
+    beadBodies.add(body);
+
+    logger.debug(LogCategory.game, 'Bead added, total: ${beadBodies.length}');
   }
 
   @override

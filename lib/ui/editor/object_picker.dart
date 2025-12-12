@@ -65,6 +65,12 @@ class ObjectRegistry {
       type: ObjectType.primitive,
       icon: Icons.landscape,
     ),
+    InsertableObject(
+      id: 'azuki',
+      name: '小豆',
+      type: ObjectType.primitive,
+      icon: Icons.circle,
+    ),
   ];
 
   /// 遷移管理オブジェクト

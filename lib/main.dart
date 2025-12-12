@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'components/stage/azuki.dart';
 import 'components/stage/goal.dart';
 import 'components/stage/ice_floor.dart';
 import 'components/stage/image_object.dart';
@@ -34,6 +35,7 @@ void main() async {
   registerPlatformFactory();
   registerImageObjectFactory();
   registerGoalFactory();
+  registerAzukiFactory();
   registerTrampolineFactory();
   registerIceFloorFactory();
   registerTerrainFactory();

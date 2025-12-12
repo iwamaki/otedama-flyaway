@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 
+import '../../components/stage/azuki.dart';
 import '../../components/stage/goal.dart';
 import '../../components/stage/ice_floor.dart';
 import '../../components/stage/image_object.dart';
@@ -88,6 +89,14 @@ class StageObjectBuilder {
       width: 5.0,
       height: 5.0,
     );
+    await stageManager.addStageObject(obj);
+    return obj;
+  }
+
+  /// 小豆を追加
+  Future<Azuki> addAzuki({Vector2? position}) async {
+    final pos = position ?? getDefaultAddPosition();
+    final obj = Azuki(position: pos);
     await stageManager.addStageObject(obj);
     return obj;
   }
