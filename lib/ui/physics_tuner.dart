@@ -207,10 +207,46 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
 
           const Divider(color: Colors.white24),
 
-          // 衝撃吸収パラメータ（速度偏差制限）
-          _buildSectionHeader('Impact (速度偏差制限)'),
+          // 速度制限パラメータ（鞭効果・反転防止）
+          _buildSectionHeader('Velocity Limit (速度制限)'),
           _buildToggle(
-            'Enabled',
+            'AbsLimit',
+            ParticleOtedama.absoluteVelocityLimitEnabled,
+            (v) {
+              ParticleOtedama.absoluteVelocityLimitEnabled = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'MaxVel',
+            ParticleOtedama.maxShellVelocity,
+            10.0,
+            50.0,
+            (v) {
+              ParticleOtedama.maxShellVelocity = v;
+              setState(() {});
+            },
+          ),
+          _buildToggle(
+            'Neighbor',
+            ParticleOtedama.neighborVelocityLimitEnabled,
+            (v) {
+              ParticleOtedama.neighborVelocityLimitEnabled = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'MaxDiff',
+            ParticleOtedama.maxNeighborVelocityDiff,
+            2.0,
+            20.0,
+            (v) {
+              ParticleOtedama.maxNeighborVelocityDiff = v;
+              setState(() {});
+            },
+          ),
+          _buildToggle(
+            'Deviation',
             ParticleOtedama.impactDampingEnabled,
             (v) {
               ParticleOtedama.impactDampingEnabled = v;
@@ -263,8 +299,8 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
 
           const Divider(color: Colors.white24),
 
-          // CCD・衝突半径パラメータ（根本対策）
-          _buildSectionHeader('CCD (すり抜け防止)'),
+          // CCD・サブステップ・衝突半径パラメータ（根本対策）
+          _buildSectionHeader('CCD/Substep (すり抜け防止)'),
           _buildToggle(
             'CCD',
             ParticleOtedama.shellCcdEnabled,
@@ -272,6 +308,17 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
               ParticleOtedama.shellCcdEnabled = v;
               _rebuild();
             },
+          ),
+          _buildSlider(
+            'Substeps',
+            ParticleOtedama.physicsSubsteps.toDouble(),
+            1,
+            10,
+            (v) {
+              ParticleOtedama.physicsSubsteps = v.round();
+              setState(() {});
+            },
+            isInt: true,
           ),
           _buildToggle(
             'CollisionR',
@@ -354,6 +401,16 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
             1.0,
             (v) {
               ParticleOtedama.beadRestitution = v;
+              _rebuild();
+            },
+          ),
+          _buildSlider(
+            'Damping',
+            ParticleOtedama.beadLinearDamping,
+            0.0,
+            3.0,
+            (v) {
+              ParticleOtedama.beadLinearDamping = v;
               _rebuild();
             },
           ),
@@ -749,7 +806,11 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
       ParticleOtedama.skipConstraintStep = 2;
       ParticleOtedama.skipConstraintRatio = 0.9;
 
-      // Impact
+      // Velocity Limit
+      ParticleOtedama.absoluteVelocityLimitEnabled = true;
+      ParticleOtedama.maxShellVelocity = 25.0;
+      ParticleOtedama.neighborVelocityLimitEnabled = true;
+      ParticleOtedama.maxNeighborVelocityDiff = 8.0;
       ParticleOtedama.impactDampingEnabled = true;
       ParticleOtedama.maxSpeedDeviation = 10.0;
       ParticleOtedama.deviationDampingFactor = 0.5;
@@ -758,8 +819,9 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
       ParticleOtedama.angleOrderEnabled = true;
       ParticleOtedama.angleOrderStrength = 0.8;
 
-      // CCD
+      // CCD/Substep
       ParticleOtedama.shellCcdEnabled = true;
+      ParticleOtedama.physicsSubsteps = 3;
       ParticleOtedama.shellCollisionEnabled = false;
       ParticleOtedama.shellCollisionRadiusMultiplier = 2.0;
 
@@ -770,6 +832,7 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
       ParticleOtedama.beadDensity = 2.99;
       ParticleOtedama.beadFriction = 1.0;
       ParticleOtedama.beadRestitution = 0.0;
+      ParticleOtedama.beadLinearDamping = 0.8;
 
       // Joints
       ParticleOtedama.jointFrequency = 23.65;
@@ -829,7 +892,11 @@ skipConstraintEnabled: ${ParticleOtedama.skipConstraintEnabled}
 skipConstraintStep: ${ParticleOtedama.skipConstraintStep}
 skipConstraintRatio: ${ParticleOtedama.skipConstraintRatio}
 
-// Impact
+// Velocity Limit
+absoluteVelocityLimitEnabled: ${ParticleOtedama.absoluteVelocityLimitEnabled}
+maxShellVelocity: ${ParticleOtedama.maxShellVelocity}
+neighborVelocityLimitEnabled: ${ParticleOtedama.neighborVelocityLimitEnabled}
+maxNeighborVelocityDiff: ${ParticleOtedama.maxNeighborVelocityDiff}
 impactDampingEnabled: ${ParticleOtedama.impactDampingEnabled}
 maxSpeedDeviation: ${ParticleOtedama.maxSpeedDeviation}
 deviationDampingFactor: ${ParticleOtedama.deviationDampingFactor}
@@ -838,8 +905,9 @@ deviationDampingFactor: ${ParticleOtedama.deviationDampingFactor}
 angleOrderEnabled: ${ParticleOtedama.angleOrderEnabled}
 angleOrderStrength: ${ParticleOtedama.angleOrderStrength}
 
-// CCD
+// CCD/Substep
 shellCcdEnabled: ${ParticleOtedama.shellCcdEnabled}
+physicsSubsteps: ${ParticleOtedama.physicsSubsteps}
 shellCollisionEnabled: ${ParticleOtedama.shellCollisionEnabled}
 shellCollisionRadiusMultiplier: ${ParticleOtedama.shellCollisionRadiusMultiplier}
 
@@ -850,6 +918,7 @@ beadSizeVariation: ${ParticleOtedama.beadSizeVariation}
 beadDensity: ${ParticleOtedama.beadDensity}
 beadFriction: ${ParticleOtedama.beadFriction}
 beadRestitution: ${ParticleOtedama.beadRestitution}
+beadLinearDamping: ${ParticleOtedama.beadLinearDamping}
 
 // Joints
 jointFrequency: ${ParticleOtedama.jointFrequency}

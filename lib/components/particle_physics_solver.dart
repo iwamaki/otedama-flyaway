@@ -105,6 +105,19 @@ class ParticlePhysicsSolver {
     List<Body> shellBodies,
     List<double> initialJointLengths,
   ) {
+    enforceDistanceConstraintsMultiple(
+      shellBodies,
+      initialJointLengths,
+      constraintIterations,
+    );
+  }
+
+  /// 距離制約を指定イテレーション数で強制（サブステップ対応版）
+  void enforceDistanceConstraintsMultiple(
+    List<Body> shellBodies,
+    List<double> initialJointLengths,
+    int iterations,
+  ) {
     if (shellBodies.length < 2 || initialJointLengths.isEmpty) return;
     if (constraintStiffness <= 0) return;
 
@@ -112,7 +125,7 @@ class ParticlePhysicsSolver {
     final halfStiffness = 0.5 * constraintStiffness;
 
     // 複数回反復して精度を上げる
-    for (int iter = 0; iter < constraintIterations; iter++) {
+    for (int iter = 0; iter < iterations; iter++) {
       for (int i = 0; i < shellCount; i++) {
         final bodyA = shellBodies[i];
         final bodyB = shellBodies[(i + 1) % shellCount];
@@ -510,6 +523,77 @@ class ParticlePhysicsSolver {
     }
     result.x /= polygon.length;
     result.y /= polygon.length;
+  }
+
+  /// ビーズ同士の重複を解消（PBDアプローチ）
+  /// 着地時にめり込んだビーズを即座に押し広げる
+  void enforceBeadSeparation(List<Body> beadBodies, List<double> beadRadii) {
+    if (beadBodies.length < 2 || beadRadii.length != beadBodies.length) return;
+
+    final n = beadBodies.length;
+
+    // 全てのビーズペアをチェック
+    for (int i = 0; i < n; i++) {
+      for (int j = i + 1; j < n; j++) {
+        final bodyA = beadBodies[i];
+        final bodyB = beadBodies[j];
+        final radiusA = beadRadii[i];
+        final radiusB = beadRadii[j];
+        final minDist = radiusA + radiusB;
+
+        final posA = bodyA.position;
+        final posB = bodyB.position;
+        final dx = posB.x - posA.x;
+        final dy = posB.y - posA.y;
+        final distSq = dx * dx + dy * dy;
+        final minDistSq = minDist * minDist;
+
+        // 重なっている場合のみ処理
+        if (distSq < minDistSq && distSq > 0.000001) {
+          final dist = math.sqrt(distSq);
+          final overlap = minDist - dist;
+
+          // 正規化方向ベクトル
+          final invDist = 1.0 / dist;
+          final nx = dx * invDist;
+          final ny = dy * invDist;
+
+          // 両方のビーズを半分ずつ押し広げる
+          final halfOverlap = overlap * 0.5;
+          final newPosAx = posA.x - nx * halfOverlap;
+          final newPosAy = posA.y - ny * halfOverlap;
+          final newPosBx = posB.x + nx * halfOverlap;
+          final newPosBy = posB.y + ny * halfOverlap;
+
+          if (newPosAx.isFinite && newPosAy.isFinite) {
+            bodyA.setTransform(Vector2(newPosAx, newPosAy), bodyA.angle);
+          }
+          if (newPosBx.isFinite && newPosBy.isFinite) {
+            bodyB.setTransform(Vector2(newPosBx, newPosBy), bodyB.angle);
+          }
+
+          // 速度も補正（接近方向の速度成分を除去）
+          final velA = bodyA.linearVelocity;
+          final velB = bodyB.linearVelocity;
+          final relVelX = velB.x - velA.x;
+          final relVelY = velB.y - velA.y;
+          final approachSpeed = -(relVelX * nx + relVelY * ny);
+
+          if (approachSpeed > 0) {
+            // 接近している場合、速度を修正
+            final velCorrection = approachSpeed * 0.5;
+            bodyA.linearVelocity = Vector2(
+              velA.x - nx * velCorrection,
+              velA.y - ny * velCorrection,
+            );
+            bodyB.linearVelocity = Vector2(
+              velB.x + nx * velCorrection,
+              velB.y + ny * velCorrection,
+            );
+          }
+        }
+      }
+    }
   }
 
   /// 曲げ制約を強制（Bending Constraint）

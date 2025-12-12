@@ -182,6 +182,10 @@ class OtedamaGame extends Forge2DGame
     // パフォーマンスモニター: フレーム記録
     PerformanceMonitor.instance.recordFrame(dt);
 
+    // ★ Forge2D物理ステップの前に速度制限を適用（反転防止の根本対策）
+    // super.update()内でWorld.stepDt()が実行されるため、その前に制限する必要がある
+    otedama?.applyPreStepVelocityLimits();
+
     PerformanceMonitor.instance.startSection('physics');
     super.update(dt);
     PerformanceMonitor.instance.endSection('physics');

@@ -48,6 +48,7 @@ class ParticleOtedama extends BodyComponent {
   static double beadFriction = 1.0;
   static double shellRestitution = 0.05;
   static double beadRestitution = 0.0;
+  static double beadLinearDamping = 0.8; // ビーズの速度減衰（収束を早める）
   static double jointFrequency = 23.65; // 0=硬い接続（伸びない）、>0=バネ
   static double jointDamping = 0.0;
   static double shellRelativeDamping = 0.0; // 節同士の相対運動の減衰（重力に影響しない）
@@ -96,12 +97,23 @@ class ParticleOtedama extends BodyComponent {
   static double maxSpeedDeviation = 10.0; // 平均速度からの最大偏差
   static double deviationDampingFactor = 0.5; // 偏差の減衰率（0-1、小さいほど強く減衰）
 
+  // 隣接速度制限（鞭効果防止）- 隣り合う粒子の速度差を制限
+  static bool neighborVelocityLimitEnabled = true; // 隣接速度制限を有効化
+  static double maxNeighborVelocityDiff = 8.0; // 隣接粒子との最大速度差
+
+  // 絶対速度制限 - 外殻粒子の最大速度
+  static bool absoluteVelocityLimitEnabled = true; // 絶対速度制限を有効化
+  static double maxShellVelocity = 25.0; // 外殻粒子の最大速度
+
   // 角度順序維持（クロス防止の根本対策）
   static bool angleOrderEnabled = true; // 角度順序維持を有効化
   static double angleOrderStrength = 0.8; // 修正の強さ（0-1）
 
   // CCD（連続衝突検出）- 高速時のすり抜け防止
   static bool shellCcdEnabled = true; // CCD有効化
+
+  // サブステップ（CCD代替の安定化手法）
+  static int physicsSubsteps = 3; // PBD制約のサブステップ数（1=従来通り、2以上で安定化）
 
   // 外殻粒子同士の衝突半径拡大（すり抜け防止の根本対策）
   static bool shellCollisionEnabled = false; // 衝突用半径を追加（デフォルト無効）
@@ -189,7 +201,16 @@ class ParticleOtedama extends BodyComponent {
     // 衝突検出（速度変化を監視）
     _detectImpact();
 
-    // 衝撃吸収：外殻粒子の速度を制限（反転防止）
+    // 速度制限（鞭効果・反転防止）- PBD制約の前に適用
+    // 1. 絶対速度制限（最大速度キャップ）
+    if (absoluteVelocityLimitEnabled) {
+      _limitAbsoluteVelocity();
+    }
+    // 2. 隣接粒子との速度差制限（鞭効果防止）
+    if (neighborVelocityLimitEnabled) {
+      _limitNeighborVelocityDiff();
+    }
+    // 3. 平均からの偏差制限（従来の衝撃吸収）
     if (impactDampingEnabled) {
       _limitShellSpeed();
     }
@@ -198,20 +219,28 @@ class ParticleOtedama extends BodyComponent {
     _physicsSolver.applyRelativeDamping(shellBodies, dt, shellRelativeDamping);
 
     // 距離制約を強制（PBD：位置ベースで補正）
+    // 注: physicsSubstepsはイテレーション乗数として使用（Forge2DのDynamicTreeとの互換性のため）
     if (distanceConstraintEnabled) {
       PerformanceMonitor.instance.startSection('pbd');
-      _physicsSolver.enforceDistanceConstraints(shellBodies, _initialJointLengths);
+      final totalIterations = distanceConstraintIterations * physicsSubsteps;
+      _physicsSolver.enforceDistanceConstraintsMultiple(
+        shellBodies,
+        _initialJointLengths,
+        totalIterations,
+      );
       PerformanceMonitor.instance.endSection('pbd');
     }
 
     // スキップ距離制約を強制（折れ曲がり防止）
     if (skipConstraintEnabled && _initialSkipLengths.isNotEmpty) {
-      _physicsSolver.enforceSkipConstraints(
-        shellBodies,
-        _initialSkipLengths,
-        skipConstraintStep,
-        skipConstraintRatio,
-      );
+      for (int i = 0; i < physicsSubsteps; i++) {
+        _physicsSolver.enforceSkipConstraints(
+          shellBodies,
+          _initialSkipLengths,
+          skipConstraintStep,
+          skipConstraintRatio,
+        );
+      }
     }
 
     // 曲げ制約を強制（外殻が内側に折れ曲がることを防ぐ）
@@ -226,12 +255,16 @@ class ParticleOtedama extends BodyComponent {
 
     // 角度順序を維持（クロス防止の根本対策）
     if (angleOrderEnabled) {
-      _physicsSolver.enforceAngleOrder(shellBodies, angleOrderStrength);
+      for (int i = 0; i < physicsSubsteps; i++) {
+        _physicsSolver.enforceAngleOrder(shellBodies, angleOrderStrength);
+      }
     }
 
     // ビーズ封じ込め制約（外殻の内側に留める）
     PerformanceMonitor.instance.startSection('bead');
     _physicsSolver.enforceBeadContainment(shellBodies, beadBodies);
+    // 注: enforceBeadSeparationはForge2DのDynamicTreeエラーを起こすため無効化
+    // linearDampingの強化で収束を早める方式を採用
     PerformanceMonitor.instance.endSection('bead');
 
     // ダミーボディを粒子の重心に追従させる
@@ -282,6 +315,62 @@ class ParticleOtedama extends BodyComponent {
     }
   }
 
+  /// 隣接粒子との速度差を制限（鞭効果防止）
+  /// 鞭のように一部だけが急加速するのを防ぐ
+  void _limitNeighborVelocityDiff() {
+    if (shellBodies.length < 2) return;
+
+    final maxDiffSq = maxNeighborVelocityDiff * maxNeighborVelocityDiff;
+    final n = shellBodies.length;
+
+    // 複数パスで収束させる
+    for (int pass = 0; pass < 2; pass++) {
+      for (int i = 0; i < n; i++) {
+        final bodyA = shellBodies[i];
+        final bodyB = shellBodies[(i + 1) % n];
+
+        final velA = bodyA.linearVelocity;
+        final velB = bodyB.linearVelocity;
+
+        // 相対速度
+        final diffX = velB.x - velA.x;
+        final diffY = velB.y - velA.y;
+        final diffSq = diffX * diffX + diffY * diffY;
+
+        if (diffSq > maxDiffSq) {
+          final diff = math.sqrt(diffSq);
+          final excess = diff - maxNeighborVelocityDiff;
+
+          // 超過分を半分ずつ分配（両方の速度を近づける）
+          final correction = excess * 0.5 / diff;
+          final corrX = diffX * correction;
+          final corrY = diffY * correction;
+
+          bodyA.linearVelocity = Vector2(velA.x + corrX, velA.y + corrY);
+          bodyB.linearVelocity = Vector2(velB.x - corrX, velB.y - corrY);
+        }
+      }
+    }
+  }
+
+  /// 絶対速度を制限（最大速度キャップ）
+  void _limitAbsoluteVelocity() {
+    if (shellBodies.isEmpty) return;
+
+    final maxSpeedSq = maxShellVelocity * maxShellVelocity;
+
+    for (final body in shellBodies) {
+      final vel = body.linearVelocity;
+      final speedSq = vel.x * vel.x + vel.y * vel.y;
+
+      if (speedSq > maxSpeedSq) {
+        final speed = math.sqrt(speedSq);
+        final scale = maxShellVelocity / speed;
+        body.linearVelocity = Vector2(vel.x * scale, vel.y * scale);
+      }
+    }
+  }
+
   /// 衝突検出（外殻粒子の速度変化を監視）
   void _detectImpact() {
     if (!_velocityBufferInitialized || shellBodies.isEmpty) return;
@@ -305,6 +394,22 @@ class ParticleOtedama extends BodyComponent {
       final velocityChange = math.sqrt(maxImpact);
       final intensity = ((velocityChange - _impactThreshold) / _maxImpactIntensity).clamp(0.0, 1.0);
       AudioService.instance.playHit(intensity: intensity);
+
+      // 着地衝撃時にビーズの速度も減衰（暴れ防止）
+      _dampBeadVelocitiesOnImpact(intensity);
+    }
+  }
+
+  /// 着地衝撃時にビーズの速度を減衰
+  void _dampBeadVelocitiesOnImpact(double intensity) {
+    if (beadBodies.isEmpty) return;
+
+    // 衝撃の強さに応じて減衰（強い衝撃ほど強く減衰）
+    final dampFactor = 1.0 - (intensity * 0.7).clamp(0.0, 0.9);
+
+    for (final bead in beadBodies) {
+      final vel = bead.linearVelocity;
+      bead.linearVelocity = Vector2(vel.x * dampFactor, vel.y * dampFactor);
     }
   }
 
@@ -408,6 +513,28 @@ class ParticleOtedama extends BodyComponent {
     }
     for (final body in beadBodies) {
       body.linearVelocity = velocity.clone();
+    }
+  }
+
+  /// Forge2D物理ステップの前に速度制限を適用（OtedamaGame.update()から呼ばれる）
+  /// これにより、World.stepDt()で反転が起きるのを防ぐ
+  void applyPreStepVelocityLimits() {
+    if (shellBodies.isEmpty || _isAtRest) return;
+
+    // ボディが有効かチェック（ステージ遷移中などで破棄されている可能性）
+    if (!isMounted || shellBodies.any((b) => !b.isActive)) return;
+
+    // 1. 絶対速度制限
+    if (absoluteVelocityLimitEnabled) {
+      _limitAbsoluteVelocity();
+    }
+    // 2. 隣接粒子との速度差制限（鞭効果防止）
+    if (neighborVelocityLimitEnabled) {
+      _limitNeighborVelocityDiff();
+    }
+    // 3. 平均からの偏差制限
+    if (impactDampingEnabled) {
+      _limitShellSpeed();
     }
   }
 
@@ -523,6 +650,7 @@ class ParticleOtedama extends BodyComponent {
         beadDensity,
         beadFriction,
         beadRestitution,
+        linearDamping: beadLinearDamping,
       );
       beadBodies.add(body);
     }
@@ -613,8 +741,9 @@ class ParticleOtedama extends BodyComponent {
     double radius,
     double density,
     double friction,
-    double restitution,
-  ) {
+    double restitution, {
+    double? linearDamping,
+  }) {
     final shape = CircleShape()..radius = radius;
 
     final fixtureDef = FixtureDef(shape)
@@ -626,7 +755,7 @@ class ParticleOtedama extends BodyComponent {
       ..type = BodyType.dynamic
       ..position = position
       ..angularDamping = 1.0
-      ..linearDamping = 0.1; // 最小限の減衰
+      ..linearDamping = linearDamping ?? 0.1;
 
     return world.createBody(bodyDef)..createFixture(fixtureDef);
   }
@@ -652,6 +781,7 @@ class ParticleOtedama extends BodyComponent {
       beadDensity,
       beadFriction,
       beadRestitution,
+      linearDamping: beadLinearDamping,
     );
     beadBodies.add(body);
 
