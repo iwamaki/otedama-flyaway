@@ -214,6 +214,10 @@ class ParticlePhysicsSolver {
   final List<double> _angleCache = [];
   final Vector2 _angleCentroidCache = Vector2.zero();
 
+  /// 位相的速度制約用キャッシュ
+  final Vector2 _topologyCentroidCache = Vector2.zero();
+  final List<double> _topologyAngleCache = [];
+
   /// 角度順序を維持（クロス防止の根本対策）
   /// 粒子が重心から見て正しい角度順序を保つように制約
   void enforceAngleOrder(List<Body> shellBodies, double strength) {
@@ -819,6 +823,159 @@ class ParticlePhysicsSolver {
           body.setTransform(newPos, body.angle);
         }
       }
+    }
+  }
+
+  /// 位相的速度制約（Topological Velocity Constraint）
+  /// 粒子が隣の粒子を「追い越す」ような速度成分を事前に除去
+  /// CCDなしでクロスを防ぐための予防的アプローチ
+  ///
+  /// [dt] シミュレーションの時間刻み
+  /// [strength] 制約の強さ (0.0-1.0)
+  /// [safetyMargin] 追い越し判定のマージン（ラジアン、小さいほど厳しい）
+  void enforceTopologicalVelocityConstraint(
+    List<Body> shellBodies,
+    double dt,
+    double strength, {
+    double safetyMargin = 0.1,
+  }) {
+    if (shellBodies.length < 3 || strength <= 0 || dt <= 0) return;
+
+    final n = shellBodies.length;
+
+    // 重心を計算
+    _topologyCentroidCache.setValues(0, 0);
+    for (final body in shellBodies) {
+      _topologyCentroidCache.x += body.position.x;
+      _topologyCentroidCache.y += body.position.y;
+    }
+    _topologyCentroidCache.x /= n;
+    _topologyCentroidCache.y /= n;
+
+    // 各粒子の現在の角度を計算
+    if (_topologyAngleCache.length != n) {
+      _topologyAngleCache.clear();
+      for (int i = 0; i < n; i++) {
+        _topologyAngleCache.add(0);
+      }
+    }
+
+    for (int i = 0; i < n; i++) {
+      final pos = shellBodies[i].position;
+      final dx = pos.x - _topologyCentroidCache.x;
+      final dy = pos.y - _topologyCentroidCache.y;
+      _topologyAngleCache[i] = math.atan2(dy, dx);
+    }
+
+    // 各粒子について、速度によって隣を追い越すかチェック
+    for (int i = 0; i < n; i++) {
+      final body = shellBodies[i];
+      final vel = body.linearVelocity;
+
+      // 速度が小さい場合はスキップ
+      final speedSq = vel.x * vel.x + vel.y * vel.y;
+      if (speedSq < 1.0) continue;
+
+      final pos = body.position;
+      final currAngle = _topologyAngleCache[i];
+
+      // 予測位置での角度
+      final predictedX = pos.x + vel.x * dt;
+      final predictedY = pos.y + vel.y * dt;
+      final predictedDx = predictedX - _topologyCentroidCache.x;
+      final predictedDy = predictedY - _topologyCentroidCache.y;
+      var predictedAngle = math.atan2(predictedDy, predictedDx);
+
+      // 角度差を計算（-π ~ π）
+      var angleDelta = predictedAngle - currAngle;
+      while (angleDelta > math.pi) {
+        angleDelta -= 2 * math.pi;
+      }
+      while (angleDelta < -math.pi) {
+        angleDelta += 2 * math.pi;
+      }
+
+      // 前後の粒子の角度
+      final prevIdx = (i - 1 + n) % n;
+      final nextIdx = (i + 1) % n;
+      final prevAngle = _topologyAngleCache[prevIdx];
+      final nextAngle = _topologyAngleCache[nextIdx];
+
+      // 前の粒子との角度差（現在の角度 - 前の角度）
+      var diffPrev = currAngle - prevAngle;
+      while (diffPrev > math.pi) {
+        diffPrev -= 2 * math.pi;
+      }
+      while (diffPrev < -math.pi) {
+        diffPrev += 2 * math.pi;
+      }
+
+      // 次の粒子との角度差（次の角度 - 現在の角度）
+      var diffNext = nextAngle - currAngle;
+      while (diffNext > math.pi) {
+        diffNext -= 2 * math.pi;
+      }
+      while (diffNext < -math.pi) {
+        diffNext += 2 * math.pi;
+      }
+
+      bool needsCorrection = false;
+
+      // 反時計回りに移動して次の粒子を追い越しそうか
+      if (angleDelta > 0 && angleDelta > diffNext - safetyMargin) {
+        needsCorrection = true;
+      }
+      // 時計回りに移動して前の粒子を追い越しそうか
+      if (angleDelta < 0 && -angleDelta > diffPrev - safetyMargin) {
+        needsCorrection = true;
+      }
+
+      if (needsCorrection) {
+        // 周方向の速度成分を削減
+        // 周方向の単位ベクトル（反時計回り = 正）
+        final toCenter = _topologyCentroidCache - pos;
+        final dist = math.sqrt(toCenter.x * toCenter.x + toCenter.y * toCenter.y);
+        if (dist < 0.001) continue;
+
+        // 接線方向（反時計回り）: 中心への垂直
+        final tangentX = -toCenter.y / dist;
+        final tangentY = toCenter.x / dist;
+
+        // 周方向の速度成分
+        final tangentialVel = vel.x * tangentX + vel.y * tangentY;
+
+        // 周方向成分を減衰（追い越しを防ぐ）
+        final correctionFactor = strength * 0.9; // 強く抑制
+        final newVelX = vel.x - tangentX * tangentialVel * correctionFactor;
+        final newVelY = vel.y - tangentY * tangentialVel * correctionFactor;
+
+        if (newVelX.isFinite && newVelY.isFinite) {
+          body.linearVelocity = Vector2(newVelX, newVelY);
+        }
+      }
+    }
+  }
+
+  /// 多層スキップ制約を強制
+  /// 複数のstep値で制約を適用し、より強固にクロスを防ぐ
+  void enforceMultiLayerSkipConstraints(
+    List<Body> shellBodies,
+    List<List<double>> initialSkipLengthsByStep,
+    List<int> steps,
+    List<double> minRatios,
+  ) {
+    if (shellBodies.length < 3) return;
+    if (steps.length != minRatios.length) return;
+    if (steps.length != initialSkipLengthsByStep.length) return;
+
+    for (int layer = 0; layer < steps.length; layer++) {
+      final step = steps[layer];
+      final minRatio = minRatios[layer];
+      final initialLengths = initialSkipLengthsByStep[layer];
+
+      if (initialLengths.isEmpty) continue;
+
+      enforceSkipConstraints(shellBodies, initialLengths, step, minRatio);
     }
   }
 }

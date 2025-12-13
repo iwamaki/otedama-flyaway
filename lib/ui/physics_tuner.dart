@@ -341,6 +341,76 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
 
           const Divider(color: Colors.white24),
 
+          // 位相的速度制約（CCDの代替）
+          _buildSectionHeader('Topology (位相的速度制約)'),
+          _buildToggle(
+            'Enabled',
+            ParticleOtedama.topologicalVelocityEnabled,
+            (v) {
+              ParticleOtedama.topologicalVelocityEnabled = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'Strength',
+            ParticleOtedama.topologicalVelocityStrength,
+            0.0,
+            1.0,
+            (v) {
+              ParticleOtedama.topologicalVelocityStrength = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'Margin',
+            ParticleOtedama.topologicalSafetyMargin,
+            0.01,
+            0.5,
+            (v) {
+              ParticleOtedama.topologicalSafetyMargin = v;
+              setState(() {});
+            },
+          ),
+
+          const Divider(color: Colors.white24),
+
+          // 多層スキップ制約
+          _buildSectionHeader('MultiSkip (多層スキップ)'),
+          _buildToggle(
+            'Enabled',
+            ParticleOtedama.multiLayerSkipEnabled,
+            (v) {
+              ParticleOtedama.multiLayerSkipEnabled = v;
+              _rebuild();
+            },
+          ),
+
+          const Divider(color: Colors.white24),
+
+          // Forge2Dサブステッピング
+          _buildSectionHeader('F2D Substep (物理分割)'),
+          _buildToggle(
+            'Enabled',
+            ParticleOtedama.forge2dSubsteppingEnabled,
+            (v) {
+              ParticleOtedama.forge2dSubsteppingEnabled = v;
+              setState(() {});
+            },
+          ),
+          _buildSlider(
+            'Steps',
+            ParticleOtedama.forge2dSubsteps.toDouble(),
+            2,
+            6,
+            (v) {
+              ParticleOtedama.forge2dSubsteps = v.round();
+              setState(() {});
+            },
+            isInt: true,
+          ),
+
+          const Divider(color: Colors.white24),
+
           // ビーズパラメータ
           _buildSectionHeader('Beads (ビーズ)'),
           _buildSlider(
@@ -825,6 +895,18 @@ class _PhysicsTunerState extends State<PhysicsTuner> {
       ParticleOtedama.shellCollisionEnabled = false;
       ParticleOtedama.shellCollisionRadiusMultiplier = 2.0;
 
+      // Topology
+      ParticleOtedama.topologicalVelocityEnabled = true;
+      ParticleOtedama.topologicalVelocityStrength = 0.9;
+      ParticleOtedama.topologicalSafetyMargin = 0.15;
+
+      // MultiSkip
+      ParticleOtedama.multiLayerSkipEnabled = true;
+
+      // F2D Substep
+      ParticleOtedama.forge2dSubsteppingEnabled = false;
+      ParticleOtedama.forge2dSubsteps = 2;
+
       // Beads
       ParticleOtedama.beadCount = 0;
       ParticleOtedama.beadRadius = 0.40;
@@ -910,6 +992,18 @@ shellCcdEnabled: ${ParticleOtedama.shellCcdEnabled}
 physicsSubsteps: ${ParticleOtedama.physicsSubsteps}
 shellCollisionEnabled: ${ParticleOtedama.shellCollisionEnabled}
 shellCollisionRadiusMultiplier: ${ParticleOtedama.shellCollisionRadiusMultiplier}
+
+// Topology
+topologicalVelocityEnabled: ${ParticleOtedama.topologicalVelocityEnabled}
+topologicalVelocityStrength: ${ParticleOtedama.topologicalVelocityStrength}
+topologicalSafetyMargin: ${ParticleOtedama.topologicalSafetyMargin}
+
+// MultiSkip
+multiLayerSkipEnabled: ${ParticleOtedama.multiLayerSkipEnabled}
+
+// F2D Substep
+forge2dSubsteppingEnabled: ${ParticleOtedama.forge2dSubsteppingEnabled}
+forge2dSubsteps: ${ParticleOtedama.forge2dSubsteps}
 
 // Beads
 beadCount: ${ParticleOtedama.beadCount}

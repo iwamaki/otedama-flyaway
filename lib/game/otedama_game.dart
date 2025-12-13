@@ -182,12 +182,29 @@ class OtedamaGame extends Forge2DGame
     // パフォーマンスモニター: フレーム記録
     PerformanceMonitor.instance.recordFrame(dt);
 
-    // ★ Forge2D物理ステップの前に速度制限を適用（反転防止の根本対策）
-    // super.update()内でWorld.stepDt()が実行されるため、その前に制限する必要がある
-    otedama?.applyPreStepVelocityLimits();
-
     PerformanceMonitor.instance.startSection('physics');
-    super.update(dt);
+
+    // Forge2Dサブステッピングが有効な場合、物理ステップを分割
+    if (ParticleOtedama.forge2dSubsteppingEnabled &&
+        ParticleOtedama.forge2dSubsteps > 1) {
+      final subDt = dt / ParticleOtedama.forge2dSubsteps;
+      for (int i = 0; i < ParticleOtedama.forge2dSubsteps; i++) {
+        // 各サブステップ前に速度制限を適用
+        otedama?.applyPreStepVelocityLimits(subDt);
+        // Forge2Dの物理ステップ（小さいdtで）
+        world.physicsWorld.stepDt(subDt);
+      }
+      // 子コンポーネントのupdateはdt全体で1回だけ呼ぶ
+      for (final child in world.children) {
+        child.update(dt);
+      }
+    } else {
+      // ★ Forge2D物理ステップの前に速度制限を適用（反転防止の根本対策）
+      // super.update()内でWorld.stepDt()が実行されるため、その前に制限する必要がある
+      otedama?.applyPreStepVelocityLimits(dt);
+      super.update(dt);
+    }
+
     PerformanceMonitor.instance.endSection('physics');
 
     // 音声サービスの更新（クールダウン管理）

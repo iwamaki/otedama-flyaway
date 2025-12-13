@@ -109,6 +109,20 @@ class ParticleOtedama extends BodyComponent {
   static bool angleOrderEnabled = true; // 角度順序維持を有効化
   static double angleOrderStrength = 0.8; // 修正の強さ（0-1）
 
+  // 位相的速度制約（Topological Velocity Constraint）- CCDの代替
+  static bool topologicalVelocityEnabled = true; // 位相的速度制約を有効化
+  static double topologicalVelocityStrength = 0.9; // 制約の強さ（0-1）
+  static double topologicalSafetyMargin = 0.15; // 追い越し判定のマージン（ラジアン）
+
+  // 多層スキップ制約（Multi-layer Skip Constraint）- より強固なクロス防止
+  static bool multiLayerSkipEnabled = true; // 多層スキップ制約を有効化
+  static List<int> multiLayerSkipSteps = [2, 3, 4]; // 各層のstep値
+  static List<double> multiLayerSkipRatios = [0.9, 0.85, 0.8]; // 各層の最小距離比率
+
+  // Forge2Dサブステッピング - 物理エンジン自体のステップを分割
+  static bool forge2dSubsteppingEnabled = false; // サブステッピングを有効化（デフォルトOFF）
+  static int forge2dSubsteps = 2; // サブステップ数
+
   // CCD（連続衝突検出）- 高速時のすり抜け防止
   static bool shellCcdEnabled = true; // CCD有効化
 
@@ -126,6 +140,8 @@ class ParticleOtedama extends BodyComponent {
   final List<double> _initialJointLengths = [];
   // スキップ制約の初期距離を記録
   final List<double> _initialSkipLengths = [];
+  // 多層スキップ制約の初期距離を記録（各層ごと）
+  final List<List<double>> _multiLayerSkipLengths = [];
 
   // 衝突検出用（速度変化を監視）
   List<Vector2> _previousVelocities = [];
@@ -239,6 +255,18 @@ class ParticleOtedama extends BodyComponent {
           _initialSkipLengths,
           skipConstraintStep,
           skipConstraintRatio,
+        );
+      }
+    }
+
+    // 多層スキップ制約を強制（より強固なクロス防止）
+    if (multiLayerSkipEnabled && _multiLayerSkipLengths.isNotEmpty) {
+      for (int i = 0; i < physicsSubsteps; i++) {
+        _physicsSolver.enforceMultiLayerSkipConstraints(
+          shellBodies,
+          _multiLayerSkipLengths,
+          multiLayerSkipSteps,
+          multiLayerSkipRatios,
         );
       }
     }
@@ -518,7 +546,7 @@ class ParticleOtedama extends BodyComponent {
 
   /// Forge2D物理ステップの前に速度制限を適用（OtedamaGame.update()から呼ばれる）
   /// これにより、World.stepDt()で反転が起きるのを防ぐ
-  void applyPreStepVelocityLimits() {
+  void applyPreStepVelocityLimits(double dt) {
     if (shellBodies.isEmpty || _isAtRest) return;
 
     // ボディが有効かチェック（ステージ遷移中などで破棄されている可能性）
@@ -535,6 +563,15 @@ class ParticleOtedama extends BodyComponent {
     // 3. 平均からの偏差制限
     if (impactDampingEnabled) {
       _limitShellSpeed();
+    }
+    // 4. 位相的速度制約（粒子が隣を追い越す速度成分を除去）
+    if (topologicalVelocityEnabled) {
+      _physicsSolver.enforceTopologicalVelocityConstraint(
+        shellBodies,
+        dt,
+        topologicalVelocityStrength,
+        safetyMargin: topologicalSafetyMargin,
+      );
     }
   }
 
@@ -627,6 +664,22 @@ class ParticleOtedama extends BodyComponent {
         final bodyB = shellBodies[(i + skipConstraintStep) % shellCount];
         final initialLength = (bodyA.position - bodyB.position).length;
         _initialSkipLengths.add(initialLength);
+      }
+    }
+
+    // 多層スキップ制約の初期距離を記録
+    _multiLayerSkipLengths.clear();
+    if (multiLayerSkipEnabled) {
+      for (final step in multiLayerSkipSteps) {
+        final lengths = <double>[];
+        if (step > 0 && step < shellCount ~/ 2) {
+          for (int i = 0; i < shellCount; i++) {
+            final bodyA = shellBodies[i];
+            final bodyB = shellBodies[(i + step) % shellCount];
+            lengths.add((bodyA.position - bodyB.position).length);
+          }
+        }
+        _multiLayerSkipLengths.add(lengths);
       }
     }
 
